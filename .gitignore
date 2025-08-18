@@ -1,0 +1,28 @@
+#Sample git ignore file for FERN project
+
+#Node
+node_modules/
+
+#Environment variables , # secrets, and config files (e.g api keys)
+.env
+.env.local
+.env.development.local
+
+#OS stuff /logs ()
+.DS_Store
+
+
+#Firebase (sample, not sure if needed)
+firebase-debug.log
+firebase.json
+.firebaserc
+
+
+#React 
+build/
+coverage/
+
+
+#npm (Node package manager)
+package-lock.json
+
