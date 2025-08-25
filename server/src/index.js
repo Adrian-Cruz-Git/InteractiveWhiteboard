@@ -4,8 +4,11 @@ const { WebSocketServer } = require('ws');
 const app = express(); // Create an instance of Express
 const server = http.createServer(app); // Create an HTTP server using the Express app
 const wsServer = new WebSocketServer({ server });
-import cors from "cors"; // Rules for front end requests to back end
-import { v4 as uuidv4 } from "uuid"; // For generating unique IDs (websoccket connections)
+//Cant use import syntax unless type: module in package.json
+const cors = require("cors"); // Rules for front end requests to back end
+const { v4 : uuidv4 } = require("uuid"); // For generating unique IDs (websoccket connections)
+
+
 
 
 
@@ -16,15 +19,20 @@ const PORT = process.env.NODE_PORT || 5000;
 app.use(cors());
 app.use(express.json());
 
+//      Routes
+
+// Public route
+app.use("/auth", require("./routes/auth"));
+
+// Protected routes (must pass verifyJWT)
+// app.use("/chat", verifyJWT, require("./routes/chatRoutes"));
+// app.use("/users", verifyJWT, require("./routes/userRoutes"));
+
+
 // EXAMPLES
 // Simple test route
 app.get("/", (req, res) => {
-  res.json({ message: "Hello from Express server " });
-});
-
-// Example API route
-app.get("/api/data", (req, res) => {
-  res.json({ items: ["apple", "banana", "cherry"] });
+  res.json({ message: "Hello from Express server API is running " });
 });
 
 
