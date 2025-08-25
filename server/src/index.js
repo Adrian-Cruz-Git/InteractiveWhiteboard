@@ -19,10 +19,12 @@ const PORT = process.env.NODE_PORT || 5000;
 app.use(cors());
 app.use(express.json());
 
+
 //      Routes
 
-// Public route
+// Public route - register and auth/login
 app.use("/auth", require("./routes/auth"));
+
 
 // Protected routes (must pass verifyJWT)
 // app.use("/chat", verifyJWT, require("./routes/chatRoutes"));

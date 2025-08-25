@@ -50,4 +50,39 @@ const handleLogin = async (req, res) => {
     }
 }
 
-module.exports = { handleLogin };
+
+const handleRegister = async (req, res) => {
+    const { user, pwd } = req.body;
+
+    if (!user || !pwd) return res.status(400).json({ message: "Username and password required." });
+
+    // Check if username already exists
+    const duplicate = usersDB.users.find(u => u.username === user);
+    if (duplicate) return res.sendStatus(409); // Conflict
+
+    try {
+        // Hash the password
+        const hashedPwd = await bcrypt.hash(pwd, 10);
+
+        // Add user to in-memory array
+        const newUser = { username: user, password: hashedPwd, refreshToken: "" };
+        usersDB.setUsers([...usersDB.users, newUser]);
+
+        // Write to JSON file
+        await fsPromises.writeFile(
+            path.join(__dirname, "..", "models", "users.json"),
+            JSON.stringify(usersDB.users, null, 2)
+        );
+
+        res.status(201).json({ message: `User ${user} registered successfully.` });
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({ message: "Error registering user." });
+    }
+};
+
+
+
+
+
+module.exports = { handleLogin, handleRegister };

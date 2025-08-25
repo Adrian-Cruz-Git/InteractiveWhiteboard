@@ -1,16 +1,27 @@
 // routes for authentication
 const excpress = require("express");
 const router = excpress.Router();
-const authController = require("../controllers/authController");
+const {handleLogin, handleRegister} = require("../controllers/authController");
 const verifyJWT = require("../middleware/verifyJWT");
 
-//for testing only - can remove later - verify JWT middleware
-router.get("/auth", verifyJWT, (req, res) => {
-  res.json({ message: `Hello ${req.user}, your token is valid.` });
-});
+// //for testing only - can remove later - verify JWT middleware
+// router.get("/auth", verifyJWT, (req, res) => {
+//   res.json({ message: `Hello ${req.user}, your token is valid.` });
+// });
 
-router.route('/auth')
+// POST /auth
+router.route('/')
 .get(verifyJWT)
-.post(authController.handleLogin);
+.post(handleLogin);
+
+
+//Post /auth/register
+// e.g 
+router.post("/register", handleRegister);
+// or
+// router.route("/register")
+//   .post(handleRegister);
+
+
 
 module.exports = router;
