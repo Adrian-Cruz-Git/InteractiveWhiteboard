@@ -1,0 +1,25 @@
+.navbar {
+    display: flex;
+    align-items: center;
+    background-color: #333;
+    color: white;
+    padding: 0.5rem;
+}
+
+.navbar button {
+    margin-right: 0.5rem;
+    padding: 0.5rem 1rem;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    color: white;
+}
+
+.navbar .active {
+    background-color: #555;
+}
+
+.navbar .new-board {
+    margin-left: auto;
+    background-color: #28a745;
+}

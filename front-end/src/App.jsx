@@ -1,35 +1,51 @@
-import { useState } from 'react'
-import reactLogo from './assets/react.svg'
-import viteLogo from '/vite.svg'
-import './App.css'
+import React, { useState } from "react";
+import Navbar from "./components/Navbar";
+import Whiteboard from "./components/Whiteboard";
 
 function App() {
-  const [count, setCount] = useState(0)
+    const [boards, setBoards] = useState([{ id: 1, strokes: [] }]);
+    const [activeBoard, setActiveBoard] = useState(1);
 
-  return (
-    <>
-      <div>
-        <a href="https://vite.dev" target="_blank">
-          <img src={viteLogo} className="logo" alt="Vite logo" />
-        </a>
-        <a href="https://react.dev" target="_blank">
-          <img src={reactLogo} className="logo react" alt="React logo" />
-        </a>
-      </div>
-      <h1>Vite + React</h1>
-      <div className="card">
-        <button onClick={() => setCount((count) => count + 1)}>
-          count is {count}
-        </button>
-        <p>
-          Edit <code>src/App.jsx</code> and save to test HMR
-        </p>
-      </div>
-      <p className="read-the-docs">
-        Click on the Vite and React logos to learn more
-      </p>
-    </>
-  )
+    const addBoard = () => {
+        const newId = boards.length + 1;
+        setBoards([...boards, { id: newId, strokes: [] }]);
+        setActiveBoard(newId);
+    };
+
+    const updateStrokes = (id, newStrokes) => {
+        setBoards((prev) =>
+            prev.map((board) =>
+                board.id === id ? { ...board, strokes: newStrokes } : board
+            )
+        );
+    };
+
+    const activeBoardData = boards.find((b) => b.id === activeBoard);
+
+    return (
+        <div>
+            <Navbar
+                boards={boards}
+                activeBoard={activeBoard}
+                onSelectBoard={setActiveBoard}
+                onAddBoard={addBoard}
+            />
+
+            <div style={{ padding: "1rem" }}>
+                {activeBoardData && (
+                    <div key={activeBoardData.id}>
+                        <h2>Whiteboard {activeBoardData.id}</h2>
+                        <Whiteboard
+                            strokes={activeBoardData.strokes}
+                            onChange={(newStrokes) =>
+                                updateStrokes(activeBoardData.id, newStrokes)
+                            }
+                        />
+                    </div>
+                )}
+            </div>
+        </div>
+    );
 }
 
-export default App
+export default App;
