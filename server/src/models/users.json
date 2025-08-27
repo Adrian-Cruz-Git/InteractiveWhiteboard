@@ -3,5 +3,10 @@
     "username": "george",
     "password": "$2b$10$nky9rGWk50hsk.k03P5.4ePrEVsMe1T3cSeBqSkXEghKuP33M8mFq",
     "refreshToken": ""
+  },
+  {
+    "username": "joseph",
+    "password": "$2b$10$qkDLZLNmk7ofuIjBNLH2hOvy3K2k4EBaY/I9DLerjV3NfatFVTPl6",
+    "refreshToken": ""
   }
 ]
