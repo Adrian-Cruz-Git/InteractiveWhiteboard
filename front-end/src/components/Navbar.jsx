@@ -1,6 +1,8 @@
 import React from "react";
 import "./Navbar.css";
 
+//Nav bar for whiteboard componnet (new board button)
+
 function Navbar({ boards, activeBoard, onSelectBoard, onAddBoard }) {
     return (
         <nav className="navbar">
