@@ -10,7 +10,7 @@ import { getAuth } from "firebase/auth";
 // Your web app's Firebase configuration
 // For Firebase JS SDK v7.20.0 and later, measurementId is optional
 const firebaseConfig = {
-  apiKey: "AIzaSyBRVEgGmikDH-5uDcMVOvscIMWJuNIq_48",
+  apiKey: import.meta.env.VITE_FIREBASE_API_KEY,
   authDomain: "whiteboard-b2bb2.firebaseapp.com",
   databaseURL: "https://whiteboard-b2bb2-default-rtdb.firebaseio.com",
   projectId: "whiteboard-b2bb2",
