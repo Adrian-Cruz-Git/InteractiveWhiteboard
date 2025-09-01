@@ -1,0 +1,62 @@
+/* Center everything */
+.login-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  background: white;
+  min-height: 100vh;
+  padding: 2rem;
+}
+
+/* Title */
+.login-title {
+  font-size: 2rem;
+  margin-bottom: 1rem;
+  color: #333;
+}
+
+/* Input fields */
+.login-input {
+  width: 250px;
+  padding: 10px;
+  margin: 8px 0;
+  border: 1px solid #aaa;
+  border-radius: 5px;
+  font-size: 1rem;
+}
+
+/* Buttons (base) */
+.login-button {
+  width: 270px;
+  padding: 10px;
+  margin: 8px 0;
+  font-size: 1rem;
+  border: 1px solid #333;
+  border-radius: 5px;
+  cursor: pointer;
+  color: white;
+  transition: 0.2s ease;
+}
+
+/* Different button colors */
+.blue-btn {
+  background-color: #007bff;
+}
+.blue-btn:hover {
+  background-color: #0056b3;
+}
+
+.green-btn {
+  background-color: #28a745;
+}
+.green-btn:hover {
+  background-color: #1e7e34;
+}
+
+.red-btn {
+  background-color: #dc3545;
+}
+.red-btn:hover {
+  background-color: #a71d2a;
+}
