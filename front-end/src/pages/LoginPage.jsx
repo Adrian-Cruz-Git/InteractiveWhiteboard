@@ -6,8 +6,11 @@ import { useState } from "react";
 import { auth } from "../firebase";
 import { GoogleAuthProvider, signInWithPopup, signInWithEmailAndPassword, createUserWithEmailAndPassword } from "firebase/auth";
 import "./LoginPage.css";
+import { useNavigate } from "react-router-dom";
+
 
 function LoginPage() {
+  const navigate = useNavigate();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
 
@@ -17,6 +20,7 @@ function LoginPage() {
     try {
       const result = await signInWithPopup(auth, googleProvider);
       console.log("Logged in:", result.user);
+      navigate("/");
     } catch (err) {
       console.error(err.message);
     }
@@ -26,6 +30,7 @@ function LoginPage() {
     try {
       const userCredential = await signInWithEmailAndPassword(auth, email, password);
       console.log("Logged in:", userCredential.user);
+      navigate("/");
     } catch (err) {
       console.error(err.message);
     }
@@ -35,13 +40,14 @@ function LoginPage() {
     try {
       const userCredential = await createUserWithEmailAndPassword(auth, email, password);
       console.log("Registered:", userCredential.user);
+      navigate("/");
     } catch (err) {
       console.error(err.message);
     }
   };
 
   return (
- <div className="login-container">
+    <div className="login-container">
       <h1 className="login-title">Welcome</h1>
       <input
         type="email"
