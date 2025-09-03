@@ -1,6 +1,7 @@
 import { useState } from "react";
 import Navbar from "../components/Navbar";
 import Whiteboard from "../components/Whiteboard";
+import Toolbar from "../components/toolbar";
 
 function WhiteboardApp(){
 
@@ -25,7 +26,7 @@ function WhiteboardApp(){
     const activeBoardData = boards.find((b) => b.id === activeBoard);
 
     return (
-        <div>
+        <div style={{ height: "100vh", display: "flex", flexDirection: "column" }}>
             <Navbar
                 boards={boards}
                 activeBoard={activeBoard}
@@ -33,18 +34,21 @@ function WhiteboardApp(){
                 onAddBoard={addBoard}
             />
 
-            <div style={{ padding: "1rem" }}>
-                {activeBoardData && (
-                    <div key={activeBoardData.id}>
-                        <h2>Whiteboard {activeBoardData.id}</h2>
-                        <Whiteboard
-                            strokes={activeBoardData.strokes}
-                            onChange={(newStrokes) =>
-                                updateStrokes(activeBoardData.id, newStrokes)
-                            }
-                        />
-                    </div>
-                )}
+            <div style={{ flex: 1, display: "flex", background: "#fff", marginTop: "3rem" }}>
+                <Toolbar />
+                <div style={{ flex: 1, padding: "1rem" }}>
+                    {activeBoardData && (
+                        <div key={activeBoardData.id}>
+                            <h2>Whiteboard {activeBoardData.id}</h2>
+                            <Whiteboard
+                                strokes={activeBoardData.strokes}
+                                onChange={(newStrokes) =>
+                                    updateStrokes(activeBoardData.id, newStrokes)
+                                }
+                            />
+                        </div>
+                    )}
+                </div>
             </div>
         </div>
     );
