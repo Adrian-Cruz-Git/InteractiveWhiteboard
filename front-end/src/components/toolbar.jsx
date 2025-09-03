@@ -7,6 +7,7 @@ export default function Toolbar(){
             <button>Pen</button>
             <button>Highlight</button>
             <button>Eraser</button>
+            <button>Sticky Note</button>
             <button>Shape</button>
             <button>Text</button>
             <button>Image</button>
