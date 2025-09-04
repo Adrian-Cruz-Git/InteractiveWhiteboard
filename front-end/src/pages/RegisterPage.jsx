@@ -1,29 +1,26 @@
-// Page for user authentication (login) - Second page a user is met with, if they already have an account
-// login 
+// Page for user authentication (register only) first page a user is met with.
+// Option to create account or login  - e.g Already have an account
 //Use firebase auth ui
 // Later integrate google authentication aswell (button)
 import { useState } from "react";
 import { auth } from "../firebase";
 import { GoogleAuthProvider, signInWithPopup, signInWithEmailAndPassword, createUserWithEmailAndPassword } from "firebase/auth";
-import "./LoginPage.css";
+import "./RegisterPage.css";
 import { useNavigate } from "react-router-dom";
 import TopNav from "../components/TopNav";
 import Popup from "../components/Popup";
 import {getFriendlyError} from "../utils/firebaseErrors.js";
 
-function LoginPage() {
-  const navigate = useNavigate(); //navigate with react router
-
-  const [email, setEmail] = useState(""); // set email with the one in the box
-  const [password, setPassword] = useState(""); //set password same
-
+function RegisterPage() {
+  const navigate = useNavigate();
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  
   // Popup state for errors
   const [showPopup, setShowPopup] = useState(false);
   const [popupMessage, setPopupMessage] = useState("");
 
   const googleProvider = new GoogleAuthProvider();
-
-
 
   const handleGoogleLogin = async () => {
     try {
@@ -37,10 +34,10 @@ function LoginPage() {
     }
   };
 
-  const handleEmailLogin = async () => {
+  const handleRegister = async () => {
     try {
-      const userCredential = await signInWithEmailAndPassword(auth, email, password);
-      console.log("Logged in:", userCredential.user);
+      const userCredential = await createUserWithEmailAndPassword(auth, email, password);
+      console.log("Registered:", userCredential.user);
       navigate("/");
     } catch (err) {
       setPopupMessage(getFriendlyError(err.code));
@@ -52,9 +49,8 @@ function LoginPage() {
   return (
     <>
       <TopNav />
-
       <div className="login-container">
-        <h1 className="login-title">Login</h1>
+        <h1 className="login-title">Register</h1>
         <input
           type="email"
           placeholder="Email"
@@ -69,15 +65,14 @@ function LoginPage() {
           value={password}
           onChange={(e) => setPassword(e.target.value)}
         />
-        <button onClick={handleEmailLogin} className="login-button blue-btn">
-          Login with Email
+        <button onClick={handleRegister} className="login-button green-btn">
+          Register
         </button>
         <button onClick={handleGoogleLogin} className="login-button red-btn">
           Continue with Google
         </button>
-        <p className="register">Don't have an account? <a href="/register">Register</a></p>
+        <p>Already have an account? <a href="/login">Login</a></p>
       </div>
-      {/* Popup */}
       <Popup trigger={showPopup} setTrigger={setShowPopup}>
         <h3 style={{ color: "black" }}>Error</h3>
         <p style={{ color: "black" }}>{popupMessage}</p>
@@ -86,4 +81,4 @@ function LoginPage() {
   );
 }
 
-export default LoginPage;
+export default RegisterPage;

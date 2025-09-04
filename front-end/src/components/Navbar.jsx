@@ -1,4 +1,4 @@
-import React from "react";
+
 import "./Navbar.css";
 
 //Nav bar for whiteboard componnet (new board button)
