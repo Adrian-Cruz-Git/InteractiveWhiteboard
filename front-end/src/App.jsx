@@ -6,7 +6,7 @@ import SettingsPage from "./pages/SettingsPage.jsx";
 import { BrowserRouter as Router, Route, Routes, Link } from "react-router-dom";
 import TopNav from "./components/TopNav";
 import ProtectedRoute from "./components/ProtectedRoute";
-import { AuthProvider } from "./contexts/AuthContext";
+import { AuthProvider } from "./contexts/AuthContext/";
 
 //Home Links to landing page - login to loginpage - whiteboard to whiteboardpage - settings to settingspage
 
@@ -35,3 +35,4 @@ function App() {
 }
 
 export default App;
+  

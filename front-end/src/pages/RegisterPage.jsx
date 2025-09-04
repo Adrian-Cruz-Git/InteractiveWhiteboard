@@ -1,5 +1,5 @@
-// Page for user authentication (login) - Second page a user is met with, if they already have an account
-// login 
+// Page for user authentication (register only) first page a user is met with.
+// Option to create account or login  - e.g Already have an account
 //Use firebase auth ui
 // Later integrate google authentication aswell (button)
 import { useState } from "react";
@@ -9,7 +9,7 @@ import "./LoginPage.css";
 import { useNavigate } from "react-router-dom";
 
 
-function LoginPage() {
+function RegisterPage() {
   const navigate = useNavigate();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -26,16 +26,15 @@ function LoginPage() {
     }
   };
 
-  const handleEmailLogin = async () => {
+  const handleRegister = async () => {
     try {
-      const userCredential = await signInWithEmailAndPassword(auth, email, password);
-      console.log("Logged in:", userCredential.user);
+      const userCredential = await createUserWithEmailAndPassword(auth, email, password);
+      console.log("Registered:", userCredential.user);
       navigate("/");
     } catch (err) {
       console.error(err.message);
     }
   };
-
 
   return (
     <div className="login-container">
@@ -54,14 +53,15 @@ function LoginPage() {
         value={password}
         onChange={(e) => setPassword(e.target.value)}
       />
-      <button onClick={handleEmailLogin} className="login-button blue-btn">
-        Login with Email
+      <button onClick={handleRegister} className="login-button green-btn">
+        Register
       </button>
       <button onClick={handleGoogleLogin} className="login-button red-btn">
         Continue with Google
       </button>
+      <p>Already have an account? Log in</p>
     </div>
   );
 }
 
-export default LoginPage;
+export default RegisterPage;
