@@ -1,13 +1,14 @@
 .toolbar{
     position: fixed;
-    width: 80.5px;
+    width: 40px;
     background: rgb(0, 0, 0, 0.5); /*semi-transparent*/
+    height: 50; /*fix to content height*/
     padding: 10px;
-    border-radius: 8px;
+    border-radius: 5px 10px; /*adjust inner spacing & round corners*/
     box-shadow: 0 2px 10px rgba(0, 0, 0, 0.15);
-    display: flex;
+    display: flex; /*ensure horizontal layout*/
     flex-direction: column;
-    align-items: center;
+    align-items: center; /*vetically center icons*/
     margin-top: 1rem; /*aligns below navbar*/
 }
 
@@ -15,7 +16,9 @@
     opacity: 1; /*fully oqaque*/
     background: none;
     border: none;
-    margin: 8px 0;
-    font-size: 20px; /*for icon size*/
+    margin: 6px 0;
+    font-size: 11.5px; /*for icon size*/
     cursor: pointer;
+    outline: none; /*remove focus outline*/
+    box-shadow: none; /*remove focus box-shadow*/
 }
