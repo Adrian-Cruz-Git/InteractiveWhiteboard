@@ -7,15 +7,23 @@ import { auth } from "../firebase";
 import { GoogleAuthProvider, signInWithPopup, signInWithEmailAndPassword, createUserWithEmailAndPassword } from "firebase/auth";
 import "./LoginPage.css";
 import { useNavigate } from "react-router-dom";
-import  TopNav from "../components/TopNav";
-
+import TopNav from "../components/TopNav";
+import Popup from "../components/Popup";
+import {getFriendlyError} from "../utils/firebaseErrors.js";
 
 function LoginPage() {
-  const navigate = useNavigate();
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
+  const navigate = useNavigate(); //navigate with react router
+
+  const [email, setEmail] = useState(""); // set email with the one in the box
+  const [password, setPassword] = useState(""); //set password same
+
+  // Popup state for errors
+  const [showPopup, setShowPopup] = useState(false);
+  const [popupMessage, setPopupMessage] = useState("");
 
   const googleProvider = new GoogleAuthProvider();
+
+
 
   const handleGoogleLogin = async () => {
     try {
@@ -23,7 +31,9 @@ function LoginPage() {
       console.log("Logged in:", result.user);
       navigate("/");
     } catch (err) {
-      console.error(err.message);
+      setPopupMessage(getFriendlyError(err.code));
+      setShowPopup(true);
+      console.error(err);
     }
   };
 
@@ -33,10 +43,11 @@ function LoginPage() {
       console.log("Logged in:", userCredential.user);
       navigate("/");
     } catch (err) {
-      console.error(err.message);
+      setPopupMessage(getFriendlyError(err.code));
+      setShowPopup(true);
+      console.error(err);
     }
   };
-
 
   return (
     <>
@@ -66,6 +77,11 @@ function LoginPage() {
         </button>
         <p className="register">Don't have an account? <a href="/register">Register</a></p>
       </div>
+      {/* Popup */}
+      <Popup trigger={showPopup} setTrigger={setShowPopup}>
+        <h3 style={{ color: "black" }}>Error</h3>
+        <p style={{ color: "black" }}>{popupMessage}</p>
+      </Popup>
     </>
   );
 }

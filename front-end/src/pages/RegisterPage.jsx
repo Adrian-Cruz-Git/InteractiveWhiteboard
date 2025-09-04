@@ -7,13 +7,18 @@ import { auth } from "../firebase";
 import { GoogleAuthProvider, signInWithPopup, signInWithEmailAndPassword, createUserWithEmailAndPassword } from "firebase/auth";
 import "./RegisterPage.css";
 import { useNavigate } from "react-router-dom";
-import  TopNav from "../components/TopNav";
-
+import TopNav from "../components/TopNav";
+import Popup from "../components/Popup";
+import {getFriendlyError} from "../utils/firebaseErrors.js";
 
 function RegisterPage() {
   const navigate = useNavigate();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  
+  // Popup state for errors
+  const [showPopup, setShowPopup] = useState(false);
+  const [popupMessage, setPopupMessage] = useState("");
 
   const googleProvider = new GoogleAuthProvider();
 
@@ -23,7 +28,9 @@ function RegisterPage() {
       console.log("Logged in:", result.user);
       navigate("/");
     } catch (err) {
-      console.error(err.message);
+      setPopupMessage(getFriendlyError(err.code));
+      setShowPopup(true);
+      console.error(err);
     }
   };
 
@@ -33,13 +40,15 @@ function RegisterPage() {
       console.log("Registered:", userCredential.user);
       navigate("/");
     } catch (err) {
-      console.error(err.message);
+      setPopupMessage(getFriendlyError(err.code));
+      setShowPopup(true);
+      console.error(err);
     }
   };
 
   return (
     <>
-      <TopNav/>
+      <TopNav />
       <div className="login-container">
         <h1 className="login-title">Register</h1>
         <input
@@ -64,6 +73,10 @@ function RegisterPage() {
         </button>
         <p>Already have an account? <a href="/login">Login</a></p>
       </div>
+      <Popup trigger={showPopup} setTrigger={setShowPopup}>
+        <h3 style={{ color: "black" }}>Error</h3>
+        <p style={{ color: "black" }}>{popupMessage}</p>
+      </Popup>
     </>
   );
 }
