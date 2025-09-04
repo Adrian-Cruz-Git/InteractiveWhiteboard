@@ -1,6 +1,6 @@
 // routes for authentication
-const excpress = require("express");
-const router = excpress.Router();
+const express = require("express");
+const router = express.Router();
 const {handleLogin, handleRegister} = require("../controllers/authController");
 const verifyJWT = require("../middleware/verifyJWT");
 

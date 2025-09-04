@@ -1,29 +1,25 @@
-const http = require('http');
-const express = require('express');
-const { WebSocketServer } = require('ws');
-const app = express(); // Create an instance of Express
-const server = http.createServer(app); // Create an HTTP server using the Express app
-const wsServer = new WebSocketServer({ server });
-//Cant use import syntax unless type: module in package.json
-const cors = require("cors"); // Rules for front end requests to back end
-const { v4 : uuidv4 } = require("uuid"); // For generating unique IDs (websoccket connections)
+const express = require("express");
+const cors = require("cors");
+require("dotenv").config();
 
-
-
-
-
+const app = express();
 
 const PORT = process.env.NODE_PORT || 5000;
 
 // Middleware
+
 app.use(cors());
 app.use(express.json());
 
-
 //      Routes
+const authRoutes = require("./routes/auth");
+const fileRoutes = require("./routes/files");
 
 // Public route - register and auth/login
 app.use("/auth", require("./routes/auth"));
+
+app.use("/api/auth", authRoutes);
+app.use("/api/files", fileRoutes);
 
 
 // Protected routes (must pass verifyJWT)
