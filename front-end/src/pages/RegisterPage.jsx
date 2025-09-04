@@ -5,8 +5,9 @@
 import { useState } from "react";
 import { auth } from "../firebase";
 import { GoogleAuthProvider, signInWithPopup, signInWithEmailAndPassword, createUserWithEmailAndPassword } from "firebase/auth";
-import "./LoginPage.css";
+import "./RegisterPage.css";
 import { useNavigate } from "react-router-dom";
+import  TopNav from "../components/TopNav";
 
 
 function RegisterPage() {
@@ -37,30 +38,33 @@ function RegisterPage() {
   };
 
   return (
-    <div className="login-container">
-      <h1 className="login-title">Welcome</h1>
-      <input
-        type="email"
-        placeholder="Email"
-        className="login-input"
-        value={email}
-        onChange={(e) => setEmail(e.target.value)}
-      />
-      <input
-        type="password"
-        placeholder="Password"
-        className="login-input"
-        value={password}
-        onChange={(e) => setPassword(e.target.value)}
-      />
-      <button onClick={handleRegister} className="login-button green-btn">
-        Register
-      </button>
-      <button onClick={handleGoogleLogin} className="login-button red-btn">
-        Continue with Google
-      </button>
-      <p>Already have an account? Log in</p>
-    </div>
+    <>
+      <TopNav/>
+      <div className="login-container">
+        <h1 className="login-title">Register</h1>
+        <input
+          type="email"
+          placeholder="Email"
+          className="login-input"
+          value={email}
+          onChange={(e) => setEmail(e.target.value)}
+        />
+        <input
+          type="password"
+          placeholder="Password"
+          className="login-input"
+          value={password}
+          onChange={(e) => setPassword(e.target.value)}
+        />
+        <button onClick={handleRegister} className="login-button green-btn">
+          Register
+        </button>
+        <button onClick={handleGoogleLogin} className="login-button red-btn">
+          Continue with Google
+        </button>
+        <p>Already have an account? <a href="/login">Login</a></p>
+      </div>
+    </>
   );
 }
 

@@ -1,0 +1,34 @@
+.navbar {
+  position: fixed;  /* Keeps the navbar at the top */
+  top: 0;
+  left: 0;
+  width: 100%;
+  background-color: #333;
+  color: white;
+  display: flex;
+  gap: 20px;
+  align-items: center;
+  padding: 10px 20px;
+  z-index: 1000;  /* Ensures it stays above other content */
+}
+
+.navbar a {
+  color: white;
+  text-decoration: none;
+}
+
+.navbar a:hover {
+  text-decoration: underline;
+}
+
+.logout-btn {
+  background-color: #f44336;
+  color: white;
+  border: none;
+  padding: 5px 10px;
+  cursor: pointer;
+}
+
+.logout-btn:hover {
+  background-color: #d32f2f;
+}

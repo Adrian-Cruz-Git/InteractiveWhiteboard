@@ -21,7 +21,7 @@ const TopNav = () => {
           <button onClick={handleLogout} className="logout-btn">Logout</button>
         </>
       ) : (
-        <Link to="/login">Login/Register</Link>
+        <Link to="/login">Login</Link>
       )}
     </nav>
   );

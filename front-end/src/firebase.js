@@ -14,7 +14,7 @@ import { getAuth } from "firebase/auth";
 
 
 const firebaseConfig = {
-  apiKey: import.meta.env.apiKey,
+  apiKey: import.meta.env.VITE_apiKey,
   authDomain: "whiteboard-b2bb2.firebaseapp.com",
   databaseURL: "https://whiteboard-b2bb2-default-rtdb.firebaseio.com",
   projectId: "whiteboard-b2bb2",
