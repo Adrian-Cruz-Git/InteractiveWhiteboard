@@ -6,7 +6,7 @@ const { admin } = require("../config/firebase");
 // Middleware function to verify JWT in request headers
 
 
-async function verifyJWT = (req, res, next) => {
+async function verifyJWT (req, res, next) {
     const authHeader = req.headers['authorization'];
     if (!authHeader) return res.sendStatus(401); // Unauthorized if no auth header
     console.log("Auth Header: ", authHeader); //testing // look like "Bearer token"
