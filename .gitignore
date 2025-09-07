@@ -26,3 +26,4 @@ coverage/
 #npm (Node package manager)
 package-lock.json
 
+server/src/serviceAccountKey.json
