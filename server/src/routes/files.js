@@ -32,4 +32,18 @@ router.post("/upload", verifyJWT, upload.single("file"), async (req, res) => {
   }
 });
 
+router.get("/", verifyJWT, async (req, res) => {
+  try {
+    const snapshot = await db.collection("users")
+      .doc(req.user)
+      .collection("files")
+      .get();
+
+    const files = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+    res.json(files);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
 module.exports = router;
