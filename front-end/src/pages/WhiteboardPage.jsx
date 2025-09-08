@@ -3,11 +3,13 @@ import Navbar from "../components/Navbar";
 import Whiteboard from "../components/Whiteboard";
 import Toolbar from "../components/toolbar";
 
-function WhiteboardApp(){
+function WhiteboardApp() {
 
 
     const [boards, setBoards] = useState([{ id: 1, strokes: [] }]);
     const [activeBoard, setActiveBoard] = useState(1);
+    const [activeTool, setActiveTool] = useState('cursor'); // default to cursor/off
+
 
     const addBoard = () => {
         const newId = boards.length + 1;
@@ -26,6 +28,7 @@ function WhiteboardApp(){
     const activeBoardData = boards.find((b) => b.id === activeBoard);
 
     return (
+
         <div style={{ height: "100vh", display: "flex", flexDirection: "column" }}>
             <Navbar
                 boards={boards}
@@ -35,13 +38,14 @@ function WhiteboardApp(){
             />
 
             <div style={{ flex: 1, display: "flex", background: "#fff", marginTop: "3rem" }}>
-                <Toolbar />
+                <Toolbar activeTool={activeTool} setActiveTool={setActiveTool} /> {/*new*/}
                 <div style={{ flex: 1, padding: "1rem" }}>
                     {activeBoardData && (
                         <div key={activeBoardData.id}>
                             <h2>Whiteboard {activeBoardData.id}</h2>
                             <Whiteboard
                                 strokes={activeBoardData.strokes}
+                                activeTool={activeTool}  // set active tool
                                 onChange={(newStrokes) =>
                                     updateStrokes(activeBoardData.id, newStrokes)
                                 }
