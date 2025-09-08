@@ -10,17 +10,20 @@ import imageIcon from '../assets/image.png';
 import undoIcon from '../assets/undo.png';
 import redoIcon from '../assets/redo.png';
 
-export default function Toolbar({ activeTool, setActiveTool }){
+
+export default function Toolbar({ activeTool, setActiveTool }) {
     return(
         <div className="toolbar">
             <button onClick={() => setActiveTool('cursor')}>
                 <img src={cursorIcon} alt="Cursor" style={{ width: '25px', height: '25px' }} />
             </button>
-            <button onClick={() => setActiveTool('pen')}>
+            <button
+                onClick={() => setActiveTool("pen")}
+            >
                 <img src={penIcon} alt="Pen" style={{ width: '25px', height: '25px' }} />
             </button>
             <button>
-                <img src={highlightIcon} alt="Highlighter" style={{ width: '25px', height: '25spx' }} />
+                <img src={highlightIcon} alt="Highlighter" style={{ width: '25px', height: '25px' }} />
             </button>
             <button onClick={() => setActiveTool('eraser')}>
                 <img src={eraserIcon} alt="Eraser" style={{ width: '25px', height: '25px' }} />

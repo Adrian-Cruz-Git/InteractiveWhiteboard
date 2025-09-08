@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { act, useState } from "react";
 import Navbar from "../components/Navbar";
 import Whiteboard from "../components/Whiteboard";
 import Toolbar from "../components/toolbar";
@@ -8,8 +8,7 @@ function WhiteboardApp() {
 
     const [boards, setBoards] = useState([{ id: 1, strokes: [] }]);
     const [activeBoard, setActiveBoard] = useState(1);
-    const [activeTool, setActiveTool] = useState('cursor'); // default to cursor/off
-
+    const [activeTool, setActiveTool] = useState("pen"); //pen
 
     const addBoard = () => {
         const newId = boards.length + 1;
@@ -37,9 +36,20 @@ function WhiteboardApp() {
                 onAddBoard={addBoard}
             />
 
-            <div style={{ flex: 1, display: "flex", background: "#fff", marginTop: "3rem" }}>
-                <Toolbar activeTool={activeTool} setActiveTool={setActiveTool} /> {/*new*/}
-                <div style={{ flex: 1, padding: "1rem" }}>
+            <div style={{ flex: 1, display: "flex", background: "#fff" }}>
+                <div style={{
+                    display: "flex",
+                    alignItems: "center", //vertically center
+                    height: "100vh",      //full viewport height
+                    position: "fixed",    //fix to left side
+                    left: 0,
+                    top: 0,
+                    zIndex: 10,
+                    padding: "1rem" //makes toolbar stick to wall or not
+                }}>
+                    <Toolbar activeTool={activeTool} setActiveTool={setActiveTool}  />
+                </div>
+                <div style={{ flex: 1, marginLeft: "80px", padding: "1rem" }}>
                     {activeBoardData && (
                         <div key={activeBoardData.id}>
                             <h2>Whiteboard {activeBoardData.id}</h2>
