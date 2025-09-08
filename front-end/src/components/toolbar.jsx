@@ -20,10 +20,18 @@ export default function Toolbar(){
                 <img src={penIcon} alt="Pen" style={{ width: '25px', height: '25px' }} />
             </button>
             <button>
-                <img src={highlightIcon} alt="Highlighter" style={{ width: '25px', height: '25spx' }} />
+                <img src={highlightIcon} alt="Highlighter" style={{ width: '25px', height: '25px' }} />
             </button>
-            <button>
-                <img src={eraserIcon} alt="Eraser" style={{ width: '25px', height: '25px' }} />
+            <button
+              onClick={() => {
+                window.__WB_ERASE__ = !window.__WB_ERASE__;
+                console.log('[Toolbar] eraser click ->', window.__WB_ERASE__ ? 'ON' : 'OFF');
+                window.dispatchEvent(new CustomEvent('wb:toggle-erase', { detail: { on: window.__WB_ERASE__ } }));
+              }}
+              title="Eraser"
+              aria-label="Eraser"
+            >
+              <img src={eraserIcon} alt="Eraser" style={{ width: '25px', height: '25px' }} />
             </button>
             <button>
                 <img src={stickyNoteIcon} alt="Sticky Note" style={{ width: '25px', height: '25px' }} />    
