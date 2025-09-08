@@ -3,7 +3,7 @@ import Navbar from "../components/Navbar";
 import Whiteboard from "../components/Whiteboard";
 import Toolbar from "../components/toolbar";
 
-function WhiteboardApp(){
+function WhiteboardApp() {
 
 
     const [boards, setBoards] = useState([{ id: 1, strokes: [] }]);
@@ -27,6 +27,7 @@ function WhiteboardApp(){
     const activeBoardData = boards.find((b) => b.id === activeBoard);
 
     return (
+
         <div style={{ height: "100vh", display: "flex", flexDirection: "column" }}>
             <Navbar
                 boards={boards}
@@ -54,10 +55,10 @@ function WhiteboardApp(){
                             <h2>Whiteboard {activeBoardData.id}</h2>
                             <Whiteboard
                                 strokes={activeBoardData.strokes}
+                                activeTool={activeTool}  // set active tool
                                 onChange={(newStrokes) =>
                                     updateStrokes(activeBoardData.id, newStrokes)
                                 }
-                                activeTool={activeTool}
                             />
                         </div>
                     )}
