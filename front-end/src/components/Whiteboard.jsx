@@ -5,6 +5,8 @@ function Whiteboard({ strokes, onChange, activeTool, stickyNotes = [], onAddStic
     const canvasRef = useRef(null);
     const [isDrawing, setIsDrawing] = useState(false);
     const [currentStroke, setCurrentStroke] = useState([]);
+    const [draggedNoteId, setDraggedNoteId] = useState(null);
+    const [dragOffset, setDragOffset] = useState({ x: 0, y: 0 });
 
     useEffect(() => {
         const canvas = canvasRef.current;
@@ -81,6 +83,40 @@ function Whiteboard({ strokes, onChange, activeTool, stickyNotes = [], onAddStic
         }
     };
 
+    const handleMouseUp = () => {
+        setDraggedNoteId(null);
+    }
+
+    //dragging sticky notes
+    const handleNoteMouseDown = (e, note) => {
+        e.stopPropagation(); //prevent canvas drawing
+        setDraggedNoteId(note.id);
+        setDragOffset({ x: e.clientX - note.x, y: e.clientY - note.y });
+    };
+
+    const handleMouseMove = (e) => {
+        if (draggedNoteId !== null) {
+            const x= e.clientX - dragOffset.x;
+            const y= e.clientY - dragOffset.y;
+            onUpdateStickyNote(draggedNoteId, undefined, x, y); //update position
+        }
+    };
+
+    useEffect(() => {
+        if (draggedNoteId !== null) {
+            window.addEventListener("mousemove", handleMouseMove);
+            window.addEventListener("mouseup", handleMouseUp);
+        } else {
+            window.removeEventListener("mousemove", handleMouseMove);
+            window.removeEventListener("mouseup", handleMouseUp);
+        }
+        return () => {
+            window.removeEventListener("mousemove", handleMouseMove);
+            window.removeEventListener("mouseup", handleMouseUp);
+        }
+    }, [draggedNoteId, dragOffset]);
+
+
     return (
         <div style={{ position: "relative", width: "100%", height: "100%" }}>
                 <canvas
@@ -109,6 +145,7 @@ function Whiteboard({ strokes, onChange, activeTool, stickyNotes = [], onAddStic
                         zIndex: 2,
                         cursor: "move",
                     }}
+                    onMouseDown={(e) => handleNoteMouseDown(e, note)}
                 >
                     <textarea
                         value={note.text}
@@ -121,7 +158,7 @@ function Whiteboard({ strokes, onChange, activeTool, stickyNotes = [], onAddStic
                             resize: "none",
                             fontSize: "14px"
                         }}
-                        placeholder="Testing"
+                        placeholder="Yuna was here"
                     />
                 </div>
             ))}

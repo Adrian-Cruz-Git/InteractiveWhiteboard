@@ -38,14 +38,21 @@ function WhiteboardApp() {
         );
     };
     
-    const updateStickyNote = (id, newText) => {
+    const updateStickyNote = (id, newText, newX, newY) => {
         setBoards((prev) =>
             prev.map((board) =>
                 board.id === activeBoard
                     ? {
                           ...board,
                           stickyNotes: board.stickyNotes.map((note) =>
-                              note.id === id ? { ...note, text: newText } : note
+                              note.id === id 
+                          ? { 
+                            ...note, 
+                            text: newText !== undefined ? newText : note.text,
+                            x: newX !== undefined ? newX : note.x,
+                            y: newY !== undefined ? newY : note.y
+                            }
+                            :note
                           ),
                       }
                     : board
@@ -90,7 +97,9 @@ function WhiteboardApp() {
                                 }
                                 stickyNotes={activeBoardData.stickyNotes} //makes notes only for one board or active baord
                                 onAddStickyNote={addStickyNote} //add sticky note
-                                onUpdateStickyNote={updateStickyNote} //update sticky note
+                                onUpdateStickyNote={(draggedNoteId, newText, x, y) =>
+                                    updateStickyNote(draggedNoteId, newText, x, y)
+                                } //update sticky note
                             />
                         </div>
                     )}
