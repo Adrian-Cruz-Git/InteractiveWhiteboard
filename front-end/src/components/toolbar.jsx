@@ -10,18 +10,22 @@ import imageIcon from '../assets/image.png';
 import undoIcon from '../assets/undo.png';
 import redoIcon from '../assets/redo.png';
 
-export default function Toolbar(){
+
+export default function Toolbar({ activeTool, setActiveTool }) {
     return(
         <div className="toolbar">
-            <button>
+            <button onClick={() => setActiveTool('cursor')}>
                 <img src={cursorIcon} alt="Cursor" style={{ width: '25px', height: '25px' }} />
             </button>
-            <button>
+            <button
+                onClick={() => setActiveTool("pen")}
+            >
                 <img src={penIcon} alt="Pen" style={{ width: '25px', height: '25px' }} />
             </button>
             <button>
                 <img src={highlightIcon} alt="Highlighter" style={{ width: '25px', height: '25px' }} />
             </button>
+<<<<<<< HEAD
             <button
               onClick={() => {
                 window.__WB_ERASE__ = !window.__WB_ERASE__;
@@ -32,6 +36,10 @@ export default function Toolbar(){
               aria-label="Eraser"
             >
               <img src={eraserIcon} alt="Eraser" style={{ width: '25px', height: '25px' }} />
+=======
+            <button onClick={() => setActiveTool('eraser')}>
+                <img src={eraserIcon} alt="Eraser" style={{ width: '25px', height: '25px' }} />
+>>>>>>> 199cb7dcbedeefdac2ea8a8746af3c9747a92b38
             </button>
             <button>
                 <img src={stickyNoteIcon} alt="Sticky Note" style={{ width: '25px', height: '25px' }} />    

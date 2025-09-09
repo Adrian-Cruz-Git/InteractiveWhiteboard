@@ -1,7 +1,7 @@
 import React, { useRef, useState, useEffect } from "react";
 import "./Whiteboard.css";
 
-function Whiteboard({ strokes, onChange }) {
+function Whiteboard({ strokes, onChange, activeTool }) { //add pen activeTool
     const canvasRef = useRef(null);
     const [isDrawing, setIsDrawing] = useState(false);
     const [currentStroke, setCurrentStroke] = useState([]);
@@ -49,6 +49,7 @@ function Whiteboard({ strokes, onChange }) {
     }, []);
 
     const startDrawing = (e) => {
+        if (activeTool !== 'pen' ) return; // only draw when pen or eraser is selected
         setIsDrawing(true);
         const pos = getMousePos(e);
         setCurrentStroke([pos]);
@@ -58,7 +59,7 @@ function Whiteboard({ strokes, onChange }) {
         }
     };
 
-    const draw = (e) => {
+   const draw = (e) => {
         if (!isDrawing) return;
         const pos = getMousePos(e);
         const ctx = canvasRef.current.getContext("2d");
@@ -149,11 +150,16 @@ function Whiteboard({ strokes, onChange }) {
         ctx.globalCompositeOperation = "source-over";
     };
 
+    const handlePointerDown = (e) => {
+        if (activeTool !== "pen") return; //only draw when pen is active
+        startDrawing(e);
+    };
+
     return (
         <canvas
             ref={canvasRef}
             className="whiteboard-canvas"
-            onMouseDown={startDrawing}
+            onMouseDown={handlePointerDown}
             onMouseMove={draw}
             onMouseUp={endDrawing}
             onMouseLeave={endDrawing}
