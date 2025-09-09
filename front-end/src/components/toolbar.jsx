@@ -28,8 +28,8 @@ export default function Toolbar({ activeTool, setActiveTool }) {
             <button onClick={() => setActiveTool('eraser')}>
                 <img src={eraserIcon} alt="Eraser" style={{ width: '25px', height: '25px' }} />
             </button>
-            <button>
-                <img src={stickyNoteIcon} alt="Sticky Note" style={{ width: '25px', height: '25px' }} />    
+            <button onClick={() => setActiveTool('stickyNote')}>
+                <img src={stickyNoteIcon} alt="Sticky Note" style={{ width: '25px', height: '25px' }} />
             </button>
             <button>
                 <img src={shapesIcon} alt="Shapes" style={{ width: '25px', height: '25px' }} />

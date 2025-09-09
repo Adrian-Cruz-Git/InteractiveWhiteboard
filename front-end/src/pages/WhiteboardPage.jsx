@@ -5,14 +5,14 @@ import Toolbar from "../components/toolbar";
 
 function WhiteboardApp() {
 
-
-    const [boards, setBoards] = useState([{ id: 1, strokes: [] }]);
+    const [boards, setBoards] = useState([{ id: 1, strokes: [], stickyNotes: [] }]);
     const [activeBoard, setActiveBoard] = useState(1);
     const [activeTool, setActiveTool] = useState("pen"); //pen
+    const [stickyNotes, setStickyNotes] = useState([]); //sticky notes
 
     const addBoard = () => {
         const newId = boards.length + 1;
-        setBoards([...boards, { id: newId, strokes: [] }]);
+        setBoards([...boards, { id: newId, strokes: [], stickyNotes: [] }]);
         setActiveBoard(newId);
     };
 
@@ -20,6 +20,35 @@ function WhiteboardApp() {
         setBoards((prev) =>
             prev.map((board) =>
                 board.id === id ? { ...board, strokes: newStrokes } : board
+            )
+        );
+    };
+
+    const addStickyNote = (x,y) => {
+        setBoards((prev) =>
+            prev.map((board) =>
+                board.id === activeBoard 
+                ? { 
+                    ...board, 
+                    stickyNotes: [...board.stickyNotes, 
+                        { id: Date.now(), x, y, text: "" }] 
+                  } 
+                : board
+            )
+        );
+    };
+    
+    const updateStickyNote = (id, newText) => {
+        setBoards((prev) =>
+            prev.map((board) =>
+                board.id === activeBoard
+                    ? {
+                          ...board,
+                          stickyNotes: board.stickyNotes.map((note) =>
+                              note.id === id ? { ...note, text: newText } : note
+                          ),
+                      }
+                    : board
             )
         );
     };
@@ -59,6 +88,9 @@ function WhiteboardApp() {
                                 onChange={(newStrokes) =>
                                     updateStrokes(activeBoardData.id, newStrokes)
                                 }
+                                stickyNotes={activeBoardData.stickyNotes} //makes notes only for one board or active baord
+                                onAddStickyNote={addStickyNote} //add sticky note
+                                onUpdateStickyNote={updateStickyNote} //update sticky note
                             />
                         </div>
                     )}

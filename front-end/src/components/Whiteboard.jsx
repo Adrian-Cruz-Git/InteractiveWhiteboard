@@ -1,7 +1,7 @@
 import React, { useRef, useState, useEffect } from "react";
 import "./Whiteboard.css";
 
-function Whiteboard({ strokes, onChange, activeTool }) { //add pen activeTool
+function Whiteboard({ strokes, onChange, activeTool, stickyNotes = [], onAddStickyNote, onUpdateStickyNote }) { 
     const canvasRef = useRef(null);
     const [isDrawing, setIsDrawing] = useState(false);
     const [currentStroke, setCurrentStroke] = useState([]);
@@ -69,20 +69,63 @@ function Whiteboard({ strokes, onChange, activeTool }) { //add pen activeTool
         });
     };
 
+    //only draw when pen is active
     const handlePointerDown = (e) => {
-        if (activeTool !== "pen") return; //only draw when pen is active
-        startDrawing(e);
+        if (activeTool === "pen"){
+            startDrawing(e);
+        } else if (activeTool === "stickyNote"){
+            const rect = canvasRef.current.getBoundingClientRect();
+            const x = e.clientX - rect.left;
+            const y = e.clientY - rect.top;
+            onAddStickyNote(x, y); //add sticky note
+        }
     };
 
     return (
-        <canvas
-            ref={canvasRef}
-            className="whiteboard-canvas"
-            onMouseDown={handlePointerDown}
-            onMouseMove={draw}
-            onMouseUp={endDrawing}
-            onMouseLeave={endDrawing}
-        />
+        <div style={{ position: "relative", width: "100%", height: "100%" }}>
+                <canvas
+                    ref={canvasRef}
+                    className="whiteboard-canvas"
+                    onMouseDown={handlePointerDown}
+                    onMouseMove={draw}
+                onMouseUp={endDrawing}
+                onMouseLeave={endDrawing}
+                style={{ position: "absolute", top: 0, left: 0, zIndex: 1 }}
+            />
+            {stickyNotes.map((note) => (
+                <div
+                    key={note.id}
+                    style={{
+                        position: "absolute",
+                        left: note.x,
+                        top: note.y,
+                        backgroundColor: "pink",
+                        padding: "10px",
+                        border: "1px solid #ccc",
+                        borderRadius: "5px",
+                        minWidth: "100px",
+                        minHeight: "100px",
+                        boxShadow: "0 2px 8px rgba(0,0,0,0.15)",
+                        zIndex: 2,
+                        cursor: "move",
+                    }}
+                >
+                    <textarea
+                        value={note.text}
+                        onChange={(e) => onUpdateStickyNote(note.id, e.target.value)}
+                        style={{
+                            width: "100%",
+                            height: "100%",
+                            border: "none",
+                            background: "transparent",
+                            resize: "none",
+                            fontSize: "14px"
+                        }}
+                        placeholder="Testing"
+                    />
+                </div>
+            ))}
+        </div>
     );
 }
 
