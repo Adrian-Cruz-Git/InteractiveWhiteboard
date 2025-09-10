@@ -30,13 +30,17 @@ export default function LiveCursors({ canvasRef }) {
     () => client.channels.get(`whiteboard-cursors-${whiteboardId}`),
     [client, whiteboardId]
   );
-  console.log("Ably channel name:", channel.name);
 
   // Publish own cursor
   useEffect(() => {
     if (!canvasRef.current) return;
+    let lastSent = 0;
+    const interval = 50; // ms between updates- ably limited to 50 every second - currently 20 updates a second
 
-    const handleMouseMove = (e) => {
+    const handleMouseMove = (e) => { // Publish cursor update on mouse movement
+      const now = Date.now(); // get date for now
+      if (now - lastSent < interval) return; // if havent been 50ms since last update, dont update
+      lastSent = now; // if it has, send channel update, and update the last sent time to now
       const rect = canvasRef.current.getBoundingClientRect();
       const x = e.clientX - rect.left;
       const y = e.clientY - rect.top;
@@ -88,34 +92,37 @@ export default function LiveCursors({ canvasRef }) {
 
   return (
     <>
-      {Object.values(members).map((m) => (
-        <div
-          key={m.clientId}
-          style={{
-            position: "absolute",
-            left: m.x,
-            top: m.y,
-            pointerEvents: "none",
-          }}
-        >
-          <CursorSvg cursorColor={m.color} />
+      {Object.values(members)
+        //.filter((m) => m.clientId !== client.clientId) // dont display your own cursor
+        .map((m) => (
           <div
+            key={m.clientId}
             style={{
-              backgroundColor: m.color,
-              color: "white",
-              padding: "2px 6px",
-              borderRadius: "4px",
-              fontSize: "12px",
-              position: "relative",
-              top: "-20px",
-              left: "8px",
-              whiteSpace: "nowrap",
+              position: "absolute",
+              left: m.x,
+              top: m.y,
+              pointerEvents: "none",
+              maxWidth:100, // width of cursor name tag
             }}
           >
-            {m.name}
+            <CursorSvg cursorColor={m.color} />
+            <div
+              style={{
+                backgroundColor: m.color,
+                color: "white",
+                padding: "2px 6px",
+                borderRadius: "4px",
+                fontSize: "12px",
+                position: "relative",
+                top: "-20px",
+                left: "8px",
+                whiteSpace: "nowrap",
+              }}
+            >
+              {m.name}
+            </div>
           </div>
-        </div>
-      ))}
+        ))}
     </>
   );
 }
