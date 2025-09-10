@@ -33,7 +33,7 @@ export default function LiveCursors({ canvasRef, client, channel, whiteboardId }
       const x = e.clientX - rect.left;
       const y = e.clientY - rect.top;
 
-      console.log("Publishing cursor update:", { x, y, name: userName });
+      console.log("Publishing cursor update:", { x, y, name: userName }); // DEBUG PRINT REMOVE IN PRODUCTION
 
       channel.publish("cursor-update", {
         clientId: client.clientId,
@@ -65,7 +65,7 @@ export default function LiveCursors({ canvasRef, client, channel, whiteboardId }
   // Subscribe to other cursors
   useEffect(() => {
     const callback = (msg) => {
-      console.log("Received cursor update:", msg.data);
+      console.log("Received cursor update:", msg.data); // DEBUG PRINT REMOVE IN PRODUCTION
       setMembers((prev) => {
         const updated = { ...prev };
         if (msg.data.state === "leave") delete updated[msg.data.clientId];

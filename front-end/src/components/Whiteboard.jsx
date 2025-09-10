@@ -104,7 +104,7 @@ function Whiteboard({ strokes, onChange }) {
 
         if (!Array.isArray(strokes)) return;
 
-        localStrokes.forEach((stroke) => {
+        strokes.forEach((stroke) => {
             for (let i = 1; i < stroke.length; i++) {
                 const from = stroke[i - 1];
                 const to = stroke[i];
