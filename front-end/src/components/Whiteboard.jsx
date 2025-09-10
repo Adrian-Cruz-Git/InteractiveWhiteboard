@@ -1,8 +1,12 @@
 import React, { useRef, useState, useEffect } from "react";
 import "./Whiteboard.css";
+import LiveCursors from "../components/LiveCursorsDemo";
 
 function Whiteboard({ strokes, onChange }) {
+
+
     const canvasRef = useRef(null);
+    const containerRef = useRef(null); // Add a ref for the container
     const [isDrawing, setIsDrawing] = useState(false);
     const [currentStroke, setCurrentStroke] = useState([]);
 
@@ -69,14 +73,25 @@ function Whiteboard({ strokes, onChange }) {
     };
 
     return (
-        <canvas
-            ref={canvasRef}
-            className="whiteboard-canvas"
-            onMouseDown={startDrawing}
-            onMouseMove={draw}
-            onMouseUp={endDrawing}
-            onMouseLeave={endDrawing}
-        />
+        <div className="whiteboard-container">
+            <canvas
+                ref={canvasRef}
+                className="whiteboard-canvas"
+                onMouseDown={startDrawing}
+                onMouseMove={(e) => {
+                    draw(e);
+                    handleMouseMove(e);  // <-- add cursor publish
+                }}
+                onMouseUp={endDrawing}
+                onMouseLeave={(e) => {
+                    endDrawing();
+                    handleMouseLeave(e); // <-- add leave publish
+                }}
+            />
+            {/*Add live cursors to the whiteboard , pass the container reference so cursors align with canvas*/}
+            <LiveCursors canvasRef={canvasRef} />
+
+        </div>
     );
 }
 
