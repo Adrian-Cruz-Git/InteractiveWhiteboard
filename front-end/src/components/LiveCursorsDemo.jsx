@@ -1,37 +1,25 @@
 import React, { useEffect, useRef, useState, useMemo } from "react";
-import { Realtime } from "ably";
-import { nanoid } from "nanoid";
 import CursorSvg from "./CursorSvg.jsx";
-import { config, mockNames, colors } from "../config.js"; // must export these
 import { useAuth } from "../contexts/AuthContext";
+import { colors } from "../config.js"; // your Ably key
 
-export default function LiveCursors({ canvasRef }) {
+export default function LiveCursors({ canvasRef, client, channel, whiteboardId }) { // get all the ably stuff from whiteboard 
+
   const whiteboardRef = useRef(null); // optional if you want a separate div
   const [members, setMembers] = useState({}); // Set members of cursor group
   const { currentUser } = useAuth(); // currentUser should have email or username
 
-  const whiteboardId = useMemo(() => {
-    const params = new URLSearchParams(window.location.search);
-    return params.get("id") || "default";
-  }, []);
-
   const userName = currentUser?.displayName || currentUser?.email || "Anonymous"; // set name on cursor tag to logged in user or default to anon
 
+  // Random cursor colour
   const userColor = useMemo(
     () => colors[Math.floor(Math.random() * colors.length)].cursorColor,
     []
   );
 
-  const client = useMemo(
-    () => new Realtime({ key: config.ABLY_KEY, clientId: nanoid() }),
-    []
-  );
-  const channel = useMemo(
-    () => client.channels.get(`whiteboard-cursors-${whiteboardId}`),
-    [client, whiteboardId]
-  );
 
-  // Publish own cursor
+
+  // Publish own cursor (with throttling)
   useEffect(() => {
     if (!canvasRef.current) return;
     let lastSent = 0;

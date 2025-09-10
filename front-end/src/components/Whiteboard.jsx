@@ -1,15 +1,52 @@
-import React, { useRef, useState, useEffect } from "react";
+import React, { useRef, useState, useEffect, useMemo } from "react";
 import "./Whiteboard.css";
 import LiveCursors from "../components/LiveCursorsDemo";
+import { Realtime } from "ably";
+import { nanoid } from "nanoid";
+import { config } from "../config.js"; // your Ably key
+import { useAuth } from "../contexts/AuthContext";
 
 function Whiteboard({ strokes, onChange }) {
-
-
     const canvasRef = useRef(null);
-    const containerRef = useRef(null); // Add a ref for the container
     const [isDrawing, setIsDrawing] = useState(false);
     const [currentStroke, setCurrentStroke] = useState([]);
+    const { currentUser } = useAuth();
 
+
+    //Unique whiteboard ID from URL 
+    const whiteboardId = useMemo(() => {
+        const params = new URLSearchParams(window.location.search);
+        return params.get("id") || "default";
+    }, []);
+
+    // Ably client
+    const client = useMemo(
+        () => new Realtime({ key: config.ABLY_KEY, clientId: nanoid() }),
+        []
+    );
+    //Ably channel for stroke updates
+    const strokesChannel = useMemo(
+        () => client.channels.get(`whiteboard-strokes-${whiteboardId}`),
+        [client, whiteboardId]
+    );
+    //Channel for cursor updates
+    const cursorsChannel = useMemo(
+        () => client.channels.get(`whiteboard-cursors-${whiteboardId}`),
+        [client, whiteboardId]
+    );
+    // Username for cursors & stroke info 
+    const userName = currentUser?.displayName || currentUser?.email || "Anonymous";
+
+    // Subscribe to strokes from other users 
+    useEffect(() => {
+        const handleStrokeMessage = (msg) => {
+            onChange([...strokes, msg.data.stroke]);
+        };
+        strokesChannel.subscribe("new-stroke", handleStrokeMessage);
+        return () => strokesChannel.unsubscribe("new-stroke", handleStrokeMessage);
+    }, [strokesChannel, strokes, onChange]);
+
+    // Canvas redraw whenever strokes change 
     useEffect(() => {
         const canvas = canvasRef.current;
         canvas.width = window.innerWidth;
@@ -17,16 +54,16 @@ function Whiteboard({ strokes, onChange }) {
         redraw();
     }, [strokes]);
 
+    //  Drawing handlers 
     const startDrawing = (e) => {
         setIsDrawing(true);
-        const pos = getMousePos(e);
-        setCurrentStroke([pos]);
+        setCurrentStroke([getMousePos(e)]);
     };
 
     const draw = (e) => {
         if (!isDrawing) return;
         const pos = getMousePos(e);
-        setCurrentStroke((prev) => [...prev, pos]);
+        setCurrentStroke([...currentStroke, pos]);
 
         const ctx = canvasRef.current.getContext("2d");
         const lastPos = currentStroke[currentStroke.length - 1];
@@ -42,7 +79,12 @@ function Whiteboard({ strokes, onChange }) {
         if (!isDrawing) return;
         setIsDrawing(false);
         if (currentStroke.length > 0) {
-            onChange([...strokes, currentStroke]); // update parent
+            const updatedStrokes = [...strokes, currentStroke];
+            onChange(updatedStrokes);
+
+            // Publish to Ably for other users
+            strokesChannel.publish("new-stroke", { stroke: currentStroke });
+
             setCurrentStroke([]);
         }
     };
@@ -60,7 +102,9 @@ function Whiteboard({ strokes, onChange }) {
         ctx.lineWidth = 2;
         ctx.strokeStyle = "black";
 
-        strokes.forEach((stroke) => {
+        if (!Array.isArray(strokes)) return;
+
+        localStrokes.forEach((stroke) => {
             for (let i = 1; i < stroke.length; i++) {
                 const from = stroke[i - 1];
                 const to = stroke[i];
@@ -70,6 +114,7 @@ function Whiteboard({ strokes, onChange }) {
                 ctx.stroke();
             }
         });
+
     };
 
     return (
@@ -78,17 +123,16 @@ function Whiteboard({ strokes, onChange }) {
                 ref={canvasRef}
                 className="whiteboard-canvas"
                 onMouseDown={startDrawing}
-                onMouseMove={(e) => {
-                    draw(e);
-                }}
+                onMouseMove={draw}
                 onMouseUp={endDrawing}
-                onMouseLeave={(e) => {
-                    endDrawing();
-                }}
+                onMouseLeave={endDrawing}
             />
-            {/*Add live cursors to the whiteboard , pass the container reference so cursors align with canvas*/}
-            <LiveCursors canvasRef={canvasRef} />
-
+            {/* Live cursors aligned to canvas , pass all the ably references to livecursors component*/}
+            <LiveCursors
+                canvasRef={canvasRef}
+                client={client}
+                channel={cursorsChannel}
+                whiteboardId={whiteboardId} />
         </div>
     );
 }

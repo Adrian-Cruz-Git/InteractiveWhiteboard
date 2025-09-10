@@ -3,17 +3,26 @@ import Navbar from "../components/Navbar";
 import Whiteboard from "../components/Whiteboard";
 import Toolbar from "../components/toolbar";
 import TopNav from "../components/TopNav";
+import { nanoid } from "nanoid";
+import { useNavigate } from "react-router-dom";
+
 
 function WhiteboardApp() {
+    const navigate = useNavigate(); // for each time a whiteboard is created, to switch to that url
+
 
 
     const [boards, setBoards] = useState([{ id: 1, strokes: [] }]);
     const [activeBoard, setActiveBoard] = useState(1);
 
     const addBoard = () => {
+        const whiteboardId = nanoid(); // create random id for the whiteboard
+
         const newId = boards.length + 1;
         setBoards([...boards, { id: newId, strokes: [] }]);
         setActiveBoard(newId);
+
+        navigate(`/whiteboard?id=${whiteboardId}`); // navigate to new board with the new whiteboard id
     };
 
     const updateStrokes = (id, newStrokes) => {
