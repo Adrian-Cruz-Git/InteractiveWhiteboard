@@ -3,20 +3,20 @@ import { Realtime } from "ably";
 import { nanoid } from "nanoid";
 import CursorSvg from "./CursorSvg.jsx";
 import { config, mockNames, colors } from "../config.js"; // must export these
+import { useAuth } from "../contexts/AuthContext";
 
 export default function LiveCursors({ canvasRef }) {
   const whiteboardRef = useRef(null); // optional if you want a separate div
-  const [members, setMembers] = useState({});
+  const [members, setMembers] = useState({}); // Set members of cursor group
+  const { currentUser } = useAuth(); // currentUser should have email or username
 
   const whiteboardId = useMemo(() => {
     const params = new URLSearchParams(window.location.search);
     return params.get("id") || "default";
   }, []);
 
-  const userName = useMemo(
-    () => mockNames[Math.floor(Math.random() * mockNames.length)],
-    []
-  );
+  const userName = currentUser?.displayName || currentUser?.email || "Anonymous"; // set name on cursor tag to logged in user or default to anon
+
   const userColor = useMemo(
     () => colors[Math.floor(Math.random() * colors.length)].cursorColor,
     []
@@ -64,15 +64,15 @@ export default function LiveCursors({ canvasRef }) {
       });
     };
 
-    const canvas = canvasRef.current;
-    canvas.addEventListener("mousemove", handleMouseMove);
-    canvas.addEventListener("mouseleave", handleMouseLeave);
+    const canvas = canvasRef.current; // add reference to current canvas
+    canvas.addEventListener("mousemove", handleMouseMove); // add listener for moving a mouse 
+    canvas.addEventListener("mouseleave", handleMouseLeave); // add listener for mouse leave (when mouse goes off the canvas)
 
     return () => {
       canvas.removeEventListener("mousemove", handleMouseMove);
       canvas.removeEventListener("mouseleave", handleMouseLeave);
     };
-  }, [canvasRef, client, channel, userName, userColor]);
+  }, [canvasRef, client, channel, userName, userColor]); 
 
   // Subscribe to other cursors
   useEffect(() => {
@@ -102,7 +102,7 @@ export default function LiveCursors({ canvasRef }) {
               left: m.x,
               top: m.y,
               pointerEvents: "none",
-              maxWidth:100, // width of cursor name tag
+              maxWidth: 100, // width of cursor name tag
             }}
           >
             <CursorSvg cursorColor={m.color} />

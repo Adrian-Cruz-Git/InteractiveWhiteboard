@@ -80,12 +80,10 @@ function Whiteboard({ strokes, onChange }) {
                 onMouseDown={startDrawing}
                 onMouseMove={(e) => {
                     draw(e);
-                    handleMouseMove(e);  // <-- add cursor publish
                 }}
                 onMouseUp={endDrawing}
                 onMouseLeave={(e) => {
                     endDrawing();
-                    handleMouseLeave(e); // <-- add leave publish
                 }}
             />
             {/*Add live cursors to the whiteboard , pass the container reference so cursors align with canvas*/}
