@@ -5,6 +5,8 @@ import LoginPage from "./pages/LoginPage.jsx";
 import SettingsPage from "./pages/SettingsPage.jsx";
 import { BrowserRouter as Router, Route, Routes, Link } from "react-router-dom";
 
+
+import FilesPage from "./pages/FilesPage.jsx";
 import ProtectedRoute from "./components/ProtectedRoute";
 import { AuthProvider } from "./contexts/AuthContext/";
 import RegisterPage from "./pages/RegisterPage.jsx"
@@ -22,6 +24,7 @@ function App() {
             <Route element={<ProtectedRoute />}>
               <Route path="/whiteboard" element={<WhiteboardApp />} />
               <Route path="/settings" element={<SettingsPage />} />
+              <Route path="/files" element={<FilesPage />} />
             </Route>
             {/* Public routes */}
             <Route path="/" element={<LandingPage />} />
