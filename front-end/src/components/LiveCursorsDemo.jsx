@@ -9,6 +9,7 @@ export default function LiveCursors({ canvasRef, client, channel, whiteboardId }
   const [members, setMembers] = useState({}); // Set members of cursor group
   const { currentUser } = useAuth(); // currentUser should have email or username
 
+
   const userName = currentUser?.displayName || currentUser?.email || "Anonymous"; // set name on cursor tag to logged in user or default to anon
 
   // Random cursor colour

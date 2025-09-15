@@ -51,7 +51,7 @@ function WhiteboardApp() {
                     <div style={{ flex: 1, padding: "1rem" }}>
                         {activeBoardData && (
                             <div key={activeBoardData.id}>
-                                <h2>Whiteboard {activeBoardData.id}</h2>
+                                <h2 style={{color:"black"}}>Whiteboard {activeBoardData.id}</h2>
                                 <Whiteboard
                                     strokes={activeBoardData.strokes}
                                     onChange={(newStrokes) =>

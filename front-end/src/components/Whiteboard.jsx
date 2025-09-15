@@ -1,4 +1,4 @@
-import React, { useRef, useState, useEffect, useMemo } from "react";
+import React, { useRef, useState, useEffect, useMemo, useLayoutEffect } from "react";
 import "./Whiteboard.css";
 import LiveCursors from "../components/LiveCursorsDemo";
 import { Realtime } from "ably";
@@ -11,7 +11,7 @@ function Whiteboard({ strokes, onChange }) {
     const [isDrawing, setIsDrawing] = useState(false);
     const [currentStroke, setCurrentStroke] = useState([]);
     const { currentUser } = useAuth();
-
+    const currentStrokeRef = useRef([]);
 
     //Unique whiteboard ID from URL 
     const whiteboardId = useMemo(() => {
@@ -47,52 +47,68 @@ function Whiteboard({ strokes, onChange }) {
     }, [strokesChannel, strokes, onChange]);
 
     // Canvas redraw whenever strokes change 
-    useEffect(() => {
+    useLayoutEffect(() => {
         const canvas = canvasRef.current;
-        canvas.width = window.innerWidth;
-        canvas.height = window.innerHeight - 100;
-        redraw();
+        if (!canvas) return;
+
+        const resizeCanvas = () => {
+            canvas.width = window.innerWidth;   // internal pixel width
+            canvas.height = window.innerHeight; // internal pixel height
+            redraw(strokes);                     // redraw existing strokes
+        };
+
+        resizeCanvas();                        // initial sizing
+        window.addEventListener("resize", resizeCanvas);
+
+        return () => window.removeEventListener("resize", resizeCanvas);
     }, [strokes]);
 
     //  Drawing handlers 
     const startDrawing = (e) => {
         setIsDrawing(true);
-        setCurrentStroke([getMousePos(e)]);
+        const pos = getMousePos(e);
+        currentStrokeRef.current = [pos];
     };
 
     const draw = (e) => {
         if (!isDrawing) return;
         const pos = getMousePos(e);
-        setCurrentStroke([...currentStroke, pos]);
+        const lastPos = currentStrokeRef.current[currentStrokeRef.current.length - 1];
 
-        const ctx = canvasRef.current.getContext("2d");
-        const lastPos = currentStroke[currentStroke.length - 1];
         if (lastPos) {
+            const ctx = canvasRef.current.getContext("2d");
             ctx.beginPath();
             ctx.moveTo(lastPos.x, lastPos.y);
             ctx.lineTo(pos.x, pos.y);
             ctx.stroke();
         }
+
+        currentStrokeRef.current.push(pos);
     };
 
     const endDrawing = () => {
         if (!isDrawing) return;
         setIsDrawing(false);
-        if (currentStroke.length > 0) {
-            const updatedStrokes = [...strokes, currentStroke];
+        if (currentStrokeRef.current.length > 1) {
+            const updatedStrokes = [...strokes, currentStrokeRef.current];
             onChange(updatedStrokes);
-
-            // Publish to Ably for other users
-            strokesChannel.publish("new-stroke", { stroke: currentStroke });
-
-            setCurrentStroke([]);
+            strokesChannel.publish("new-stroke", { stroke: currentStrokeRef.current });
         }
+        currentStrokeRef.current = [];
     };
 
     const getMousePos = (e) => {
-        const rect = canvasRef.current.getBoundingClientRect();
-        return { x: e.clientX - rect.left, y: e.clientY - rect.top };
+        const canvas = canvasRef.current;
+        const rect = canvas.getBoundingClientRect();
+        const scaleX = canvas.width / rect.width;
+        const scaleY = canvas.height / rect.height;
+
+        return {
+            x: (e.clientX - rect.left) * scaleX,
+            y: (e.clientY - rect.top) * scaleY
+        };
     };
+
 
     const redraw = () => {
         const ctx = canvasRef.current.getContext("2d");
