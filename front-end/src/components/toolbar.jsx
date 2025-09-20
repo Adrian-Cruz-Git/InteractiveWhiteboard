@@ -12,53 +12,75 @@ import redoIcon from '../assets/redo.png';
 
 
 export default function Toolbar({ activeTool, setActiveTool }) {
-    return(
+    return (
         <div className="toolbar">
-            <button onClick={() => setActiveTool('cursor')}>
+            <button onClick={() => setActiveTool('cursor')} // CURSOR BUTTON
+                title="Cursor" // tooltip - shows on hover the name of the button
+                aria-label="Cursor" // accessibility - screen readers will read this label
+            >
                 <img src={cursorIcon} alt="Cursor" style={{ width: '25px', height: '25px' }} />
             </button>
-            <button
+            <button // PEN BUTTON
                 onClick={() => setActiveTool("pen")}
+                title="Pen" 
+                aria-label="Pen" 
             >
                 <img src={penIcon} alt="Pen" style={{ width: '25px', height: '25px' }} />
             </button>
-            <button>
+            <button // HIGHLIGHTER BUTTON
+                onClick={() => setActiveTool("highlighter")} 
+                title="Highlighter" 
+                aria-label="Highlighter" 
+            >   
                 <img src={highlightIcon} alt="Highlighter" style={{ width: '25px', height: '25px' }} />
             </button>
-<<<<<<< HEAD
-            <button
-              onClick={() => {
-                window.__WB_ERASE__ = !window.__WB_ERASE__;
-                console.log('[Toolbar] eraser click ->', window.__WB_ERASE__ ? 'ON' : 'OFF');
-                window.dispatchEvent(new CustomEvent('wb:toggle-erase', { detail: { on: window.__WB_ERASE__ } }));
-              }}
-              title="Eraser"
-              aria-label="Eraser"
+            <button // ERASER BUTTON
+                onClick={() => setActiveTool("eraser")} 
+                title="Eraser" 
+                aria-label="Eraser" 
             >
-              <img src={eraserIcon} alt="Eraser" style={{ width: '25px', height: '25px' }} />
-=======
-            <button onClick={() => setActiveTool('eraser')}>
                 <img src={eraserIcon} alt="Eraser" style={{ width: '25px', height: '25px' }} />
->>>>>>> 199cb7dcbedeefdac2ea8a8746af3c9747a92b38
             </button>
-            <button>
-                <img src={stickyNoteIcon} alt="Sticky Note" style={{ width: '25px', height: '25px' }} />    
+            <button // STICKY NOTE BUTTON
+                onClick={() => setActiveTool("stickyNote")} 
+                title="Sticky Note" 
+                aria-label="Sticky Note" 
+            >   
+                <img src={stickyNoteIcon} alt="Sticky Note" style={{ width: '25px', height: '25px' }} />
             </button>
-            <button>
+            <button // SHAPES BUTTON
+                onClick={() => setActiveTool("shapes")}
+                title="Shapes" 
+                aria-label="Shapes" 
+            >   
                 <img src={shapesIcon} alt="Shapes" style={{ width: '25px', height: '25px' }} />
             </button>
-            <button>
+            <button // TEXT BUTTON
+                onClick={() => setActiveTool("text")}
+                title="Text"
+                aria-label="Text"
+            >
                 <img src={textIcon} alt="Text" style={{ width: '25px', height: '25px' }} />
             </button>
-            <button>
+            <button // IMAGE BUTTON
+                onClick={() => setActiveTool("image")}
+                title="Image"
+                aria-label="Image"
+            >
                 <img src={imageIcon} alt="Image" style={{ width: '25px', height: '25px' }} />
             </button>
-            <button>
+            <button // UNDO BUTTON
+                title="Undo"
+                aria-label="Undo"
+            >
                 <img src={undoIcon} alt="Undo" style={{ width: '25px', height: '25px' }} />
             </button>
-            <button>
+            <button // REDO BUTTON
+                title="Redo"
+                aria-label="Redo"
+            >
                 <img src={redoIcon} alt="Redo" style={{ width: '25px', height: '25px' }} />
-            </button>   
-        </div>
+            </button>
+        </div> 
     )
 }
