@@ -1,3 +1,6 @@
+const dotenv = require("dotenv");
+dotenv.config();
+
 const http = require('http');
 const express = require('express');
 const { WebSocketServer } = require('ws');
@@ -8,9 +11,7 @@ const wsServer = new WebSocketServer({ server });
 const cors = require("cors"); // Rules for front end requests to back end
 const { v4 : uuidv4 } = require("uuid"); // For generating unique IDs (websoccket connections)
 
-
-
-
+const uploadRoutes = require("./routes/files");
 
 
 const PORT = process.env.NODE_PORT || 5000;
@@ -24,6 +25,8 @@ app.use(express.json());
 
 // Public route - register and auth/login
 app.use("/auth", require("./routes/auth"));
+
+app.use("/files", uploadRoutes);
 
 
 // Protected routes (must pass verifyJWT)

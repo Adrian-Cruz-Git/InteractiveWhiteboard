@@ -4,7 +4,7 @@
 // Later integrate google authentication aswell (button)
 import { useState } from "react";
 import { auth } from "../firebase";
-import { GoogleAuthProvider, signInWithPopup, signInWithEmailAndPassword, createUserWithEmailAndPassword } from "firebase/auth";
+import { GoogleAuthProvider, signInWithPopup, signInWithEmailAndPassword } from "firebase/auth";
 import "./LoginPage.css";
 import { useNavigate } from "react-router-dom";
 import TopNav from "../components/TopNav";
