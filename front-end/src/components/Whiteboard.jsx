@@ -43,7 +43,6 @@ function Whiteboard({ strokes, onChange }) {
     client.connection.once("connected", () => {
         console.log("Connected to Ably, clientId:", client.auth.clientId);
     });
-    if (!client) return <div>Loading whiteboard…</div>; // wait for ably client to be ready
 
     // -------------------------
     // ABLY SETUP
