@@ -12,6 +12,7 @@ function Whiteboard({ strokes, onChange }) {
     const { currentUser } = useAuth();
     const currentStrokeRef = useRef([]);
     const [localStrokes, setLocalStrokes] = useState(strokes || []); // new local state for strokes
+    const [client, setClient] = useState(null);// hold client so you only have to create it once
 
     //Keep local strokes in sync with prop strokes
     useEffect(() => {
@@ -29,36 +30,46 @@ function Whiteboard({ strokes, onChange }) {
     // Use email as clientId if possible for easier tracking
     // Fallback to random id if no user info (should not happen in protected route)
 
-    console.log("Creating Ably client with ID:", currentUser?.email || "generated-" + nanoid());
-
-    const client = useMemo(() => {
-        if (!currentUser) return null; // don’t init Ably until user is known
-        return new Realtime({
-            key: config.ABLY_KEY, // ably api key from config
-            clientId: currentUser.email || nanoid(), // use email or random id for client id
+    
+    useEffect(() => {
+        if (!currentUser) return;
+        
+        const ablyClient = new Realtime({
+            key: config.ABLY_KEY,
+            clientId: currentUser.email || nanoid(),
         });
+
+        console.log("Creating Ably client with ID:", ablyClient.auth.clientId);
+
+        // Set the client into state
+        setClient(ablyClient);
+
+        // Wait until connected
+        ablyClient.connection.once("connected", () => {
+            console.log("Connected to Ably, clientId:", ablyClient.auth.clientId);
+        });
+
+        // Cleanup on unmount
+        return () => {
+            ablyClient.close();
+        };
     }, [currentUser]);
-
-
-    client.connection.once("connected", () => {
-        console.log("Connected to Ably, clientId:", client.auth.clientId);
-    });
 
     // -------------------------
     // ABLY SETUP
     // -------------------------
 
     // Ably channel for stroke updates
-    const strokesChannel = useMemo(
-        () => client.channels.get(`whiteboard-strokes-${whiteboardId}`),
-        [client, whiteboardId]
-    );
+    const strokesChannel = useMemo(() => {
+        if (!client) return null; // ONLY create channel if client exists
+        return client.channels.get(`whiteboard-strokes-${whiteboardId}`);
+    }, [client, whiteboardId]);
 
     // Channel for cursor updates
-    const cursorsChannel = useMemo(
-        () => client.channels.get(`whiteboard-cursors-${whiteboardId}`),
-        [client, whiteboardId]
-    );
+    const cursorsChannel = useMemo(() => {
+        if (!client) return null;// ONLY create channel if client exists
+        return client.channels.get(`whiteboard-cursors-${whiteboardId}`);
+    }, [client, whiteboardId]);
 
     // Username for cursors & stroke info
     const userName =
@@ -68,6 +79,7 @@ function Whiteboard({ strokes, onChange }) {
     // SUBSCRIBE TO STROKES FROM ABLY
     // -------------------------
     useEffect(() => {
+        if (!strokesChannel) return;
         const handleStrokeMessage = (msg) => {
             setLocalStrokes((prev) => [...prev, msg.data.stroke]); // changed from onChange to local strokes
             console.log("Received stroke", msg.data.stroke); // DEBUG - TESTING , testing to see if strokes are received correctly
@@ -79,7 +91,7 @@ function Whiteboard({ strokes, onChange }) {
         return () => {
             strokesChannel.unsubscribe("new-stroke", handleStrokeMessage); // after unmounting, unsubscribe
         };
-    }, [strokesChannel, onChange]);
+    }, [strokesChannel]);
 
     // -------------------------
     // REDRAW CANVAS ON STROKE CHANGES OR RESIZE
@@ -185,12 +197,15 @@ function Whiteboard({ strokes, onChange }) {
                 onMouseLeave={endDrawing}
             />
             {/* Live cursors aligned to canvas , pass all the ably references to livecursors component*/}
-            <LiveCursors
-                canvasRef={canvasRef}
-                client={client}
-                channel={cursorsChannel}
-                whiteboardId={whiteboardId}
-            />
+            {/* Only render if client and channel are ready */}
+            {client && cursorsChannel && ( 
+                <LiveCursors
+                    canvasRef={canvasRef}
+                    client={client}
+                    channel={cursorsChannel}
+                    whiteboardId={whiteboardId}
+                />
+            )}
         </div>
     );
 }
