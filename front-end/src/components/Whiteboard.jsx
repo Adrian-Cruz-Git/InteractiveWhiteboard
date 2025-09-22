@@ -48,8 +48,31 @@ function Whiteboard({ strokes, onChange, activeTool }) { //add pen activeTool
         };
     }, []);
 
+
+    //CLEAR whiteboard
+    useEffect(() => {
+        const handleClear = () => {
+            console.log("[Whiteboard] Clear event received");
+            // Clear parent strokes and currentStroke
+            onChange([]);
+            setCurrentStroke([]);
+            const canvas = canvasRef.current;
+            if (canvas) {
+                const ctx = canvas.getContext("2d");
+                ctx.clearRect(0, 0, canvas.width, canvas.height);
+            }
+        };
+
+        window.addEventListener("wb:clear", handleClear);
+
+        return () => {
+            window.removeEventListener("wb:clear", handleClear);
+        };
+    }, [onChange]);
+
+
     const startDrawing = (e) => {
-        if (activeTool !== 'pen' ) return; // only draw when pen or eraser is selected
+        if (activeTool !== 'pen') return; // only draw when pen or eraser is selected
         setIsDrawing(true);
         const pos = getMousePos(e);
         setCurrentStroke([pos]);
@@ -59,7 +82,7 @@ function Whiteboard({ strokes, onChange, activeTool }) { //add pen activeTool
         }
     };
 
-   const draw = (e) => {
+    const draw = (e) => {
         if (!isDrawing) return;
         const pos = getMousePos(e);
         const ctx = canvasRef.current.getContext("2d");
