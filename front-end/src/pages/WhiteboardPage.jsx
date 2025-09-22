@@ -25,13 +25,21 @@ function WhiteboardApp() {
         navigate(`/whiteboard?id=${whiteboardId}`); // navigate to new board with the new whiteboard id
     };
 
-    const updateStrokes = (id, newStrokes) => {
-        setBoards((prev) =>
-            prev.map((board) =>
-                board.id === id ? { ...board, strokes: newStrokes } : board
-            )
-        );
-    };
+    // const updateStrokes = (id, newStrokes) => {
+    //     setBoards((prev) =>
+    //         prev.map((board) =>
+    //             board.id === id ? { ...board, strokes: newStrokes } : board
+    //         )
+    //     );
+    // };
+    const updateStrokes = (id, newStroke) => {
+    setBoards(prev =>
+        prev.map(board =>
+            board.id === id ? { ...board, strokes: [...board.strokes, newStroke] } : board
+        )
+    );
+};
+
 
     const activeBoardData = boards.find((b) => b.id === activeBoard);
 
