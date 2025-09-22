@@ -25,7 +25,6 @@ export default function Toolbar({ activeTool, setActiveTool }) {
             <button>
                 <img src={highlightIcon} alt="Highlighter" style={{ width: '25px', height: '25px' }} />
             </button>
-<<<<<<< HEAD
             <button
               onClick={() => {
                 window.__WB_ERASE__ = !window.__WB_ERASE__;
@@ -36,10 +35,6 @@ export default function Toolbar({ activeTool, setActiveTool }) {
               aria-label="Eraser"
             >
               <img src={eraserIcon} alt="Eraser" style={{ width: '25px', height: '25px' }} />
-=======
-            <button onClick={() => setActiveTool('eraser')}>
-                <img src={eraserIcon} alt="Eraser" style={{ width: '25px', height: '25px' }} />
->>>>>>> 199cb7dcbedeefdac2ea8a8746af3c9747a92b38
             </button>
             <button>
                 <img src={stickyNoteIcon} alt="Sticky Note" style={{ width: '25px', height: '25px' }} />    
