@@ -24,12 +24,30 @@ function Whiteboard({ strokes, onChange }) {
         return params.get("id") || "default";
     }, []);
 
-    // Ably client
-    const client = useMemo(
-        () => new Realtime({ key: config.ABLY_KEY, clientId: nanoid() }),
-        // () => new Realtime({ key: config.ABLY_KEY, clientId: "1" }), // temp fixed clientId for testing
-        []
-    );
+    // Creating ABLY CLIENT for real-time comms
+    // Only create once user is known
+    // Use email as clientId if possible for easier tracking
+    // Fallback to random id if no user info (should not happen in protected route)
+
+    console.log("Creating Ably client with ID:", currentUser?.email || "generated-" + nanoid());
+
+    const client = useMemo(() => {
+        if (!currentUser) return null; // don’t init Ably until user is known
+        return new Realtime({
+            key: config.ABLY_KEY, // ably api key from config
+            clientId: currentUser.email || nanoid(), // use email or random id for client id
+        });
+    }, [currentUser]);
+
+
+    client.connection.once("connected", () => {
+        console.log("Connected to Ably, clientId:", client.auth.clientId);
+    });
+    if (!client) return <div>Loading whiteboard…</div>; // wait for ably client to be ready
+
+    // -------------------------
+    // ABLY SETUP
+    // -------------------------
 
     // Ably channel for stroke updates
     const strokesChannel = useMemo(
@@ -169,11 +187,11 @@ function Whiteboard({ strokes, onChange }) {
             />
             {/* Live cursors aligned to canvas , pass all the ably references to livecursors component*/}
             <LiveCursors
-        canvasRef={canvasRef}
-        client={client}
-        channel={cursorsChannel}
-        whiteboardId={whiteboardId}
-      />
+                canvasRef={canvasRef}
+                client={client}
+                channel={cursorsChannel}
+                whiteboardId={whiteboardId}
+            />
         </div>
     );
 }

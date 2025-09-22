@@ -12,7 +12,9 @@ export default function LiveCursors({ canvasRef, client, channel, whiteboardId }
 
   const userName = currentUser?.displayName || currentUser?.email || "Anonymous"; // set name on cursor tag to logged in user or default to anon
 
-  // Random cursor colour
+  // Random cursor colour for each user from config.js
+  // Could be improved to be consistent for each user by hashing userId to a number and using that to pick a color
+  // But this is simpler for now
   const userColor = useMemo(
     () => colors[Math.floor(Math.random() * colors.length)].cursorColor,
     []
@@ -34,10 +36,10 @@ export default function LiveCursors({ canvasRef, client, channel, whiteboardId }
       const x = e.clientX - rect.left;
       const y = e.clientY - rect.top;
 
-      console.log("Publishing cursor update:", { x, y, name: userName }); // DEBUG PRINT REMOVE IN PRODUCTION
+      //console.log("Publishing cursor update:", { x, y, name: userName }); // DEBUG PRINT REMOVE IN PRODUCTION
 
       channel.publish("cursor-update", {
-        clientId: client.clientId,
+        clientId: client.auth.clientId,
         x,
         y,
         name: userName,
@@ -61,19 +63,26 @@ export default function LiveCursors({ canvasRef, client, channel, whiteboardId }
       canvas.removeEventListener("mousemove", handleMouseMove);
       canvas.removeEventListener("mouseleave", handleMouseLeave);
     };
-  }, [canvasRef, client, channel, userName, userColor]); 
+  }, [canvasRef, client, channel, userName, userColor]);
 
   // Subscribe to other cursors
   useEffect(() => {
     const callback = (msg) => {
-      console.log("Received cursor update:", msg.data); // DEBUG PRINT REMOVE IN PRODUCTION
+      //console.log("Received cursor update:", msg.data); // DEBUG PRINT REMOVE IN PRODUCTION
+      const { clientId, state } = msg.data; //  use ably payload as is
+
+      // console.log("Local clientId:", client.auth.clientId); // DEBUG PRINT REMOVE IN PRODUCTION
+      // console.log("Received clientId:", clientId);
+      if (!clientId) return; // ignore malformed events
+
       setMembers((prev) => {
         const updated = { ...prev };
-        if (msg.data.state === "leave") delete updated[msg.data.clientId];
-        else updated[msg.data.clientId] = msg.data;
+        if (state === "leave") delete updated[clientId];
+        else updated[clientId] = { ...msg.data };
         return updated;
       });
     };
+
 
     channel.subscribe("cursor-update", callback);
     return () => channel.unsubscribe("cursor-update", callback);
@@ -82,7 +91,7 @@ export default function LiveCursors({ canvasRef, client, channel, whiteboardId }
   return (
     <>
       {Object.values(members)
-        //.filter((m) => m.clientId !== client.clientId) // dont display your own cursor
+        .filter((m) => m.clientId !== client.auth.clientId) // dont display your own cursor
         .map((m) => (
           <div
             key={m.clientId}
