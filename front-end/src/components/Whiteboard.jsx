@@ -1,6 +1,6 @@
 import React, { useRef, useState, useEffect, useMemo, useLayoutEffect } from "react";
 import "./Whiteboard.css";
-import LiveCursors from "../components/LiveCursorsDemo";
+import LiveCursors from "../components/LiveCursors";
 import { Realtime } from "ably";
 import { nanoid } from "nanoid";
 import { config } from "../config.js"; // your Ably key
