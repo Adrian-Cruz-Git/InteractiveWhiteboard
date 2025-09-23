@@ -1,5 +1,5 @@
 .navbar {
-  position: fixed;  /* Keeps the navbar at the top */
+  position: fixed;
   top: 0;
   left: 0;
   width: 100%;
@@ -8,9 +8,10 @@
   display: flex;
   gap: 20px;
   align-items: center;
-  padding: 10px 20px;
-  z-index: 1000;  /* Ensures it stays above other content */
+  padding: 12px 20px;
+  z-index: 1000; /* stay on top */
 }
+
 
 .navbar a {
   color: white;
@@ -19,6 +20,11 @@
 
 .navbar a:hover {
   text-decoration: underline;
+}
+
+.navbar .logout-btn {
+  margin-left: auto; /* pushes logout button to the right */
+  margin-right: 50px; /* keeps spacing from right edge */
 }
 
 .logout-btn {
