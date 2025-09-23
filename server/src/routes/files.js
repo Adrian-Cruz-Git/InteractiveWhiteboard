@@ -54,18 +54,23 @@ router.post("/upload", verifyJWT, upload.single("file"), async (req, res) => {
   }
 });
 
-router.get("/", verifyJWT, async (req, res) => {
+// List files for the logged-in user
+router.get("/files", verifyJWT, async (req, res) => {
   try {
-    const snapshot = await db.collection("users")
-      .doc(req.user)
-      .collection("files")
-      .get();
+    const { data, error } = await supabase.storage
+      .from("user-files")
+      .list(req.user.uid, {
+        limit: 100, // limit for safety
+        offset: 0,
+      });
 
-    const files = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-    res.json(files);
+    if (error) throw error;
+
+    res.json(data);
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
 });
+
 
 module.exports = router;

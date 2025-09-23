@@ -1,49 +1,68 @@
-const dotenv = require("dotenv");
-dotenv.config();
+import express from "express";
+import multer from "multer";
+import cors from "cors";
+import path from "path";
+import { fileURLToPath } from "url";
 
-const http = require('http');
-const express = require('express');
-const { WebSocketServer } = require('ws');
-const app = express(); // Create an instance of Express
-const server = http.createServer(app); // Create an HTTP server using the Express app
-const wsServer = new WebSocketServer({ server });
-//Cant use import syntax unless type: module in package.json
-const cors = require("cors"); // Rules for front end requests to back end
-const { v4 : uuidv4 } = require("uuid"); // For generating unique IDs (websoccket connections)
+const app = express();
+const PORT = 5000;
 
-const uploadRoutes = require("./routes/files");
-
-
-const PORT = process.env.NODE_PORT || 5000;
-
-// Middleware
+// Allow requests from frontend
 app.use(cors());
-app.use(express.json());
 
+// Serve uploaded files as static
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+app.use("/uploads", express.static(path.join(__dirname, "uploads")));
 
-//      Routes
+// Configure multer for file uploads
+const storage = multer.diskStorage({
+  destination: (req, file, cb) => cb(null, "uploads/"),
+  filename: (req, file, cb) => cb(null, Date.now() + "-" + file.originalname),
+});
+const upload = multer({ storage });
 
-// Public route - register and auth/login
-app.use("/auth", require("./routes/auth"));
+// Fake authentication middleware (replace with real token check)
+function authMiddleware(req, res, next) {
+  const authHeader = req.headers["authorization"];
+  if (!authHeader || !authHeader.startsWith("Bearer ")) {
+    return res.status(401).json({ error: "Unauthorized" });
+  }
+  next();
+}
 
-app.use("/files", uploadRoutes);
+// 🔹 Upload endpoint
+app.post("/api/files/upload", authMiddleware, upload.single("file"), (req, res) => {
+  if (!req.file) return res.status(400).json({ error: "No file uploaded" });
 
+  const fileUrl = `http://localhost:${PORT}/uploads/${req.file.filename}`;
 
-// Protected routes (must pass verifyJWT)
-// app.use("/chat", verifyJWT, require("./routes/chatRoutes"));
-// app.use("/users", verifyJWT, require("./routes/userRoutes"));
-
-
-// EXAMPLES
-// Simple test route
-app.get("/", (req, res) => {
-  res.json({ message: "Hello from Express server API is running " });
+  res.json({
+    id: req.file.filename,
+    name: req.file.originalname,
+    url: fileUrl,
+  });
 });
 
+// 🔹 List files endpoint
+app.get("/api/files", authMiddleware, (req, res) => {
+  const fs = require("fs");
+  const uploadDir = path.join(__dirname, "uploads");
 
-server.listen(PORT, () => {
-    console.log(`Server is listening on port ${PORT}`);
+  if (!fs.existsSync(uploadDir)) {
+    return res.json([]);
+  }
+
+  const files = fs.readdirSync(uploadDir).map((filename) => ({
+    id: filename,
+    name: filename.split("-").slice(1).join("-"), // original name
+    url: `http://localhost:${PORT}/uploads/${filename}`,
+  }));
+
+  res.json(files);
 });
 
-
-
+// Start server
+app.listen(PORT, () => {
+  console.log(` Server running on http://localhost:${PORT}`);
+});

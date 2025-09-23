@@ -1,40 +1,52 @@
-// 
-import WhiteboardApp from "./pages/WhiteboardPage.jsx";
-import LandingPage from "./pages/LandingPage.jsx";
-import LoginPage from "./pages/LoginPage.jsx";
-import SettingsPage from "./pages/SettingsPage.jsx";
-import { BrowserRouter as Router, Route, Routes, Link } from "react-router-dom";
+import { BrowserRouter as Router, Routes, Route, Navigate } from "react-router-dom";
+import { AuthProvider } from "./contexts/AuthProvider"; 
+import { useAuth } from "./contexts/useAuth";
 
+import LandingPage from "./pages/LandingPage";
+import LoginPage from "./pages/LoginPage";
+import RegisterPage from "./pages/RegisterPage";
+import FilesPage from "./pages/FilesPage";
+import WhiteboardPage from "./pages/WhiteboardPage";
+import SettingsPage from "./pages/SettingsPage";
+import NavBar from "./components/Navbar";
 
-import FilesPage from "./pages/FilesPage.jsx";
-import ProtectedRoute from "./components/ProtectedRoute";
-import { AuthProvider } from "./contexts/AuthContext/";
-import RegisterPage from "./pages/RegisterPage.jsx"
+function AppRoutes() {
+  const { user, loading } = useAuth();
 
-//Home Links to landing page - login to loginpage - whiteboard to whiteboardpage - settings to settingspage
+  if (loading) return <p>Loading...</p>;
 
+  return (
+    <Routes>
+      {/* Public pages */}
+      {!user && (
+        <>
+          <Route path="/" element={<LandingPage />} />
+          <Route path="/login" element={<LoginPage />} />
+          <Route path="/register" element={<RegisterPage />} />
+          <Route path="*" element={<Navigate to="/login" replace />} />
+        </>
+      )}
 
-function App() {
+      {/* Authenticated pages */}
+      {user && (
+        <>
+          <Route path="/files" element={<FilesPage />} />
+          <Route path="/whiteboard/:id" element={<WhiteboardPage />} />
+          <Route path="/settings" element={<SettingsPage />} />
+          <Route path="*" element={<Navigate to="/files" replace />} />
+        </>
+      )}
+    </Routes>
+  );
+}
+
+export default function App() {
   return (
     <AuthProvider>
       <Router>
-        <div style={{ paddingTop: "70px" }}>
-          <Routes>
-            {/* Protected routes */}
-            <Route element={<ProtectedRoute />}>
-              <Route path="/whiteboard" element={<WhiteboardApp />} />
-              <Route path="/settings" element={<SettingsPage />} />
-              <Route path="/files" element={<FilesPage />} />
-            </Route>
-            {/* Public routes */}
-            <Route path="/" element={<LandingPage />} />
-            <Route path="/login" element={<LoginPage />} />
-            <Route path="/register" element={<RegisterPage />} />
-          </Routes>
-        </div>
+        <NavBar />
+        <AppRoutes />
       </Router>
     </AuthProvider>
   );
 }
-
-export default App;

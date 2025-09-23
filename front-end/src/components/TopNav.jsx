@@ -18,6 +18,7 @@ const TopNav = () => {
         <>
           <Link to="/whiteboard">Whiteboard</Link>
           <Link to="/settings">Settings</Link>
+          <Link to="/files">Files</Link>
           <button onClick={handleLogout} className="logout-btn">Logout</button>
         </>
       ) : (
