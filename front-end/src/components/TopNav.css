@@ -10,10 +10,12 @@
   align-items: center;
   padding: 12px 20px;
   z-index: 1000; /* stay on top */
+  
 }
 
 
 .navbar a {
+   font-weight: bold;  /* <-- ensures navbar links are bold */
   color: white;
   text-decoration: none;
 }
