@@ -1,4 +1,4 @@
-.navbar {
+.topnav {
   position: fixed;
   top: 0;
   left: 0;
@@ -9,22 +9,22 @@
   gap: 20px;
   align-items: center;
   padding: 12px 20px;
-  z-index: 1000; /* stay on top */
+  z-index: 1100; /* stay on top */
   
 }
 
 
-.navbar a {
+.topnav a {
    font-weight: bold;  /* <-- ensures navbar links are bold */
   color: white;
   text-decoration: none;
 }
 
-.navbar a:hover {
+.topnav a:hover {
   text-decoration: underline;
 }
 
-.navbar .logout-btn {
+.topnav .logout-btn {
   margin-left: auto; /* pushes logout button to the right */
   margin-right: 50px; /* keeps spacing from right edge */
 }

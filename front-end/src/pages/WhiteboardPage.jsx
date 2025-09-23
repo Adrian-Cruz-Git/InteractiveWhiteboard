@@ -2,6 +2,7 @@ import { act, useState } from "react";
 import Navbar from "../components/Navbar";
 import Whiteboard from "../components/Whiteboard";
 import Toolbar from "../components/toolbar";
+import TopNav from "../components/TopNav";
 
 function WhiteboardApp() {
 
@@ -29,6 +30,7 @@ function WhiteboardApp() {
     return (
 
         <div style={{ height: "100vh", display: "flex", flexDirection: "column" }}>
+            <TopNav />
             <Navbar
                 boards={boards}
                 activeBoard={activeBoard}
