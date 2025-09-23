@@ -36,7 +36,7 @@ function WhiteboardApp() {
                 activeBoard={activeBoard}
                 onSelectBoard={setActiveBoard}
                 onAddBoard={addBoard}
-            />
+            /> 
 
             <div style={{ flex: 1, display: "flex", background: "#fff" }}>
                 <div style={{
