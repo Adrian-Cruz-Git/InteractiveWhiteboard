@@ -1,5 +1,20 @@
 import React, { useState } from "react";
 import "./Navbar.css";
+import { useEffect, useState } from "react";
+import { auth } from "../firebase";
+import { signInWithPopup, signOut, onAuthStateChanged } from "firebase/auth";
+import { useNavigate } from "react-router-dom";
+
+function Navbar({ boards, activeBoard, onAddBoard }) {
+  const [user, setUser] = useState(null);
+  const navigate = useNavigate();
+
+  useEffect(() => {
+    const unsubscribe = onAuthStateChanged(auth, currentUser => {
+      setUser(currentUser);
+    });
+    return () => unsubscribe();
+  }, []);
 
 //Nav bar for whiteboard component (new board button)
 
@@ -108,3 +123,4 @@ function Navbar({ boards, activeBoard, onSelectBoard, onAddBoard }) {
 }
 
 export default Navbar;
+

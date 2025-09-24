@@ -1,53 +1,208 @@
-import React, { useRef, useState, useEffect } from "react";
+import React, { useRef, useState, useEffect, useMemo, useLayoutEffect } from "react";
 import "./Whiteboard.css";
+import LiveCursors from "../components/LiveCursors";
+import { Realtime } from "ably";
+import { nanoid } from "nanoid";
+import { config } from "../config.js"; // your Ably key
+import { useAuth } from "../contexts/AuthContext";
 
-function Whiteboard({ strokes, onChange, activeTool }) { //add pen activeTool
+function Whiteboard({ strokes, onChange, activeTool, onUndo, onRedo, onClear, }) {
     const canvasRef = useRef(null);
     const [isDrawing, setIsDrawing] = useState(false);
-    const [currentStroke, setCurrentStroke] = useState([]);
-    const erasingRef = useRef(false);
-    const [erasing, setErasing] = useState(false);
-    const prevDebugModeRef = useRef(null);
+    const { currentUser } = useAuth();
+    const currentStrokeRef = useRef([]);
+    const [localStrokes, setLocalStrokes] = useState(strokes || []); // new local state for strokes
+    const [client, setClient] = useState(null);// hold client so you only have to create it once
 
+    const [undoStack, setUndoStack] = useState([]);
+    const [redoStack, setRedoStack] = useState([]);
+
+    //Keep local strokes in sync with prop strokes
     useEffect(() => {
-        const canvas = canvasRef.current;
-        canvas.width = window.innerWidth;
-        canvas.height = window.innerHeight - 100;
-        redraw();
-        if (typeof window !== "undefined" && window.__WB_ERASE__ == null) {
-            window.__WB_ERASE__ = false;
-        }
-        console.log("[Whiteboard] mounted");
-        window.__WB_MOUNTED__ = true;
-    }, [strokes]);
+        setLocalStrokes(undoStack);
+    }, [undoStack]);
 
-    useEffect(() => {
-        const toggle = () => {
-            erasingRef.current = !erasingRef.current;
-            setErasing(erasingRef.current);
-            console.log("[Whiteboard] Eraser toggled:", erasingRef.current);
-            // update cursor for quick visual feedback
-            if (canvasRef.current) {
-                canvasRef.current.style.cursor = erasingRef.current ? "cell" : "crosshair";
-            }
-        };
-        window.__WB_DEBUG_TOGGLE__ = () => {
-            toggle();
-            return erasingRef.current;
-        };
-        const eventHandler = () => toggle();
-        const keyHandler = (e) => {
-            if (e.key === "e" || e.key === "E") toggle();
-        };
 
-        window.addEventListener("wb:toggle-erase", eventHandler);
-        window.addEventListener("keydown", keyHandler);
-        return () => {
-            window.removeEventListener("wb:toggle-erase", eventHandler);
-            window.removeEventListener("keydown", keyHandler);
-        };
+    // Unique whiteboard ID from URL
+    const whiteboardId = useMemo(() => {
+        const params = new URLSearchParams(window.location.search);
+        return params.get("id") || "default";
     }, []);
 
+    // Creating ABLY CLIENT for real-time comms
+    // Only create once user is known
+    // Use email as clientId if possible for easier tracking
+    // Fallback to random id if no user info (should not happen in protected route)
+
+    useEffect(() => {
+        if (!currentUser) return;
+
+        const ablyClient = new Realtime({
+            key: config.ABLY_KEY,
+            clientId: currentUser.email || nanoid(),
+        });
+
+        console.log("Creating Ably client with ID:", ablyClient.auth.clientId);
+
+        // Set the client into state
+        setClient(ablyClient);
+
+        // Wait until connected
+        ablyClient.connection.once("connected", () => {
+            console.log("Connected to Ably, clientId:", ablyClient.auth.clientId);
+        });
+
+        // Cleanup on unmount
+        return () => {
+            ablyClient.close();
+        };
+    }, [currentUser]);
+
+    // -------------------------
+    // ABLY SETUP
+    // -------------------------
+
+    // Ably channel for stroke updates
+    const strokesChannel = useMemo(() => {
+        if (!client) return null; // ONLY create channel if client exists
+        return client.channels.get(`whiteboard-strokes-${whiteboardId}`);
+    }, [client, whiteboardId]);
+
+    // Channel for cursor updates
+    const cursorsChannel = useMemo(() => {
+        if (!client) return null;// ONLY create channel if client exists
+        return client.channels.get(`whiteboard-cursors-${whiteboardId}`);
+    }, [client, whiteboardId]);
+
+    //Ably channel for other events (e.g., clear ,undo, redo)
+    const eventsChannel = useMemo(() => {
+        if (!client) return null;
+        return client.channels.get(`whiteboard-events-${whiteboardId}`);
+    }, [client, whiteboardId]);
+
+    // Username for cursors & stroke info
+    const userName =
+        currentUser?.displayName || currentUser?.email || "Anonymous";
+
+    // -------------------------
+    // TOOLBAR ACTIONS (undo, redo, clear) 
+    // -------------------------
+    // These functions publish events to Ably channels
+    // The actual state changes are handled in the Ably subscription effects below
+
+    const clearBoard = () => {
+        eventsChannel.publish("clear", { boardId: whiteboardId });
+    };
+
+    const undo = () => {
+        eventsChannel.publish("undo", { boardId: whiteboardId });
+    };
+
+    const redo = () => {
+        eventsChannel.publish("redo", { boardId: whiteboardId });
+    };
+
+    useEffect(() => {
+        if (onUndo) onUndo.current = undo;
+        if (onRedo) onRedo.current = redo;
+        if (onClear) onClear.current = clearBoard;
+    }, [onUndo, onRedo, onClear, eventsChannel]);
+
+    // -------------------------
+    // SUBSCRIBE TO STROKES FROM ABLY
+    // -------------------------
+    useEffect(() => {
+        if (!strokesChannel) return;
+
+        const handleStrokeMessage = (msg) => {
+            addStroke(msg.data.stroke);
+        };
+
+        strokesChannel.subscribe("new-stroke", handleStrokeMessage);
+
+        return () => strokesChannel.unsubscribe("new-stroke", handleStrokeMessage);
+    }, [strokesChannel]);
+
+
+    //  -------------------------
+    // UNDO / REDO LOGIC
+    //  -------------------------
+
+    const handleUndo = () => {
+        setUndoStack(prevUndo => {
+            if (!prevUndo.length) return prevUndo;
+            const lastStroke = prevUndo[prevUndo.length - 1];
+            setRedoStack(prevRedo => [...prevRedo, lastStroke]);
+            return prevUndo.slice(0, -1);
+        });
+    };
+
+    const handleRedo = () => {
+        setRedoStack(prevRedo => {
+            if (!prevRedo.length) return prevRedo;
+            const lastRedo = prevRedo[prevRedo.length - 1];
+            setUndoStack(prevUndo => [...prevUndo, lastRedo]);
+            return prevRedo.slice(0, -1);
+        });
+    };
+
+    //
+    const addStroke = (stroke) => {
+        setUndoStack(prev => [...prev, stroke]);
+    };
+
+
+    // ----- SUBSCRIBE TO EVENTS (undo, redo, clear) -----
+    useEffect(() => {
+        if (!eventsChannel) return;
+
+        const handleClear = (msg) => {
+            if (msg.data.boardId !== whiteboardId) return;
+            setUndoStack([]);
+            setRedoStack([]);
+            setLocalStrokes([]);
+        };
+
+        const handleUndoEvent = (msg) => {
+            if (msg.data.boardId !== whiteboardId) return;
+            handleUndo();
+        };
+
+        const handleRedoEvent = (msg) => {
+            if (msg.data.boardId !== whiteboardId) return;
+            handleRedo();
+        };
+
+        eventsChannel.subscribe("clear", handleClear);
+        eventsChannel.subscribe("undo", handleUndoEvent);
+        eventsChannel.subscribe("redo", handleRedoEvent);
+
+        return () => {
+            eventsChannel.unsubscribe("clear", handleClear);
+            eventsChannel.unsubscribe("undo", handleUndoEvent);
+            eventsChannel.unsubscribe("redo", handleRedoEvent);
+        };
+    }, [eventsChannel, whiteboardId]);
+
+
+    // -------------------------
+    // REDRAW CANVAS ON STROKE CHANGES OR RESIZE
+    // -------------------------
+    useLayoutEffect(() => {
+        const canvas = canvasRef.current;
+        if (!canvas) return;
+
+        const resizeCanvas = () => {
+            canvas.width = window.innerWidth; // internal pixel width
+            canvas.height = window.innerHeight; // internal pixel height
+            redraw(); // redraw existing strokes
+        };
+
+        resizeCanvas(); // initial sizing
+        window.addEventListener("resize", resizeCanvas);
+
+        return () => window.removeEventListener("resize", resizeCanvas);
+    }, [localStrokes]);
 
     //CLEAR whiteboard
     useEffect(() => {
@@ -71,85 +226,112 @@ function Whiteboard({ strokes, onChange, activeTool }) { //add pen activeTool
     }, [onChange]);
 
 
+    // -------------------------
+    // DRAWING HANDLERS
+    // -------------------------
+
+
     const startDrawing = (e) => {
-        if (activeTool !== 'pen') return; // only draw when pen or eraser is selected
+        if (activeTool !== "pen" && activeTool !== "eraser") return;
         setIsDrawing(true);
         const pos = getMousePos(e);
-        setCurrentStroke([pos]);
-        if (canvasRef.current) {
-            const isErase = window.__WB_ERASE__ === true;
-            canvasRef.current.style.cursor = isErase ? "cell" : "crosshair";
-        }
+        currentStrokeRef.current = [pos];
     };
 
     const draw = (e) => {
         if (!isDrawing) return;
         const pos = getMousePos(e);
         const ctx = canvasRef.current.getContext("2d");
-        const isErase = window.__WB_ERASE__ === true;
-        if (prevDebugModeRef.current !== erasingRef.current) {
-            console.log("[Whiteboard] Drawing mode:", erasingRef.current ? "ERASE" : "DRAW");
-            prevDebugModeRef.current = erasingRef.current;
+
+        const lastPos =
+            currentStrokeRef.current[currentStrokeRef.current.length - 1];
+
+        ctx.lineJoin = "round";
+        ctx.lineCap = "round";
+
+        // if (activeTool === "highlighter") {
+        //     ctx.globalCompositeOperation = "source-over";
+        //     ctx.strokeStyle = "yellow";
+        //     ctx.lineWidth = 8;
+        //     ctx.globalAlpha = 0.5;
+        // } else {
+        //     ctx.globalAlpha = 1;
+        // }
+        if (activeTool === "eraser") {
+            ctx.globalCompositeOperation = "destination-out";
+            ctx.lineWidth = 20;
+        } else {
+            ctx.globalCompositeOperation = "source-over";
+            ctx.lineWidth = 2;
+            ctx.strokeStyle = "black";
         }
-        setCurrentStroke((prev) => {
-            const lastPos = prev[prev.length - 1];
-            // Configure drawing vs erasing
-            ctx.lineJoin = "round";
-            ctx.lineCap = "round";
-            if (isErase) {
-                ctx.globalCompositeOperation = "destination-out"; // erase pixels
-                ctx.lineWidth = 20; // eraser size
-            } else {
-                ctx.globalCompositeOperation = "source-over";
-                ctx.lineWidth = 2; // pen size
-                ctx.strokeStyle = "black";
-            }
-            if (lastPos) {
-                ctx.beginPath();
-                ctx.moveTo(lastPos.x, lastPos.y);
-                ctx.lineTo(pos.x, pos.y);
-                ctx.stroke();
-            }
-            return [...prev, pos];
-        });
+
+        if (lastPos) {
+            ctx.beginPath();
+            ctx.moveTo(lastPos.x, lastPos.y);
+            ctx.lineTo(pos.x, pos.y);
+            ctx.stroke();
+        }
+
+        currentStrokeRef.current.push(pos);
     };
 
     const endDrawing = () => {
         if (!isDrawing) return;
         setIsDrawing(false);
-        if (currentStroke.length > 0) {
-            const toSave = (window.__WB_ERASE__ === true)
-                ? { points: currentStroke, erase: true }
-                : currentStroke;
-            onChange([...strokes, toSave]); // update parent
-            setCurrentStroke([]);
+
+        if (currentStrokeRef.current.length > 1) {
+            // package stroke with erase flag
+            const strokeData = {
+                points: currentStrokeRef.current,
+                erase: activeTool === "eraser" // mark as eraser stroke so it doesnt draw a line
+            };
+
+            // publish through Ably
+            strokesChannel.publish("new-stroke", { stroke: strokeData });
+            console.log("Published stroke", userName, strokeData);
         }
+
+        currentStrokeRef.current = [];
     };
 
+
     const getMousePos = (e) => {
-        const rect = canvasRef.current.getBoundingClientRect();
-        return { x: e.clientX - rect.left, y: e.clientY - rect.top };
+        const canvas = canvasRef.current;
+        const rect = canvas.getBoundingClientRect();
+        const scaleX = canvas.width / rect.width;
+        const scaleY = canvas.height / rect.height;
+
+        return {
+            x: (e.clientX - rect.left) * scaleX,
+            y: (e.clientY - rect.top) * scaleY,
+        };
     };
 
     const redraw = () => {
         const canvas = canvasRef.current;
+        if (!canvas) return;
         const ctx = canvas.getContext("2d");
         ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-        strokes.forEach((stroke) => {
+        if (!Array.isArray(localStrokes)) return;
+
+        localStrokes.forEach((stroke) => {
             let points = null;
             let isErase = false;
+
             if (Array.isArray(stroke)) {
                 points = stroke;
-                isErase = false;
             } else if (stroke && Array.isArray(stroke.points)) {
                 points = stroke.points;
                 isErase = !!stroke.erase;
             }
+
             if (!points || points.length < 2) return;
 
             ctx.lineJoin = "round";
             ctx.lineCap = "round";
+
             if (isErase) {
                 ctx.globalCompositeOperation = "destination-out";
                 ctx.lineWidth = 20;
@@ -169,24 +351,31 @@ function Whiteboard({ strokes, onChange, activeTool }) { //add pen activeTool
             }
         });
 
-        // Always reset composite op after redraw
+
         ctx.globalCompositeOperation = "source-over";
     };
 
-    const handlePointerDown = (e) => {
-        if (activeTool !== "pen") return; //only draw when pen is active
-        startDrawing(e);
-    };
-
     return (
-        <canvas
-            ref={canvasRef}
-            className="whiteboard-canvas"
-            onMouseDown={handlePointerDown}
-            onMouseMove={draw}
-            onMouseUp={endDrawing}
-            onMouseLeave={endDrawing}
-        />
+        <div className="whiteboard-container">
+            <canvas
+                ref={canvasRef}
+                className="whiteboard-canvas"
+                onMouseDown={startDrawing}
+                onMouseMove={draw}
+                onMouseUp={endDrawing}
+                onMouseLeave={endDrawing}
+            />
+            {/* Live cursors aligned to canvas , pass all the ably references to livecursors component*/}
+            {/* Only render if client and channel are ready */}
+            {client && cursorsChannel && (
+                <LiveCursors
+                    canvasRef={canvasRef}
+                    client={client}
+                    channel={cursorsChannel}
+                    whiteboardId={whiteboardId}
+                />
+            )}
+        </div>
     );
 }
 
