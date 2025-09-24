@@ -1,8 +1,12 @@
 import FileSystem from "../components/FileSystem";
-import { useAuth } from "../contexts/useAuth";
+import FileUpload from "../components/FileUpload";
 
 export default function FilesPage() {
-  const { currentUser } = useAuth();
-  if (!currentUser) return <p>You need to log in to access files.</p>;
-  return <FileSystem />;
+  return (
+    <div className="p-4">
+      <h2 className="text-xl font-bold mb-4">Your Files</h2>
+      <FileUpload />
+      <FileSystem />
+    </div>
+  );
 }

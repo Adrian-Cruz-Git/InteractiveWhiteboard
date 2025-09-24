@@ -30,6 +30,7 @@ function AppRoutes() {
       {/* Authenticated pages */}
       {user && (
         <>
+          <Route path="/" element={<LandingPage />} />
           <Route path="/files" element={<FilesPage />} />
           <Route path="/whiteboard/:id" element={<WhiteboardPage />} />
           <Route path="/settings" element={<SettingsPage />} />

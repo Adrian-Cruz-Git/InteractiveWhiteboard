@@ -4,7 +4,7 @@ import { supabase } from "../config/supabase";
 import { useAuth } from "../contexts/useAuth";
 
 export default function FileSystem() {
-  const { currentUser } = useAuth();
+  const { user } = useAuth();
   const navigate = useNavigate();
 
   const [items, setItems] = useState([]);
@@ -13,10 +13,10 @@ export default function FileSystem() {
   const [breadcrumb, setBreadcrumb] = useState([]);         // [{id, name}...]
 
   const loadItems = async (folderId = null) => {
-    if (!currentUser) return;
+    if (!user) return;
     setLoading(true);
     try {
-      let query = supabase.from("files").select("*").eq("owner", currentUser.uid);
+      let query = supabase.from("files").select("*").eq("owner", user.uid);
       query = folderId ? query.eq("parent_id", folderId) : query.is("parent_id", null);
       const { data, error } = await query.order("created_at", { ascending: true });
       if (error) throw error;
@@ -31,7 +31,7 @@ export default function FileSystem() {
   useEffect(() => {
     loadItems(currentFolder);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [currentUser, currentFolder]);
+  }, [user, currentFolder]);
 
   const createFolder = async () => {
     const name = prompt("Folder name:");
@@ -39,7 +39,7 @@ export default function FileSystem() {
     try {
       const { data, error } = await supabase
         .from("files")
-        .insert([{ name, type: "folder", owner: currentUser.uid, parent_id: currentFolder || null }])
+        .insert([{ name, type: "folder", owner: user.uid, parent_id: currentFolder || null }])
         .select();
       if (error) throw error;
       setItems((prev) => [...prev, data[0]]);
@@ -54,7 +54,7 @@ export default function FileSystem() {
     try {
       const { data: fileData, error: fileError } = await supabase
         .from("files")
-        .insert([{ name, type: "whiteboard", owner: currentUser.uid, parent_id: currentFolder || null }])
+        .insert([{ name, type: "whiteboard", owner: user.uid, parent_id: currentFolder || null }])
         .select();
       if (fileError) throw fileError;
       const file = fileData[0];
