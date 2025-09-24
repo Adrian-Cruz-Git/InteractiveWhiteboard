@@ -1,35 +1,38 @@
-// Page for user authentication (register only) first page a user is met with.
-// Option to create account or login  - e.g Already have an account
-//Use firebase auth ui
-// Later integrate google authentication aswell (button)
+// Page for user registration (sign up)
 import { useState } from "react";
 import { auth } from "../firebase";
-import { GoogleAuthProvider, signInWithPopup, signInWithEmailAndPassword, createUserWithEmailAndPassword } from "firebase/auth";
+import {
+  GoogleAuthProvider,
+  signInWithPopup,
+  createUserWithEmailAndPassword,
+} from "firebase/auth";
 import "./RegisterPage.css";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, Link } from "react-router-dom";
 import TopNav from "../components/TopNav";
 import Popup from "../components/Popup";
-import {getFriendlyError} from "../utils/firebaseErrors.js";
+import { getFriendlyError } from "../utils/firebaseErrors.js";
 
 function RegisterPage() {
   const navigate = useNavigate();
+
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  
+
   // Popup state for errors
   const [showPopup, setShowPopup] = useState(false);
   const [popupMessage, setPopupMessage] = useState("");
 
   const googleProvider = new GoogleAuthProvider();
 
-  const handleGoogleLogin = async () => {
+  // Google signup
+  const handleGoogleRegister = async () => {
     try {
       const result = await signInWithPopup(auth, googleProvider);
-      console.log("Logged in:", result.user);
+      console.log("Registered:", result.user);
 
       const token = await result.user.getIdToken();
       localStorage.setItem("token", token);
-      
+
       navigate("/");
     } catch (err) {
       setPopupMessage(getFriendlyError(err.code));
@@ -38,9 +41,14 @@ function RegisterPage() {
     }
   };
 
-  const handleRegister = async () => {
+  // Email signup
+  const handleEmailRegister = async () => {
     try {
-      const userCredential = await createUserWithEmailAndPassword(auth, email, password);
+      const userCredential = await createUserWithEmailAndPassword(
+        auth,
+        email,
+        password
+      );
       console.log("Registered:", userCredential.user);
 
       const token = await userCredential.user.getIdToken();
@@ -57,30 +65,41 @@ function RegisterPage() {
   return (
     <>
       <TopNav />
-      <div className="login-container">
-        <h1 className="login-title">Register</h1>
+
+      <div className="register-container">
+        <h1 className="register-title">Register</h1>
         <input
           type="email"
           placeholder="Email"
-          className="login-input"
+          className="register-input"
           value={email}
           onChange={(e) => setEmail(e.target.value)}
         />
         <input
           type="password"
           placeholder="Password"
-          className="login-input"
+          className="register-input"
           value={password}
           onChange={(e) => setPassword(e.target.value)}
         />
-        <button onClick={handleRegister} className="login-button green-btn">
-          Register
+        <button
+          onClick={handleEmailRegister}
+          className="register-button blue-btn"
+        >
+          Sign Up with Email
         </button>
-        <button onClick={handleGoogleLogin} className="login-button red-btn">
+        <button
+          onClick={handleGoogleRegister}
+          className="register-button red-btn"
+        >
           Continue with Google
         </button>
-        <p>Already have an account? <a href="/login">Login</a></p>
+        <p className="login">
+          Already have an account? <Link to="/login">Login</Link>
+        </p>
       </div>
+
+      {/* Popup for errors */}
       <Popup trigger={showPopup} setTrigger={setShowPopup}>
         <h3 style={{ color: "black" }}>Error</h3>
         <p style={{ color: "black" }}>{popupMessage}</p>

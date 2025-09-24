@@ -2,7 +2,7 @@
 // or to navigate to new whiteboard if you are
 
 import TopNav from "../components/TopNav";
-import { useAuth } from "../contexts/AuthContext";
+import { useAuth } from "../contexts/useAuth";
 import { Link, useNavigate } from "react-router-dom";
 import "./LandingPage.css";
 
