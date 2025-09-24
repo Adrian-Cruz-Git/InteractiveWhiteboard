@@ -33,13 +33,13 @@ function Navbar({ boards, activeBoard, onSelectBoard, onAddBoard }) {
             setTimeout(() => setCopySuccess(false), 2000);
         }
     };
-    // Send link via email
-    const handleSendTo = () => {
-        const shareLink = generateShareLink();
-        const subject = `Check out this whiteboard - Board ${activeBoard}`;
-        const body = `I'd like to share this whiteboard with you: ${shareLink}`;
-        window.open(`mailto:?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`);
-    };
+    // // Send link via email - Future
+    // const handleSendTo = () => {
+    //     const shareLink = generateShareLink();
+    //     const subject = `Check out this whiteboard - Board ${activeBoard}`;
+    //     const body = `I'd like to share this whiteboard with you: ${shareLink}`;
+    //     window.open(`mailto:?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`);
+    // };
 
     return (
         <>
@@ -92,12 +92,12 @@ function Navbar({ boards, activeBoard, onSelectBoard, onAddBoard }) {
                                     {copySuccess ? '✓ Copied!' : 'Copy Link'}
                                 </button>
                                 
-                                <button 
+                                {/* <button 
                                     onClick={handleSendTo} 
                                     className="send-to-btn"
                                 >
                                     Send via Email
-                                </button>
+                                </button> */}
                             </div>
                         </div>
                     </div>
