@@ -16,7 +16,27 @@ function Whiteboard({ strokes, onChange, activeTool }) {
         console.log("[Whiteboard] mounted");
     }, [strokes]);
 
+        //CLEAR whiteboard
+    useEffect(() => {
+        const handleClear = () => {
+            console.log("[Whiteboard] Clear event received");
+            // Clear parent strokes and currentStroke
+            onChange([]);
+            setCurrentStroke([]);
+            const canvas = canvasRef.current;
+            if (canvas) {
+                const ctx = canvas.getContext("2d");
+                ctx.clearRect(0, 0, canvas.width, canvas.height);
+            }
+        };
 
+        window.addEventListener("wb:clear", handleClear);
+
+        return () => {
+            window.removeEventListener("wb:clear", handleClear);
+        };
+    }, [onChange]);
+    
     const startDrawing = (e) => {
         if (activeTool !== "pen" && activeTool !== "eraser") return;
         setIsDrawing(true);

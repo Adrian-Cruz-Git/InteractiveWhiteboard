@@ -81,8 +81,6 @@ export default function Toolbar({ activeTool, setActiveTool }) {
                 aria-label="Redo"
             >
                 <img src={redoIcon} alt="Redo" style={{ width: '25px', height: '25px' }} />
-            </button>
-        </div> 
             </button>   
              <button
               onClick={() => {
