@@ -12,12 +12,11 @@ const TopNav = () => {
   };
 
   return (
-    <nav className="topnav">
+    <nav className="navbar">
       <Link to="/">Home</Link>
       {currentUser ? (
         <>
           <Link to="/whiteboard">Whiteboard</Link>
-          <Link to="/files">Files</Link>
           <Link to="/settings">Settings</Link>
           <button onClick={handleLogout} className="logout-btn">Logout</button>
         </>

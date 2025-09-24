@@ -6,7 +6,7 @@ import { nanoid } from "nanoid";
 import { config } from "../config.js"; // your Ably key
 import { useAuth } from "../contexts/AuthContext";
 
-function Whiteboard({ strokes, onChange, activeTool }) {
+function Whiteboard({ strokes, onChange }) {
     const canvasRef = useRef(null);
     const [isDrawing, setIsDrawing] = useState(false);
     const { currentUser } = useAuth();
@@ -112,61 +112,26 @@ function Whiteboard({ strokes, onChange, activeTool }) {
         return () => window.removeEventListener("resize", resizeCanvas);
     }, [localStrokes]);
 
-        //CLEAR whiteboard
-    useEffect(() => {
-        const handleClear = () => {
-            console.log("[Whiteboard] Clear event received");
-            // Clear parent strokes and currentStroke
-            onChange([]);
-            setCurrentStroke([]);
-            const canvas = canvasRef.current;
-            if (canvas) {
-                const ctx = canvas.getContext("2d");
-                ctx.clearRect(0, 0, canvas.width, canvas.height);
-            }
-        };
 
-        window.addEventListener("wb:clear", handleClear);
-
-        return () => {
-            window.removeEventListener("wb:clear", handleClear);
-        };
-    }, [onChange]);
 
 
     // -------------------------
     // DRAWING HANDLERS
     // -------------------------
-
-
     const startDrawing = (e) => {
-        if (activeTool !== "pen" && activeTool !== "eraser") return;
         setIsDrawing(true);
         const pos = getMousePos(e);
         currentStrokeRef.current = [pos];
     };
 
- const draw = (e) => {
+    const draw = (e) => {
         if (!isDrawing) return;
         const pos = getMousePos(e);
-        const ctx = canvasRef.current.getContext("2d");
-
         const lastPos =
             currentStrokeRef.current[currentStrokeRef.current.length - 1];
 
-        ctx.lineJoin = "round";
-        ctx.lineCap = "round";
-
-        if (activeTool === "eraser") {
-            ctx.globalCompositeOperation = "destination-out";
-            ctx.lineWidth = 20;
-        } else {
-            ctx.globalCompositeOperation = "source-over";
-            ctx.lineWidth = 2;
-            ctx.strokeStyle = "black";
-        }
-
         if (lastPos) {
+            const ctx = canvasRef.current.getContext("2d");
             ctx.beginPath();
             ctx.moveTo(lastPos.x, lastPos.y);
             ctx.lineTo(pos.x, pos.y);
@@ -200,49 +165,25 @@ function Whiteboard({ strokes, onChange, activeTool }) {
     };
 
     const redraw = () => {
-        const canvas = canvasRef.current;
-        if (!canvas) return;
-        const ctx = canvas.getContext("2d");
-        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        const ctx = canvasRef.current.getContext("2d");
+        ctx.clearRect(0, 0, canvasRef.current.width, canvasRef.current.height);
+        ctx.lineJoin = "round";
+        ctx.lineCap = "round";
+        ctx.lineWidth = 2;
+        ctx.strokeStyle = "black";
 
         if (!Array.isArray(localStrokes)) return;
 
         localStrokes.forEach((stroke) => {
-            let points = null;
-            let isErase = false;
-
-            if (Array.isArray(stroke)) {
-                points = stroke;
-            } else if (stroke && Array.isArray(stroke.points)) {
-                points = stroke.points;
-                isErase = !!stroke.erase;
-            }
-
-            if (!points || points.length < 2) return;
-
-            ctx.lineJoin = "round";
-            ctx.lineCap = "round";
-
-            if (isErase) {
-                ctx.globalCompositeOperation = "destination-out";
-                ctx.lineWidth = 20;
-            } else {
-                ctx.globalCompositeOperation = "source-over";
-                ctx.lineWidth = 2;
-                ctx.strokeStyle = "black";
-            }
-
-            for (let i = 1; i < points.length; i++) {
-                const from = points[i - 1];
-                const to = points[i];
+            for (let i = 1; i < stroke.length; i++) {
+                const from = stroke[i - 1];
+                const to = stroke[i];
                 ctx.beginPath();
                 ctx.moveTo(from.x, from.y);
                 ctx.lineTo(to.x, to.y);
                 ctx.stroke();
             }
         });
-
-        ctx.globalCompositeOperation = "source-over";
     };
 
     return (

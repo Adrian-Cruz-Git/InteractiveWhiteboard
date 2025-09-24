@@ -3,7 +3,6 @@ import WhiteboardApp from "./pages/WhiteboardPage.jsx";
 import LandingPage from "./pages/LandingPage.jsx";
 import LoginPage from "./pages/LoginPage.jsx";
 import SettingsPage from "./pages/SettingsPage.jsx";
-import FilesPage from "./pages/FilesPage.jsx";
 import { BrowserRouter as Router, Route, Routes, Link } from "react-router-dom";
 
 import ProtectedRoute from "./components/ProtectedRoute";
@@ -47,7 +46,6 @@ function App() {
             <Route element={<ProtectedRoute />}>
               <Route path="/whiteboard" element={<WhiteboardApp />} />
               <Route path="/settings" element={<SettingsPage />} />
-              <Route path="/files" element={<FilesPage />} />
             </Route>
             {/* Public routes */}
             <Route path="/" element={<LandingPage />} />
