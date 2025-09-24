@@ -30,10 +30,10 @@ function Whiteboard({ strokes, onChange, activeTool }) {
     // Use email as clientId if possible for easier tracking
     // Fallback to random id if no user info (should not happen in protected route)
 
-    
+
     useEffect(() => {
         if (!currentUser) return;
-        
+
         const ablyClient = new Realtime({
             key: config.ABLY_KEY,
             clientId: currentUser.email || nanoid(),
@@ -112,7 +112,7 @@ function Whiteboard({ strokes, onChange, activeTool }) {
         return () => window.removeEventListener("resize", resizeCanvas);
     }, [localStrokes]);
 
-        //CLEAR whiteboard
+    //CLEAR whiteboard
     useEffect(() => {
         const handleClear = () => {
             console.log("[Whiteboard] Clear event received");
@@ -146,7 +146,7 @@ function Whiteboard({ strokes, onChange, activeTool }) {
         currentStrokeRef.current = [pos];
     };
 
- const draw = (e) => {
+    const draw = (e) => {
         if (!isDrawing) return;
         const pos = getMousePos(e);
         const ctx = canvasRef.current.getContext("2d");
@@ -177,15 +177,24 @@ function Whiteboard({ strokes, onChange, activeTool }) {
     };
 
     const endDrawing = () => {
-        if (!isDrawing) return;
-        setIsDrawing(false);
-        if (currentStrokeRef.current.length > 1) {
-            //Only publish if there's something drawn, dont call onChange directly, let the ably subscription handle it
-            strokesChannel.publish("new-stroke", { stroke: currentStrokeRef.current });
-            console.log("Published stroke", userName, currentStrokeRef.current); // DEBUB - TESTING , to see if stroke is published correctly
-        }
-        currentStrokeRef.current = [];
-    };
+    if (!isDrawing) return;
+    setIsDrawing(false);
+
+    if (currentStrokeRef.current.length > 1) {
+        // package stroke with erase flag
+        const strokeData = {
+            points: currentStrokeRef.current,
+            erase: activeTool === "eraser" // mark as eraser stroke so it doesnt draw a line
+        };
+
+        // publish through Ably
+        strokesChannel.publish("new-stroke", { stroke: strokeData });
+        console.log("Published stroke", userName, strokeData);
+    }
+
+    currentStrokeRef.current = [];
+};
+
 
     const getMousePos = (e) => {
         const canvas = canvasRef.current;
@@ -242,6 +251,7 @@ function Whiteboard({ strokes, onChange, activeTool }) {
             }
         });
 
+
         ctx.globalCompositeOperation = "source-over";
     };
 
@@ -257,7 +267,7 @@ function Whiteboard({ strokes, onChange, activeTool }) {
             />
             {/* Live cursors aligned to canvas , pass all the ably references to livecursors component*/}
             {/* Only render if client and channel are ready */}
-            {client && cursorsChannel && ( 
+            {client && cursorsChannel && (
                 <LiveCursors
                     canvasRef={canvasRef}
                     client={client}
