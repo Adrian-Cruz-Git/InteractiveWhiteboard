@@ -74,6 +74,8 @@ function Whiteboard({ fileId }) {
         <div>
         <canvas
             ref={canvasRef}
+            width={1200}
+            height={400}
             className="whiteboard-canvas"
             onMouseDown={startDrawing}
             onMouseMove={draw}
