@@ -16,6 +16,7 @@ function Whiteboard({ strokes, onChange, activeTool }) {
         console.log("[Whiteboard] mounted");
     }, [strokes]);
 
+
     const startDrawing = (e) => {
         if (activeTool !== "pen" && activeTool !== "eraser") return;
         setIsDrawing(true);

@@ -9,6 +9,7 @@ import textIcon from '../assets/text.png';
 import imageIcon from '../assets/image.png';
 import undoIcon from '../assets/undo.png';
 import redoIcon from '../assets/redo.png';
+import clearIcon from '../assets/clear.png';
 
 
 export default function Toolbar({ activeTool, setActiveTool }) {
@@ -82,5 +83,20 @@ export default function Toolbar({ activeTool, setActiveTool }) {
                 <img src={redoIcon} alt="Redo" style={{ width: '25px', height: '25px' }} />
             </button>
         </div> 
+            </button>   
+             <button
+              onClick={() => {
+                if (window.confirm('Are you sure you want to clear the whiteboard? This action cannot be undone.')) {
+                  window.dispatchEvent(new CustomEvent('wb:clear'));
+                } else {
+                  console.log('Clear whiteboard action cancelled.');
+                }  }}
+              title="Clear Whiteboard"
+              aria-label="Clear Whiteboard"
+             >   
+                <img src={clearIcon} alt="Clear" style={{ width: '25px', height: '25px' }} />
+            </button>   
+        </div>
+
     )
 }
