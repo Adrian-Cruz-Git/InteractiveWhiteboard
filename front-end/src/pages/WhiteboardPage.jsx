@@ -1,7 +1,6 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { nanoid } from "nanoid";
 import { useNavigate, useLocation } from "react-router-dom";
-
 import Navbar from "../components/Navbar";
 import Whiteboard from "../components/Whiteboard";
 import Toolbar from "../components/toolbar";
@@ -14,6 +13,10 @@ function WhiteboardApp() {
     const location = useLocation();
     const searchParams = new URLSearchParams(location.search);
     const idFromUrl = searchParams.get("id");
+
+    const undoRef = useRef();
+    const redoRef = useRef();
+    const clearRef = useRef();
 
     // ---- State ----
     const initialBoard = idFromUrl
@@ -115,7 +118,13 @@ function WhiteboardApp() {
                     <div className="whiteboard-interface">
                         {/* Toolbar */}
                         <div className="toolbar-container">
-                            <Toolbar activeTool={activeTool} setActiveTool={setActiveTool} />
+                            <Toolbar
+                                activeTool={activeTool}
+                                setActiveTool={(tool) => setActiveTool(tool)}
+                                onUndo={() => undoRef.current && undoRef.current()}
+                                onRedo={() => redoRef.current && redoRef.current()}
+                                onClear={() => clearRef.current && clearRef.current()}
+                            />
                         </div>
 
                         {/* Whiteboard */}
@@ -134,6 +143,9 @@ function WhiteboardApp() {
                                             onChange={(newStrokes) =>
                                                 updateStrokes(activeBoardData.id, newStrokes)
                                             }
+                                            onUndo={undoRef}
+                                            onRedo={redoRef}
+                                            onClear={clearRef}
                                         />
                                     </div>
                                 </div>

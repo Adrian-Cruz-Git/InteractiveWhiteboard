@@ -12,7 +12,7 @@ import redoIcon from '../assets/redo.png';
 import clearIcon from '../assets/clear.png';
 
 
-export default function Toolbar({ activeTool, setActiveTool }) {
+export default function Toolbar({ activeTool, setActiveTool, onUndo, onRedo, onClear }) {
     return (
         <div className="toolbar">
             <button onClick={() => setActiveTool('cursor')} // CURSOR BUTTON
@@ -23,37 +23,37 @@ export default function Toolbar({ activeTool, setActiveTool }) {
             </button>
             <button // PEN BUTTON
                 onClick={() => setActiveTool("pen")}
-                title="Pen" 
-                aria-label="Pen" 
+                title="Pen"
+                aria-label="Pen"
             >
                 <img src={penIcon} alt="Pen" style={{ width: '25px', height: '25px' }} />
             </button>
             <button // HIGHLIGHTER BUTTON
-                onClick={() => setActiveTool("highlighter")} 
-                title="Highlighter" 
-                aria-label="Highlighter" 
-            >   
+                onClick={() => setActiveTool("highlighter")}
+                title="Highlighter"
+                aria-label="Highlighter"
+            >
                 <img src={highlightIcon} alt="Highlighter" style={{ width: '25px', height: '25px' }} />
             </button>
             <button // ERASER BUTTON
-                onClick={() => setActiveTool("eraser")} 
-                title="Eraser" 
-                aria-label="Eraser" 
+                onClick={() => setActiveTool("eraser")}
+                title="Eraser"
+                aria-label="Eraser"
             >
                 <img src={eraserIcon} alt="Eraser" style={{ width: '25px', height: '25px' }} />
             </button>
             <button // STICKY NOTE BUTTON
-                onClick={() => setActiveTool("stickyNote")} 
-                title="Sticky Note" 
-                aria-label="Sticky Note" 
-            >   
+                onClick={() => setActiveTool("stickyNote")}
+                title="Sticky Note"
+                aria-label="Sticky Note"
+            >
                 <img src={stickyNoteIcon} alt="Sticky Note" style={{ width: '25px', height: '25px' }} />
             </button>
             <button // SHAPES BUTTON
                 onClick={() => setActiveTool("shapes")}
-                title="Shapes" 
-                aria-label="Shapes" 
-            >   
+                title="Shapes"
+                aria-label="Shapes"
+            >
                 <img src={shapesIcon} alt="Shapes" style={{ width: '25px', height: '25px' }} />
             </button>
             <button // TEXT BUTTON
@@ -70,30 +70,34 @@ export default function Toolbar({ activeTool, setActiveTool }) {
             >
                 <img src={imageIcon} alt="Image" style={{ width: '25px', height: '25px' }} />
             </button>
-            <button // UNDO BUTTON
-                title="Undo"
+            <button //UNDO BUTTON
+                onClick={onUndo} 
+                title="Undo" 
                 aria-label="Undo"
             >
                 <img src={undoIcon} alt="Undo" style={{ width: '25px', height: '25px' }} />
             </button>
-            <button // REDO BUTTON
-                title="Redo"
+            <button //REDO BUTTON
+                onClick={onRedo} 
+                title="Redo" 
                 aria-label="Redo"
-            >
+                >
                 <img src={redoIcon} alt="Redo" style={{ width: '25px', height: '25px' }} />
-            </button>   
-             <button
-              onClick={() => {
-                if (window.confirm('Are you sure you want to clear the whiteboard? This action cannot be undone.')) {
-                  window.dispatchEvent(new CustomEvent('wb:clear'));
-                } else {
-                  console.log('Clear whiteboard action cancelled.');
-                }  }}
-              title="Clear Whiteboard"
-              aria-label="Clear Whiteboard"
-             >   
+            </button>
+
+            <button
+                onClick={() => {
+                    if (window.confirm('Are you sure you want to clear the whiteboard? This action cannot be undone.')) {
+                        onClear();
+                    } else {
+                        console.log('Clear whiteboard action cancelled.');
+                    }
+                }}
+                title="Clear Whiteboard"
+                aria-label="Clear Whiteboard"
+            >
                 <img src={clearIcon} alt="Clear" style={{ width: '25px', height: '25px' }} />
-            </button>   
+            </button>
         </div>
 
     )
