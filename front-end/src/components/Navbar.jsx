@@ -1,33 +1,30 @@
-import React, { useState } from "react";
 import "./Navbar.css";
 import { useEffect, useState } from "react";
 import { auth } from "../firebase";
 import { signInWithPopup, signOut, onAuthStateChanged } from "firebase/auth";
 import { useNavigate } from "react-router-dom";
 
-function Navbar({ boards, activeBoard, onAddBoard }) {
-  const [user, setUser] = useState(null);
-  const navigate = useNavigate();
-
-  useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, currentUser => {
-      setUser(currentUser);
-    });
-    return () => unsubscribe();
-  }, []);
-
-//Nav bar for whiteboard component (new board button)
-
 function Navbar({ boards, activeBoard, onSelectBoard, onAddBoard }) {
+    const [user, setUser] = useState(null);
     const [showShareModal, setShowShareModal] = useState(false);
     const [copySuccess, setCopySuccess] = useState(false);
+    const navigate = useNavigate();
 
-    // Generate shareable link (customise in future get id from url or backend)
+    // Listen for auth state changes
+    useEffect(() => {
+        const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
+            setUser(currentUser);
+        });
+        return () => unsubscribe();
+    }, []);
+
+    // Generate shareable link
     const generateShareLink = () => {
         const baseUrl = window.location.origin;
-        const boardPath = `/board/${activeBoard}`;
+        const boardPath = `/whiteboard/${activeBoard}`;
         return `${baseUrl}${boardPath}`;
     };
+
     // Copy link to clipboard
     const handleCopyLink = async () => {
         const shareLink = generateShareLink();
@@ -48,13 +45,6 @@ function Navbar({ boards, activeBoard, onSelectBoard, onAddBoard }) {
             setTimeout(() => setCopySuccess(false), 2000);
         }
     };
-    // // Send link via email - Future
-    // const handleSendTo = () => {
-    //     const shareLink = generateShareLink();
-    //     const subject = `Check out this whiteboard - Board ${activeBoard}`;
-    //     const body = `I'd like to share this whiteboard with you: ${shareLink}`;
-    //     window.open(`mailto:?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`);
-    // };
 
     return (
         <>
@@ -70,6 +60,27 @@ function Navbar({ boards, activeBoard, onSelectBoard, onAddBoard }) {
                 ))}
                 <button onClick={onAddBoard} className="new-board">New Board</button>
                 <button onClick={() => setShowShareModal(true)} className="share">Share</button>
+                {user ? (
+                    <>
+                        {user.photoURL ? (
+                            <img
+                                src={user.photoURL}
+                                alt={user.displayName || "User Avatar"}
+                                className="user-avatar"
+                            />
+                        ) : (
+                            <span className="user-avatar">{user.displayName?.[0]}</span>
+                        )}
+                    </>
+                ) : (
+                    <button
+                        className="login-btn"
+                        onClick={() => signInWithPopup(auth, new auth.GoogleAuthProvider())}
+                    >
+                        Login
+                    </button>
+                )}
+
             </nav>
 
             {showShareModal && (
@@ -77,42 +88,28 @@ function Navbar({ boards, activeBoard, onSelectBoard, onAddBoard }) {
                     <div className="share-modal" onClick={(e) => e.stopPropagation()}>
                         <div className="share-modal-header">
                             <h3>Share Board {activeBoard}</h3>
-                            <button 
-                                className="close-btn" 
-                                onClick={() => setShowShareModal(false)}
-                            >
-                                ×
-                            </button>
+                            <button className="close-btn" onClick={() => setShowShareModal(false)}>×</button>
                         </div>
-                        
                         <div className="share-modal-content">
                             <div className="share-link-section">
                                 <label>Shareable Link:</label>
                                 <div className="link-container">
-                                    <input 
-                                        type="text" 
-                                        value={generateShareLink()} 
-                                        readOnly 
+                                    <input
+                                        type="text"
+                                        value={generateShareLink()}
+                                        readOnly
                                         className="share-link-input"
                                     />
                                 </div>
                             </div>
-                            
                             <div className="share-actions">
-                                <button 
-                                    onClick={handleCopyLink} 
+                                <button
+                                    onClick={handleCopyLink}
                                     className="copy-link-btn"
                                     disabled={copySuccess}
                                 >
                                     {copySuccess ? '✓ Copied!' : 'Copy Link'}
                                 </button>
-                                
-                                {/* <button 
-                                    onClick={handleSendTo} 
-                                    className="send-to-btn"
-                                >
-                                    Send via Email
-                                </button> */}
                             </div>
                         </div>
                     </div>
@@ -123,4 +120,3 @@ function Navbar({ boards, activeBoard, onSelectBoard, onAddBoard }) {
 }
 
 export default Navbar;
-
