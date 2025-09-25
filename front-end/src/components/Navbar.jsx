@@ -3,6 +3,9 @@ import { useEffect, useState } from "react";
 import { auth } from "../firebase";
 import { signInWithPopup, signOut, onAuthStateChanged } from "firebase/auth";
 import { useNavigate } from "react-router-dom";
+import OnlineUsers from "./Users/OnlineUsers";
+import UserPermissions from "./Users/UserPermissions";
+import BoardPermissionsManager from "./Users/BoardPermissionsManager";
 
 function Navbar({ boards, activeBoard, onSelectBoard, onAddBoard }) {
     const [user, setUser] = useState(null);
@@ -21,7 +24,7 @@ function Navbar({ boards, activeBoard, onSelectBoard, onAddBoard }) {
     // Generate shareable link
     const generateShareLink = () => {
         const baseUrl = window.location.origin;
-        const boardPath = `/whiteboard/${activeBoard}`;
+        const boardPath = `/whiteboard/?id=${activeBoard}`;
         return `${baseUrl}${boardPath}`;
     };
 
@@ -49,40 +52,59 @@ function Navbar({ boards, activeBoard, onSelectBoard, onAddBoard }) {
     return (
         <>
             <nav className="navbar">
-                {boards.map((board) => (
-                    <button
-                        key={board.id}
-                        onClick={() => onSelectBoard(board.id)}
-                        className={activeBoard === board.id ? "active" : ""}
-                    >
-                        Board {board.id}
-                    </button>
-                ))}
-                <button onClick={onAddBoard} className="new-board">New Board</button>
-                <button onClick={() => setShowShareModal(true)} className="share">Share</button>
-                {user ? (
-                    <>
-                        {user.photoURL ? (
-                            <img
-                                src={user.photoURL}
-                                alt={user.displayName || "User Avatar"}
-                                className="user-avatar"
-                            />
-                        ) : (
-                            <span className="user-avatar">{user.displayName?.[0]}</span>
-                        )}
-                    </>
-                ) : (
-                    <button
-                        className="login-btn"
-                        onClick={() => signInWithPopup(auth, new auth.GoogleAuthProvider())}
-                    >
-                        Login
-                    </button>
-                )}
+                {/* Board Navigation */}
+                <div className="board-navigation">
+                    {boards.map((board) => (
+                        <button
+                            key={board.id}
+                        onClick={() => { // on click navigate to that board ( update url id?= , and set active board)
+                            onSelectBoard(board.id);
+                            navigate(`/whiteboard/?id=${board.id}`);
+                        }}
+                            className={activeBoard === board.id ? "active" : ""}
+                            
+                        >
+                            Board {board.id}
+                        </button>
+                    ))}
+                    <button onClick={onAddBoard} className="new-board">New Board</button>
+                </div>
 
+                {/* User Management Section */}
+                <div className="user-management">
+                    <OnlineUsers boardId={activeBoard} />
+                    <UserPermissions boardId={activeBoard} />
+                    <BoardPermissionsManager boardId={activeBoard} />
+                </div>
+
+                {/* Action Buttons */}
+                <div className="action-buttons">
+                    <button onClick={() => setShowShareModal(true)} className="share">Share</button>
+                    
+                    {user ? (
+                        <div className="current-user">
+                            {user.photoURL ? (
+                                <img
+                                    src={user.photoURL}
+                                    alt={user.displayName || "User Avatar"}
+                                    className="user-avatar"
+                                />
+                            ) : (
+                                <span className="user-avatar">{user.displayName?.[0]}</span>
+                            )}
+                        </div>
+                    ) : (
+                        <button
+                            className="login-btn"
+                            onClick={() => signInWithPopup(auth, new auth.GoogleAuthProvider())}
+                        >
+                            Login
+                        </button>
+                    )}
+                </div>
             </nav>
 
+            {/* Share Modal */}
             {showShareModal && (
                 <div className="share-modal-overlay" onClick={() => setShowShareModal(false)}>
                     <div className="share-modal" onClick={(e) => e.stopPropagation()}>
