@@ -1,3 +1,4 @@
+// useStickyNotes.js
 import { useState, useCallback } from "react";
 
 export function useStickyNotes() {
@@ -11,26 +12,28 @@ export function useStickyNotes() {
   }, []);
 
   // Remove a note
-  const removeNote = useCallback((id) => {
-    setNotes((prev) => prev.filter((n) => n.id !== id));
-    setFocusNoteId((prevFocus) => (prevFocus === id ? null : prevFocus));
-  }, []);
+  const removeNote = useCallback((idToRemove) => {
+    setNotes((prev) => prev.filter((n) => n.id !== idToRemove));
+    if (focusNoteId === idToRemove) {
+      setFocusNoteId(null);
+    }
+  }, [focusNoteId]);
 
-  // Move a note (dragging)
+  // Move note (dragging)
   const moveNote = useCallback((id, { x, y }) => {
     setNotes((prev) =>
       prev.map((n) => (n.id === id ? { ...n, x, y } : n))
     );
   }, []);
 
-  // Resize a note
+  // Resize note
   const resizeNote = useCallback((id, { w, h }) => {
     setNotes((prev) =>
       prev.map((n) => (n.id === id ? { ...n, w, h } : n))
     );
   }, []);
 
-  // Update text inside a note
+  // Update text
   const typeNote = useCallback((id, text) => {
     setNotes((prev) =>
       prev.map((n) => (n.id === id ? { ...n, text } : n))

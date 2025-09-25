@@ -1,13 +1,12 @@
-import React, { useEffect, useRef } from "react";
+// Canvas.jsx
+import React, { useEffect } from "react";
 
 function Canvas({ canvasRef, activeTool, strokes, onStrokeComplete }) {
-  const containerRef = useRef(null);
-
   useEffect(() => {
     const canvas = canvasRef.current;
     if (!canvas) return;
 
-    //  canvas size
+    // Large board size — matches Whiteboard
     canvas.width = 5000;
     canvas.height = 5000;
 
@@ -46,19 +45,7 @@ function Canvas({ canvasRef, activeTool, strokes, onStrokeComplete }) {
     redraw();
   }, [strokes, canvasRef]);
 
-  // Center the user in the middle of canvas
-  useEffect(() => {
-    if (!containerRef.current || !canvasRef.current) return;
-
-    const container = containerRef.current;
-    const canvas = canvasRef.current;
-
-    // scrolls to center
-    container.scrollLeft = (canvas.width - container.clientWidth) / 2;
-    container.scrollTop = (canvas.height - container.clientHeight) / 2;
-  }, [canvasRef]);
-
-  // mouse shit
+  // Get mouse position relative to canvas
   const getMousePos = (e) => {
     const rect = canvasRef.current.getBoundingClientRect();
     const scaleX = canvasRef.current.width / rect.width;
@@ -121,27 +108,20 @@ function Canvas({ canvasRef, activeTool, strokes, onStrokeComplete }) {
   };
 
   return (
-    <div
-      ref={containerRef}
+    <canvas
+      ref={canvasRef}
       style={{
-        width: "100vw",
-        height: "100vh",
-        overflow: "scroll",
-        border: "1px solid #ccc",
+        backgroundColor: "white",
+        display: "block",
+        position: "absolute", // ✅ pinned inside 5000x5000 board
+        top: 0,
+        left: 0,
       }}
-    >
-      <canvas
-        ref={canvasRef}
-        style={{
-          backgroundColor: "white",
-          display: "block",
-        }}
-        onMouseDown={startDrawing}
-        onMouseMove={draw}
-        onMouseUp={endDrawing}
-        onMouseLeave={endDrawing}
-      />
-    </div>
+      onMouseDown={startDrawing}
+      onMouseMove={draw}
+      onMouseUp={endDrawing}
+      onMouseLeave={endDrawing}
+    />
   );
 }
 
