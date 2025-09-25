@@ -8,7 +8,7 @@ import TopNav from "../components/TopNav";
 
 import "./WhiteboardPage.css";
 
-function WhiteboardApp() {
+function WhiteboardPage() {
     const navigate = useNavigate();
     const location = useLocation();
     const searchParams = new URLSearchParams(location.search);
@@ -52,7 +52,6 @@ function WhiteboardApp() {
     };
 
     const openFromFiles = () => {
-        // Placeholder: load from storage
         const sampleBoard = { id: nanoid(), strokes: [] };
         setBoards([sampleBoard]);
         setActiveBoard(sampleBoard.id);
@@ -120,7 +119,7 @@ function WhiteboardApp() {
                         <div className="toolbar-container">
                             <Toolbar
                                 activeTool={activeTool}
-                                setActiveTool={(tool) => setActiveTool(tool)}
+                                setActiveTool={setActiveTool}
                                 onUndo={() => undoRef.current && undoRef.current()}
                                 onRedo={() => redoRef.current && redoRef.current()}
                                 onClear={() => clearRef.current && clearRef.current()}
@@ -138,6 +137,7 @@ function WhiteboardApp() {
                                     </div>
                                     <div className="whiteboard-container">
                                         <Whiteboard
+                                            fileId={activeBoardData.id} // pass file id to whiteboard
                                             strokes={activeBoardData.strokes}
                                             activeTool={activeTool}
                                             onChange={(newStrokes) =>
@@ -158,4 +158,4 @@ function WhiteboardApp() {
     );
 }
 
-export default WhiteboardApp;
+export default WhiteboardPage;

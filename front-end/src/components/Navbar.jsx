@@ -1,3 +1,4 @@
+
 import "./Navbar.css";
 import { useEffect, useState } from "react";
 import { auth } from "../firebase";
@@ -120,3 +121,4 @@ function Navbar({ boards, activeBoard, onSelectBoard, onAddBoard }) {
 }
 
 export default Navbar;
+

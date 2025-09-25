@@ -10,7 +10,11 @@ const { v4: uuidv4 } = require("uuid"); // For generating unique IDs (websoccket
 const url = require("url");
 
 
+const app = express();
+const PORT = 5000;
 
+
+// Allow requests from frontend
 
 const connections = {}; // Object to store user connections, using UUID as keys
 const users = {}; // Object to store user information, using username as keys
@@ -20,19 +24,55 @@ const PORT = process.env.NODE_PORT || 5000;
 
 // Middleware
 app.use(cors());
-app.use(express.json());
 
+// Serve uploaded files as static
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+app.use("/uploads", express.static(path.join(__dirname, "uploads")));
 
-//      Routes
+// Configure multer for file uploads
+const storage = multer.diskStorage({
+  destination: (req, file, cb) => cb(null, "uploads/"),
+  filename: (req, file, cb) => cb(null, Date.now() + "-" + file.originalname),
+});
+const upload = multer({ storage });
 
-// Public route - register and auth/login
-app.use("/auth", require("./routes/auth"));
+// Fake authentication middleware (replace with real token check)
+function authMiddleware(req, res, next) {
+  const authHeader = req.headers["authorization"];
+  if (!authHeader || !authHeader.startsWith("Bearer ")) {
+    return res.status(401).json({ error: "Unauthorized" });
+  }
+  next();
+}
 
+// 🔹 Upload endpoint
+app.post("/api/files/upload", authMiddleware, upload.single("file"), (req, res) => {
+  if (!req.file) return res.status(400).json({ error: "No file uploaded" });
 
-// Protected routes (must pass verifyJWT)
-// app.use("/chat", verifyJWT, require("./routes/chatRoutes"));
-// app.use("/users", verifyJWT, require("./routes/userRoutes"));
+  const fileUrl = `http://localhost:${PORT}/uploads/${req.file.filename}`;
 
+  res.json({
+    id: req.file.filename,
+    name: req.file.originalname,
+    url: fileUrl,
+  });
+});
+
+// 🔹 List files endpoint
+app.get("/api/files", authMiddleware, (req, res) => {
+  const fs = require("fs");
+  const uploadDir = path.join(__dirname, "uploads");
+
+  if (!fs.existsSync(uploadDir)) {
+    return res.json([]);
+  }
+
+  const files = fs.readdirSync(uploadDir).map((filename) => ({
+    id: filename,
+    name: filename.split("-").slice(1).join("-"), // original name
+    url: `http://localhost:${PORT}/uploads/${filename}`,
+  }));
 
 // EXAMPLES
 // Simple test route
@@ -115,5 +155,6 @@ server.listen(PORT, (connections, req) => {
   console.log(`Server is listening on port ${PORT}`);
 
 });
+
 
 

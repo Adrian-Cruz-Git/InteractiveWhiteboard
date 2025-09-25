@@ -1,39 +1,67 @@
 import React, { useRef, useState, useEffect, useMemo, useLayoutEffect } from "react";
 import "./Whiteboard.css";
+import { supabase } from "../config/supabase";
+
 import LiveCursors from "../components/LiveCursors";
 import { Realtime } from "ably";
 import { nanoid } from "nanoid";
 import { config } from "../config.js"; // your Ably key
 import { useAuth } from "../contexts/AuthContext";
 
-function Whiteboard({ strokes, onChange, activeTool, onUndo, onRedo, onClear, }) {
+function Whiteboard({ strokes, onChange, activeTool, onUndo, onRedo, onClear, fileId}) {
     const canvasRef = useRef(null);
     const [isDrawing, setIsDrawing] = useState(false);
     const { currentUser } = useAuth();
     const currentStrokeRef = useRef([]);
-    const [localStrokes, setLocalStrokes] = useState(strokes || []); // new local state for strokes
-    const [client, setClient] = useState(null);// hold client so you only have to create it once
+    const [localStrokes, setLocalStrokes] = useState([]); // local strokes for rendering
+    const [client, setClient] = useState(null); // Ably client
 
     const [undoStack, setUndoStack] = useState([]);
     const [redoStack, setRedoStack] = useState([]);
 
-    //Keep local strokes in sync with prop strokes
+    // -------------------------
+    // Supabase fetch / save
+    // -------------------------
     useEffect(() => {
-        setLocalStrokes(undoStack);
-    }, [undoStack]);
+        const fetchStrokes = async () => {
+            const { data, error } = await supabase
+                .from("whiteboards")
+                .select("content")
+                .eq("file_id", fileId)
+                .single();
 
+            if (!error && data) {
+                setUndoStack(data.content || []); // initialize undo stack
+                setRedoStack([]);
+            }
+        };
+        if (fileId) fetchStrokes();
+    }, [fileId]);
 
+    // Save strokes to Supabase whenever undoStack changes
+    useEffect(() => {
+        const saveStrokes = async () => {
+            if (!fileId) return;
+            await supabase
+                .from("whiteboards")
+                .upsert({ file_id: fileId, content: undoStack }, { onConflict: "file_id" });
+        };
+        saveStrokes();
+        setLocalStrokes(undoStack); // redraw canvas
+        onChange && onChange(undoStack); // sync with parent
+    }, [undoStack, fileId, onChange]);
+
+    // -------------------------
     // Unique whiteboard ID from URL
+    // -------------------------
     const whiteboardId = useMemo(() => {
         const params = new URLSearchParams(window.location.search);
         return params.get("id") || "default";
     }, []);
 
-    // Creating ABLY CLIENT for real-time comms
-    // Only create once user is known
-    // Use email as clientId if possible for easier tracking
-    // Fallback to random id if no user info (should not happen in protected route)
-
+    // -------------------------
+    // Ably client setup
+    // -------------------------
     useEffect(() => {
         if (!currentUser) return;
 
@@ -43,62 +71,41 @@ function Whiteboard({ strokes, onChange, activeTool, onUndo, onRedo, onClear, })
         });
 
         console.log("Creating Ably client with ID:", ablyClient.auth.clientId);
-
-        // Set the client into state
         setClient(ablyClient);
 
-        // Wait until connected
         ablyClient.connection.once("connected", () => {
             console.log("Connected to Ably, clientId:", ablyClient.auth.clientId);
         });
 
-        // Cleanup on unmount
         return () => {
             ablyClient.close();
         };
     }, [currentUser]);
 
     // -------------------------
-    // ABLY SETUP
+    // Ably channels
     // -------------------------
+    const strokesChannel = useMemo(() => client?.channels.get(`whiteboard-strokes-${whiteboardId}`), [client, whiteboardId]);
+    const cursorsChannel = useMemo(() => client?.channels.get(`whiteboard-cursors-${whiteboardId}`), [client, whiteboardId]);
+    const eventsChannel = useMemo(() => client?.channels.get(`whiteboard-events-${whiteboardId}`), [client, whiteboardId]);
 
-    // Ably channel for stroke updates
-    const strokesChannel = useMemo(() => {
-        if (!client) return null; // ONLY create channel if client exists
-        return client.channels.get(`whiteboard-strokes-${whiteboardId}`);
-    }, [client, whiteboardId]);
-
-    // Channel for cursor updates
-    const cursorsChannel = useMemo(() => {
-        if (!client) return null;// ONLY create channel if client exists
-        return client.channels.get(`whiteboard-cursors-${whiteboardId}`);
-    }, [client, whiteboardId]);
-
-    //Ably channel for other events (e.g., clear ,undo, redo)
-    const eventsChannel = useMemo(() => {
-        if (!client) return null;
-        return client.channels.get(`whiteboard-events-${whiteboardId}`);
-    }, [client, whiteboardId]);
-
-    // Username for cursors & stroke info
-    const userName =
-        currentUser?.displayName || currentUser?.email || "Anonymous";
+    const userName = currentUser?.displayName || currentUser?.email || "Anonymous";
 
     // -------------------------
-    // TOOLBAR ACTIONS (undo, redo, clear) 
+    // Toolbar actions
     // -------------------------
-    // These functions publish events to Ably channels
-    // The actual state changes are handled in the Ably subscription effects below
-
     const clearBoard = () => {
+        if (!eventsChannel) return;
         eventsChannel.publish("clear", { boardId: whiteboardId });
     };
 
     const undo = () => {
+        if (!eventsChannel) return;
         eventsChannel.publish("undo", { boardId: whiteboardId });
     };
 
     const redo = () => {
+        if (!eventsChannel) return;
         eventsChannel.publish("redo", { boardId: whiteboardId });
     };
 
@@ -109,25 +116,20 @@ function Whiteboard({ strokes, onChange, activeTool, onUndo, onRedo, onClear, })
     }, [onUndo, onRedo, onClear, eventsChannel]);
 
     // -------------------------
-    // SUBSCRIBE TO STROKES FROM ABLY
+    // Subscribe to strokes via Ably
     // -------------------------
     useEffect(() => {
         if (!strokesChannel) return;
-
         const handleStrokeMessage = (msg) => {
             addStroke(msg.data.stroke);
         };
-
         strokesChannel.subscribe("new-stroke", handleStrokeMessage);
-
         return () => strokesChannel.unsubscribe("new-stroke", handleStrokeMessage);
     }, [strokesChannel]);
 
-
-    //  -------------------------
-    // UNDO / REDO LOGIC
-    //  -------------------------
-
+    // -------------------------
+    // Undo / Redo logic
+    // -------------------------
     const handleUndo = () => {
         setUndoStack(prevUndo => {
             if (!prevUndo.length) return prevUndo;
@@ -146,13 +148,13 @@ function Whiteboard({ strokes, onChange, activeTool, onUndo, onRedo, onClear, })
         });
     };
 
-    //
     const addStroke = (stroke) => {
         setUndoStack(prev => [...prev, stroke]);
     };
 
-
-    // ----- SUBSCRIBE TO EVENTS (undo, redo, clear) -----
+    // -------------------------
+    // Subscribe to events (undo, redo, clear) via Ably
+    // -------------------------
     useEffect(() => {
         if (!eventsChannel) return;
 
@@ -160,18 +162,9 @@ function Whiteboard({ strokes, onChange, activeTool, onUndo, onRedo, onClear, })
             if (msg.data.boardId !== whiteboardId) return;
             setUndoStack([]);
             setRedoStack([]);
-            setLocalStrokes([]);
         };
-
-        const handleUndoEvent = (msg) => {
-            if (msg.data.boardId !== whiteboardId) return;
-            handleUndo();
-        };
-
-        const handleRedoEvent = (msg) => {
-            if (msg.data.boardId !== whiteboardId) return;
-            handleRedo();
-        };
+        const handleUndoEvent = (msg) => { if (msg.data.boardId === whiteboardId) handleUndo(); };
+        const handleRedoEvent = (msg) => { if (msg.data.boardId === whiteboardId) handleRedo(); };
 
         eventsChannel.subscribe("clear", handleClear);
         eventsChannel.subscribe("undo", handleUndoEvent);
@@ -184,79 +177,43 @@ function Whiteboard({ strokes, onChange, activeTool, onUndo, onRedo, onClear, })
         };
     }, [eventsChannel, whiteboardId]);
 
-
     // -------------------------
-    // REDRAW CANVAS ON STROKE CHANGES OR RESIZE
+    // Redraw canvas on strokes change or resize
     // -------------------------
     useLayoutEffect(() => {
         const canvas = canvasRef.current;
         if (!canvas) return;
 
         const resizeCanvas = () => {
-            canvas.width = window.innerWidth; // internal pixel width
-            canvas.height = window.innerHeight; // internal pixel height
-            redraw(); // redraw existing strokes
+            canvas.width = window.innerWidth;
+            canvas.height = window.innerHeight;
+            redraw();
         };
 
-        resizeCanvas(); // initial sizing
+        resizeCanvas();
         window.addEventListener("resize", resizeCanvas);
-
         return () => window.removeEventListener("resize", resizeCanvas);
     }, [localStrokes]);
 
-    //CLEAR whiteboard
-    useEffect(() => {
-        const handleClear = () => {
-            console.log("[Whiteboard] Clear event received");
-            // Clear parent strokes and currentStroke
-            onChange([]);
-            setCurrentStroke([]);
-            const canvas = canvasRef.current;
-            if (canvas) {
-                const ctx = canvas.getContext("2d");
-                ctx.clearRect(0, 0, canvas.width, canvas.height);
-            }
-        };
-
-        window.addEventListener("wb:clear", handleClear);
-
-        return () => {
-            window.removeEventListener("wb:clear", handleClear);
-        };
-    }, [onChange]);
-
-
     // -------------------------
-    // DRAWING HANDLERS
+    // Drawing handlers
     // -------------------------
-
-
     const startDrawing = (e) => {
         if (activeTool !== "pen" && activeTool !== "eraser") return;
         setIsDrawing(true);
-        const pos = getMousePos(e);
-        currentStrokeRef.current = [pos];
+        currentStrokeRef.current = [getMousePos(e)];
     };
 
     const draw = (e) => {
         if (!isDrawing) return;
+
         const pos = getMousePos(e);
         const ctx = canvasRef.current.getContext("2d");
-
-        const lastPos =
-            currentStrokeRef.current[currentStrokeRef.current.length - 1];
+        const lastPos = currentStrokeRef.current[currentStrokeRef.current.length - 1];
 
         ctx.lineJoin = "round";
         ctx.lineCap = "round";
 
-        // if (activeTool === "highlighter") {
-        //     ctx.globalCompositeOperation = "source-over";
-        //     ctx.strokeStyle = "yellow";
-        //     ctx.lineWidth = 8;
-        //     ctx.globalAlpha = 0.5;
-        // } else {
-        //     ctx.globalAlpha = 1;
-        // }
         if (activeTool === "eraser") {
             ctx.globalCompositeOperation = "destination-out";
             ctx.lineWidth = 20;
@@ -276,36 +233,32 @@ function Whiteboard({ strokes, onChange, activeTool, onUndo, onRedo, onClear, })
         currentStrokeRef.current.push(pos);
     };
 
-    const endDrawing = () => {
+    const endDrawing = async () => {
         if (!isDrawing) return;
         setIsDrawing(false);
 
         if (currentStrokeRef.current.length > 1) {
-            // package stroke with erase flag
             const strokeData = {
                 points: currentStrokeRef.current,
-                erase: activeTool === "eraser" // mark as eraser stroke so it doesnt draw a line
+                erase: activeTool === "eraser",
             };
 
-            // publish through Ably
-            strokesChannel.publish("new-stroke", { stroke: strokeData });
-            console.log("Published stroke", userName, strokeData);
+            // Publish stroke via Ably
+            strokesChannel?.publish("new-stroke", { stroke: strokeData });
+
+            // Update local stack
+            setUndoStack(prev => [...prev, strokeData]);
         }
 
         currentStrokeRef.current = [];
     };
-
 
     const getMousePos = (e) => {
         const canvas = canvasRef.current;
         const rect = canvas.getBoundingClientRect();
         const scaleX = canvas.width / rect.width;
         const scaleY = canvas.height / rect.height;
-
-        return {
-            x: (e.clientX - rect.left) * scaleX,
-            y: (e.clientY - rect.top) * scaleY,
-        };
+        return { x: (e.clientX - rect.left) * scaleX, y: (e.clientY - rect.top) * scaleY };
     };
 
     const redraw = () => {
@@ -320,9 +273,8 @@ function Whiteboard({ strokes, onChange, activeTool, onUndo, onRedo, onClear, })
             let points = null;
             let isErase = false;
 
-            if (Array.isArray(stroke)) {
-                points = stroke;
-            } else if (stroke && Array.isArray(stroke.points)) {
+            if (Array.isArray(stroke)) points = stroke;
+            else if (stroke?.points) {
                 points = stroke.points;
                 isErase = !!stroke.erase;
             }
@@ -331,15 +283,9 @@ function Whiteboard({ strokes, onChange, activeTool, onUndo, onRedo, onClear, })
 
             ctx.lineJoin = "round";
             ctx.lineCap = "round";
-
-            if (isErase) {
-                ctx.globalCompositeOperation = "destination-out";
-                ctx.lineWidth = 20;
-            } else {
-                ctx.globalCompositeOperation = "source-over";
-                ctx.lineWidth = 2;
-                ctx.strokeStyle = "black";
-            }
+            ctx.globalCompositeOperation = isErase ? "destination-out" : "source-over";
+            ctx.lineWidth = isErase ? 20 : 2;
+            ctx.strokeStyle = "black";
 
             for (let i = 1; i < points.length; i++) {
                 const from = points[i - 1];
@@ -349,10 +295,9 @@ function Whiteboard({ strokes, onChange, activeTool, onUndo, onRedo, onClear, })
                 ctx.lineTo(to.x, to.y);
                 ctx.stroke();
             }
+
+            ctx.globalCompositeOperation = "source-over";
         });
-
-
-        ctx.globalCompositeOperation = "source-over";
     };
 
     return (
@@ -365,8 +310,7 @@ function Whiteboard({ strokes, onChange, activeTool, onUndo, onRedo, onClear, })
                 onMouseUp={endDrawing}
                 onMouseLeave={endDrawing}
             />
-            {/* Live cursors aligned to canvas , pass all the ably references to livecursors component*/}
-            {/* Only render if client and channel are ready */}
+            {/* Live cursors */}
             {client && cursorsChannel && (
                 <LiveCursors
                     canvasRef={canvasRef}
