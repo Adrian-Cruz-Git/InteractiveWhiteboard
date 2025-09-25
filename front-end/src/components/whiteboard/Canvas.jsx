@@ -1,28 +1,70 @@
-import React, { useState } from "react";
+import React, { useEffect } from "react";
 
-function CanvasRenderer({ canvasRef, activeTool, onStrokeComplete }) {
-  const [isDrawing, setIsDrawing] = useState(false);
-  const [currentStroke, setCurrentStroke] = useState([]);
-
-  const getMousePos = (e) => {
+function Canvas({ canvasRef, activeTool, strokes, onStrokeComplete }) {
+  useEffect(() => {
     const canvas = canvasRef.current;
-    const rect = canvas.getBoundingClientRect();
-    const scaleX = canvas.width / rect.width;
-    const scaleY = canvas.height / rect.height;
+    if (!canvas) return;
+
+    // canvas (e.g., 5000x5000)
+    canvas.width = 5000;
+    canvas.height = 5000;
+
+    const ctx = canvas.getContext("2d");
+
+    const redraw = () => {
+      ctx.clearRect(0, 0, ctx.canvas.width, ctx.canvas.height);
+
+      if (!Array.isArray(strokes)) return;
+
+      strokes.forEach((stroke) => {
+        const points = stroke.points || stroke;
+        const isErase = stroke.erase;
+
+        if (!points || points.length < 2) return;
+
+        ctx.lineJoin = "round";
+        ctx.lineCap = "round";
+        ctx.globalCompositeOperation = isErase ? "destination-out" : "source-over";
+        ctx.lineWidth = isErase ? 20 : 2;
+        ctx.strokeStyle = "black";
+
+        for (let i = 1; i < points.length; i++) {
+          const from = points[i - 1];
+          const to = points[i];
+          ctx.beginPath();
+          ctx.moveTo(from.x, from.y);
+          ctx.lineTo(to.x, to.y);
+          ctx.stroke();
+        }
+
+        ctx.globalCompositeOperation = "source-over";
+      });
+    };
+
+    redraw();
+  }, [strokes, canvasRef]);
+
+  // Mouse shit
+  const getMousePos = (e) => {
+    const rect = canvasRef.current.getBoundingClientRect();
+    const scaleX = canvasRef.current.width / rect.width;
+    const scaleY = canvasRef.current.height / rect.height;
     return {
       x: (e.clientX - rect.left) * scaleX,
       y: (e.clientY - rect.top) * scaleY,
     };
   };
 
+  let currentStroke = [];
+
   const startDrawing = (e) => {
     if (activeTool !== "pen" && activeTool !== "eraser") return;
-    setIsDrawing(true);
-    setCurrentStroke([getMousePos(e)]);
+    currentStroke = [getMousePos(e)];
+    canvasRef.current.isDrawing = true;
   };
 
   const draw = (e) => {
-    if (!isDrawing) return;
+    if (!canvasRef.current.isDrawing) return;
     const pos = getMousePos(e);
     const ctx = canvasRef.current.getContext("2d");
     const lastPos = currentStroke[currentStroke.length - 1];
@@ -46,33 +88,45 @@ function CanvasRenderer({ canvasRef, activeTool, onStrokeComplete }) {
       ctx.stroke();
     }
 
-    setCurrentStroke([...currentStroke, pos]);
+    currentStroke.push(pos);
   };
 
   const endDrawing = () => {
-    if (!isDrawing) return;
-    setIsDrawing(false);
+    if (!canvasRef.current.isDrawing) return;
+    canvasRef.current.isDrawing = false;
 
     if (currentStroke.length > 1) {
-      const strokeData = {
+      onStrokeComplete({
         points: currentStroke,
         erase: activeTool === "eraser",
-      };
-      onStrokeComplete(strokeData); // notify parent
+      });
     }
-    setCurrentStroke([]);
+
+    currentStroke = [];
   };
 
   return (
-    <canvas
-      ref={canvasRef}
-      className="whiteboard-canvas"
-      onMouseDown={startDrawing}
-      onMouseMove={draw}
-      onMouseUp={endDrawing}
-      onMouseLeave={endDrawing}
-    />
+    <div
+      style={{
+        width: "100vw",
+        height: "100vh",
+        overflow: "scroll",
+        border: "1px solid #ccc",
+      }}
+    >
+      <canvas
+        ref={canvasRef}
+        style={{
+          backgroundColor: "white",
+          display: "block",
+        }}
+        onMouseDown={startDrawing}
+        onMouseMove={draw}
+        onMouseUp={endDrawing}
+        onMouseLeave={endDrawing}
+      />
+    </div>
   );
 }
 
-export default CanvasRenderer;
+export default Canvas;

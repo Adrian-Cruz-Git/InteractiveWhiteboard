@@ -3,7 +3,7 @@ import "./Whiteboard.css";
 import { useAuth } from "../../contexts/useAuth";
 import { useStrokes } from "./hooks/useStrokes";
 import { useRealtime } from "./hooks/useRealtime";
-import Canvasrend from "./Canvas";
+import Canvas from "./Canvas";
 import StickyNote from "./StickyNote";
 import LiveCursors from "../../components/LiveCursors";
 
@@ -12,9 +12,9 @@ function Whiteboard({ onChange, activeTool, fileId }) {
   const whiteboardId = fileId || "local-" + Math.random();
   const canvasRef = useRef(null);
 
-  const { addStroke, undo, redo, setUndoStack } = useStrokes(fileId, () => { }, onChange);
+  const { undoStack ,addStroke, undo, redo, setUndoStack } = useStrokes(fileId, () => {}, onChange);
 
-  const { client, strokesChannel } = useRealtime(user, whiteboardId, addStroke, undo, redo,() => 
+  const { client, strokesChannel } = useRealtime(user, whiteboardId, addStroke, undo, redo, () =>
     setUndoStack([])
   );
 
@@ -25,7 +25,13 @@ function Whiteboard({ onChange, activeTool, fileId }) {
 
   return (
     <div className="whiteboard-container">
-      <Canvasrend activeTool={activeTool} onStrokeComplete={handleStrokeComplete} canvasRef={canvasRef}/>
+      <Canvas
+        canvasRef={canvasRef}
+        activeTool={activeTool}
+        strokes={undoStack}             // 👈 just give strokes
+        onStrokeComplete={handleStrokeComplete}
+
+        />
       {client && (
         <LiveCursors
           canvasRef={canvasRef}
