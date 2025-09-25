@@ -28,7 +28,7 @@ function Whiteboard({ onChange, activeTool, fileId }) {
       <Canvas
         canvasRef={canvasRef}
         activeTool={activeTool}
-        strokes={undoStack}             // 👈 just give strokes
+        strokes={undoStack} 
         onStrokeComplete={handleStrokeComplete}
 
         />

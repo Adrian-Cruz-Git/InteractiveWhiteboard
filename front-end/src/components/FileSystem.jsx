@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "../config/supabase";
 import { useAuth } from "../contexts/useAuth";
+import "./FileSystem.css";
 
 export default function FileSystem() {
   const { user } = useAuth();
@@ -94,59 +95,33 @@ export default function FileSystem() {
   if (loading) return <p>Loading...</p>;
 
   return (
-    <div className="p-6 max-w-5xl mx-auto">
+    <div className="filesystem">
       {/* Breadcrumbs */}
-      <div className="flex items-center text-sm mb-6 space-x-2 text-gray-600">
-        <button onClick={goRoot} className="hover:underline font-medium">
-          Root
-        </button>
+      <div className="breadcrumbs">
+        <button onClick={goRoot}>Root</button>
         {breadcrumb.map((c, i) => (
-          <span key={c.id} className="flex items-center space-x-2">
-            <span>›</span>
-            <button
-              onClick={() => goToCrumb(i)}
-              className="hover:underline font-medium"
-            >
-              {c.name}
-            </button>
+          <span key={c.id}>
+            {" › "}
+            <button onClick={() => goToCrumb(i)}>{c.name}</button>
           </span>
         ))}
       </div>
 
       {/* Actions */}
-      <div className="flex space-x-3 mb-6">
-        <button
-          onClick={createFolder}
-          className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg shadow"
-        >
-          + Folder
-        </button>
-        <button
-          onClick={createWhiteboard}
-          className="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg shadow"
-        >
-          + Whiteboard
-        </button>
+      <div className="actions">
+        <button onClick={createFolder} className="folder-btn">+ Folder</button>
+        <button onClick={createWhiteboard} className="whiteboard-btn">+ Whiteboard</button>
       </div>
 
-      {/* Items */}
-      <ul className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+      {/* Grid of items */}
+      <ul className="items-grid">
         {items.map((item) => (
-          <li
-            key={item.id}
-            onClick={() => openItem(item)}
-            className="border rounded-lg shadow-sm px-4 py-6 flex flex-col items-center justify-center cursor-pointer hover:shadow-md hover:bg-gray-50 transition"
-          >
-            <div className="text-3xl mb-2">
-              {item.type === "folder" ? "📁" : "📝"} {item.name}
-            </div>
+          <li key={item.id} onClick={() => openItem(item)} className="item-card">
+            <div className="icon">{item.type === "folder" ? "📁" : "📝"}</div>
+            <div className="name">{item.name || "Untitled"}</div>
           </li>
         ))}
-        {items.length === 0 && (
-          <li className="text-gray-400 italic col-span-full text-center">
-            No items here yet.
-          </li>
-        )}
+        {items.length === 0 && <li className="empty">No items here yet.</li>}
       </ul>
     </div>
   );
