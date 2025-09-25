@@ -60,7 +60,7 @@ function Whiteboard({ onChange, activeTool, fileId, onUndo, onRedo, onClear }) {
       />
 
       {/* Sticky Notes Layer (above canvas but transparent background) */}
-      <StickyNotesLayer activeTool={activeTool} boardRef={boardRef} />
+      <StickyNotesLayer activeTool={activeTool} boardRef={boardRef} fileId={fileId}/>
 
       {/* Live Cursors */}
       {client && (

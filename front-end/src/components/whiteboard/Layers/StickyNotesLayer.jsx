@@ -1,19 +1,11 @@
 // StickyNotesLayer.jsx
 import React, { useState, useEffect } from "react";
-import StickyNote from "../StickyNote";   // ✅ your original file
+import StickyNote from "../StickyNote";
 import { useStickyNotes } from "../hooks/useStickyNotes";
 
-export default function StickyNotesLayer({ activeTool, boardRef }) {
-    const {
-        notes,
-        focusNoteId,
-        setFocusNoteId,
-        addNote,
-        removeNote,
-        moveNote,
-        resizeNote,
-        typeNote,
-    } = useStickyNotes();
+// Layer that manages and renders sticky notes on the whiteboard
+export default function StickyNotesLayer({ activeTool, boardRef, fileId }) {
+    const { notes, focusNoteId, setFocusNoteId, addNote, removeNote, moveNote, resizeNote, typeNote, } = useStickyNotes(fileId);
 
     const [stickyColor, setStickyColor] = useState("#FFEB3B");
     const [draggingNote, setDraggingNote] = useState(false);
@@ -34,7 +26,7 @@ export default function StickyNotesLayer({ activeTool, boardRef }) {
         setTimeout(() => setDraggingNote(false), 50);
     };
 
-    const handleBoardClick = (e) => {
+    const handleBoardClick = async (e) => {
         if (draggingNote) return;
         if (activeTool !== "sticky") return;
 
@@ -45,8 +37,7 @@ export default function StickyNotesLayer({ activeTool, boardRef }) {
         const DEFAULT_W = 180;
         const DEFAULT_H = 160;
 
-        const note = {
-            id: `note_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`,
+        const newNote = {
             x: x - DEFAULT_W / 2,
             y: y - DEFAULT_H / 2,
             w: DEFAULT_W,
@@ -55,8 +46,11 @@ export default function StickyNotesLayer({ activeTool, boardRef }) {
             text: "",
         };
 
-        addNote(note);
-        setFocusNoteId(note.id);
+        // Save to Supabase, hook will update `notes` state
+        const saved = await addNote(newNote);
+        if (saved?.id) {
+            setFocusNoteId(saved.id);
+        }
     };
 
     return (
