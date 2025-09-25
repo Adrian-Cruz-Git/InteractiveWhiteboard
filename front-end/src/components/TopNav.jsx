@@ -5,7 +5,7 @@ import { auth } from "../firebase";
 import "./TopNav.css";
 
 const TopNav = () => {
-  const { currentUser } = useAuth();
+  const { user } = useAuth();
 
   const handleLogout = async () => {
     await signOut(auth);
@@ -14,7 +14,7 @@ const TopNav = () => {
   return (
     <nav className="topnav">
       <Link to="/">Home</Link>
-      {currentUser ? (
+      {user ? (
         <>
           {/* Removed /whiteboard link to avoid invalid route */}
           <Link to="/settings">Settings</Link>
