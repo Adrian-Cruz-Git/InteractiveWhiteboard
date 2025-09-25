@@ -7,7 +7,7 @@ import OnlineUsers from "./Users/OnlineUsers";
 import UserPermissions from "./Users/UserPermissions";
 import BoardPermissionsManager from "./Users/BoardPermissionsManager";
 
-function Navbar({ boards, activeBoard, onSelectBoard, onAddBoard }) {
+function Navbar({ boards = [], activeBoard, onSelectBoard, onAddBoard }) {
     const [user, setUser] = useState(null);
     const [showShareModal, setShowShareModal] = useState(false);
     const [copySuccess, setCopySuccess] = useState(false);
@@ -24,7 +24,7 @@ function Navbar({ boards, activeBoard, onSelectBoard, onAddBoard }) {
     // Generate shareable link
     const generateShareLink = () => {
         const baseUrl = window.location.origin;
-        const boardPath = `/whiteboard/?id=${activeBoard}`;
+        const boardPath = `/whiteboard/${activeBoard}`;
         return `${baseUrl}${boardPath}`;
     };
 
