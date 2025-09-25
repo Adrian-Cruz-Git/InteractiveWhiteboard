@@ -4,10 +4,19 @@ import { useParams } from "react-router-dom";
 import Whiteboard from "../components/whiteboard/Whiteboard";
 import Toolbar from "../components/toolbar";
 import TopNav from "../components/TopNav";
+import Chat from "../components/Chat"; //importing chat
+import { FaComments } from "react-icons/fa"; //chat icon
+import { auth } from "../firebase";
+import {
+  GoogleAuthProvider,
+  signInWithPopup,
+  signInWithEmailAndPassword,
+} from "firebase/auth";
 
 import "./WhiteboardPage.css";
 
 function WhiteboardPage() {
+  const user = auth.currentUser;
   const { id } = useParams();
 
   const undoRef = useRef();
@@ -15,12 +24,44 @@ function WhiteboardPage() {
   const clearRef = useRef();
 
   const [activeTool, setActiveTool] = useState("pen");
-
+  const [isChatOpen, setIsChatOpen] = useState(false); //chat state
 
   // ---- Render ----
   return (
     <div className="whiteboard-app">
       <TopNav />
+      {/*Chat Icon/Button*/}
+      <button
+        className="chat-btn"
+        style={{
+          position: "fixed",
+          right: "20px",
+          bottom: "20px",
+          zIndex: 1000,
+          backgroundColor: "#667eea",
+          color: "white",
+          border: "none",
+          borderRadius: "50%",
+          width: "50px",
+          height: "50px",
+          display: "flex",
+          justifyContent: "center",
+          alignItems: "center",
+          boxShadow: "0 4px 8px rgba(0, 0, 0, 0.2)",
+          cursor: "pointer",
+        }}
+        onClick={() => setIsChatOpen(true)}
+        aria-label="Open Chat"
+      >
+        <FaComments />
+      </button>
+
+      {/* Chat Modal*/}
+      <Chat
+        open={isChatOpen}
+        onClose={() => setIsChatOpen(false)}
+        user={user}
+      />
 
       <div className="whiteboard-interface">
         {/* Toolbar */}
@@ -36,22 +77,20 @@ function WhiteboardPage() {
 
         {/* Whiteboard */}
         <div className="whiteboard-content">
-            <div className="active-board">
-              <div className="board-header">
-                <h2 className="board-title">
-                  Whiteboard {id}
-                </h2>
-              </div>
-              <div className="whiteboard-container">
-                <Whiteboard
-                  fileId={id} // pass file id to whiteboard
-                  activeTool={activeTool}
-                  onUndo={undoRef}
-                  onRedo={redoRef}
-                  onClear={clearRef}
-                />
-              </div>
+          <div className="active-board">
+            <div className="board-header">
+              <h2 className="board-title">Whiteboard {id}</h2>
             </div>
+            <div className="whiteboard-container">
+              <Whiteboard
+                fileId={id} // pass file id to whiteboard
+                activeTool={activeTool}
+                onUndo={undoRef}
+                onRedo={redoRef}
+                onClear={clearRef}
+              />
+            </div>
+          </div>
         </div>
       </div>
     </div>
