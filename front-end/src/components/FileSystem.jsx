@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "../config/supabase";
 import { useAuth } from "../contexts/useAuth";
+import "./FileSystem.css";
 
 export default function FileSystem() {
   const { user } = useAuth();
@@ -94,34 +95,33 @@ export default function FileSystem() {
   if (loading) return <p>Loading...</p>;
 
   return (
-    <div className="p-4">
+    <div className="filesystem">
       {/* Breadcrumbs */}
-      <div className="text-sm mb-3">
-        <button className="underline" onClick={goRoot}>Root</button>
+      <div className="breadcrumbs">
+        <button onClick={goRoot}>Root</button>
         {breadcrumb.map((c, i) => (
           <span key={c.id}>
-            {" "}›{" "}
-            <button className="underline" onClick={() => goToCrumb(i)}>{c.name}</button>
+            {" › "}
+            <button onClick={() => goToCrumb(i)}>{c.name}</button>
           </span>
         ))}
       </div>
 
-      <div className="space-x-2 mb-3">
-        <button onClick={createFolder} className="bg-blue-500 text-white px-3 py-1 rounded">+ Folder</button>
-        <button onClick={createWhiteboard} className="bg-green-600 text-white px-3 py-1 rounded">+ Whiteboard</button>
+      {/* Actions */}
+      <div className="actions">
+        <button onClick={createFolder} className="folder-btn">+ Folder</button>
+        <button onClick={createWhiteboard} className="whiteboard-btn">+ Whiteboard</button>
       </div>
 
-      <ul className="space-y-2">
+      {/* Grid of items */}
+      <ul className="items-grid">
         {items.map((item) => (
-          <li
-            key={item.id}
-            className="border rounded px-3 py-2 cursor-pointer hover:bg-gray-50"
-            onClick={() => openItem(item)}
-          >
-            {item.type === "folder" ? "📁" : "📝"} {item.name}
+          <li key={item.id} onClick={() => openItem(item)} className="item-card">
+            <div className="icon">{item.type === "folder" ? "📁" : "📝"}</div>
+            <div className="name">{item.name || "Untitled"}</div>
           </li>
         ))}
-        {items.length === 0 && <li className="text-gray-500">No items here yet.</li>}
+        {items.length === 0 && <li className="empty">No items here yet.</li>}
       </ul>
     </div>
   );
