@@ -6,7 +6,7 @@ import { useAuth } from "../contexts/useAuth";
 import { Link, useNavigate } from "react-router-dom";
 import "./LandingPage.css";
 
-
+//landing page
 
 function LandingPage() {
   const { currentUser } = useAuth();

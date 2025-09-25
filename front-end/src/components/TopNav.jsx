@@ -12,7 +12,7 @@ const TopNav = () => {
   };
 
   return (
-    <nav className="navbar">
+    <nav className="topnav">
       <Link to="/">Home</Link>
       {currentUser ? (
         <>
