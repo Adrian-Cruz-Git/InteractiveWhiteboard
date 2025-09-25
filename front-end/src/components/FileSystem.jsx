@@ -94,34 +94,59 @@ export default function FileSystem() {
   if (loading) return <p>Loading...</p>;
 
   return (
-    <div className="p-4">
+    <div className="p-6 max-w-5xl mx-auto">
       {/* Breadcrumbs */}
-      <div className="text-sm mb-3">
-        <button className="underline" onClick={goRoot}>Root</button>
+      <div className="flex items-center text-sm mb-6 space-x-2 text-gray-600">
+        <button onClick={goRoot} className="hover:underline font-medium">
+          Root
+        </button>
         {breadcrumb.map((c, i) => (
-          <span key={c.id}>
-            {" "}›{" "}
-            <button className="underline" onClick={() => goToCrumb(i)}>{c.name}</button>
+          <span key={c.id} className="flex items-center space-x-2">
+            <span>›</span>
+            <button
+              onClick={() => goToCrumb(i)}
+              className="hover:underline font-medium"
+            >
+              {c.name}
+            </button>
           </span>
         ))}
       </div>
 
-      <div className="space-x-2 mb-3">
-        <button onClick={createFolder} className="bg-blue-500 text-white px-3 py-1 rounded">+ Folder</button>
-        <button onClick={createWhiteboard} className="bg-green-600 text-white px-3 py-1 rounded">+ Whiteboard</button>
+      {/* Actions */}
+      <div className="flex space-x-3 mb-6">
+        <button
+          onClick={createFolder}
+          className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg shadow"
+        >
+          + Folder
+        </button>
+        <button
+          onClick={createWhiteboard}
+          className="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg shadow"
+        >
+          + Whiteboard
+        </button>
       </div>
 
-      <ul className="space-y-2">
+      {/* Items */}
+      <ul className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
         {items.map((item) => (
           <li
             key={item.id}
-            className="border rounded px-3 py-2 cursor-pointer hover:bg-gray-50"
             onClick={() => openItem(item)}
+            className="border rounded-lg shadow-sm px-4 py-6 flex flex-col items-center justify-center cursor-pointer hover:shadow-md hover:bg-gray-50 transition"
           >
-            {item.type === "folder" ? "📁" : "📝"} {item.name}
+            <div className="text-3xl mb-2">
+              {item.type === "folder" ? "📁" : "📝"} {item.name}
+            </div>
           </li>
         ))}
-        {items.length === 0 && <li className="text-gray-500">No items here yet.</li>}
+        {items.length === 0 && (
+          <li className="text-gray-400 italic col-span-full text-center">
+            No items here yet.
+          </li>
+        )}
       </ul>
     </div>
   );

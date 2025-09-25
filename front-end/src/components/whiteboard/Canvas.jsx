@@ -1,11 +1,13 @@
-import React, { useEffect } from "react";
+import React, { useEffect, useRef } from "react";
 
 function Canvas({ canvasRef, activeTool, strokes, onStrokeComplete }) {
+  const containerRef = useRef(null);
+
   useEffect(() => {
     const canvas = canvasRef.current;
     if (!canvas) return;
 
-    // canvas (e.g., 5000x5000)
+    //  canvas size
     canvas.width = 5000;
     canvas.height = 5000;
 
@@ -44,7 +46,19 @@ function Canvas({ canvasRef, activeTool, strokes, onStrokeComplete }) {
     redraw();
   }, [strokes, canvasRef]);
 
-  // Mouse shit
+  // Center the user in the middle of canvas
+  useEffect(() => {
+    if (!containerRef.current || !canvasRef.current) return;
+
+    const container = containerRef.current;
+    const canvas = canvasRef.current;
+
+    // scrolls to center
+    container.scrollLeft = (canvas.width - container.clientWidth) / 2;
+    container.scrollTop = (canvas.height - container.clientHeight) / 2;
+  }, [canvasRef]);
+
+  // mouse shit
   const getMousePos = (e) => {
     const rect = canvasRef.current.getBoundingClientRect();
     const scaleX = canvasRef.current.width / rect.width;
@@ -57,6 +71,7 @@ function Canvas({ canvasRef, activeTool, strokes, onStrokeComplete }) {
 
   let currentStroke = [];
 
+  // --- Drawing logic ---
   const startDrawing = (e) => {
     if (activeTool !== "pen" && activeTool !== "eraser") return;
     currentStroke = [getMousePos(e)];
@@ -107,6 +122,7 @@ function Canvas({ canvasRef, activeTool, strokes, onStrokeComplete }) {
 
   return (
     <div
+      ref={containerRef}
       style={{
         width: "100vw",
         height: "100vh",
