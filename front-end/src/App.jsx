@@ -1,24 +1,20 @@
 // 
-import WhiteboardApp from "./pages/WhiteboardPage.jsx";
-import LandingPage from "./pages/LandingPage.jsx";
-import LoginPage from "./pages/LoginPage.jsx";
-import SettingsPage from "./pages/SettingsPage.jsx";
-import FilesPage from "./pages/FilesPage.jsx";
-import { BrowserRouter as Router, Route, Routes, Link } from "react-router-dom";
+import { AuthProvider } from "./contexts/AuthProvider"; 
+import { useAuth } from "./contexts/useAuth";
+import { BrowserRouter as Router, Route, Routes, Link, Navigate} from "react-router-dom"
+import LandingPage from "./pages/LandingPage";
+import LoginPage from "./pages/LoginPage";
+import RegisterPage from "./pages/RegisterPage";
+import FilesPage from "./pages/FilesPage";
+import WhiteboardPage from "./pages/WhiteboardPage";
+import SettingsPage from "./pages/SettingsPage";
 
-import ProtectedRoute from "./components/ProtectedRoute";
-import { AuthProvider } from "./contexts/AuthContext/";
-import RegisterPage from "./pages/RegisterPage.jsx"
-
+//ably
 import { useState, useEffect } from "react";
 import Spaces from "@ably/spaces";
 import { Realtime } from "ably";
 import { nanoid } from "nanoid";
 import { config } from "./config";
-
-
-
-//Home Links to landing page - login to loginpage - whiteboard to whiteboardpage - settings to settingspage
 
 //NEW - Used for ably live cursors 
 //Create ably client one time.
@@ -28,8 +24,43 @@ const spaces = new Spaces(client);
 const cursorsChannel = client.channels.get('whiteboard-cursors');
 
 
-function App() {
-  //Live Cursors
+function AppRoutes() {
+  const { user, loading } = useAuth();
+
+  if (loading) return <p>Loading...</p>;
+ 
+  
+  return (
+    <Routes>
+      {/* Public pages */}
+      {!user && ( // If not logged in
+        <>
+          <Route path="/" element={<LandingPage />} />
+          <Route path="/login" element={<LoginPage />} />
+          <Route path="/register" element={<RegisterPage />} />
+          {/* // Wildcard route (default route, any other link route to /login)  */}
+          <Route path="*" element={<Navigate to="/login" replace />} /> 
+        </>
+      )}
+
+      {/* Authenticated pages */}
+      {user && (
+        <>
+          <Route path="/" element={<LandingPage />} />
+          <Route path="/files" element={<FilesPage />} />
+          <Route path="/whiteboard/:id" element={<WhiteboardPage />} />
+          <Route path="/settings" element={<SettingsPage />} />
+          {/* // Wildcard route (default route, any other link route to /login)  */}
+          <Route path="*" element={<Navigate to="/files" replace />} />
+        </>
+      )}
+    </Routes>
+  );
+}
+
+export default function App() {
+  
+       //Live Cursors
   const [spaceName, setSpaceName] = useState("spaces-live-cursors");
   //Live Cursors
   useEffect(() => {
@@ -37,27 +68,13 @@ function App() {
     const name = urlParams.get("name");
     if (name) setSpaceName(name);
   }, []);
-
+  
+  
   return (
     <AuthProvider>
       <Router>
-        <div style={{ paddingTop: "70px" }}>
-          <Routes>
-            {/* Protected routes */}
-            <Route element={<ProtectedRoute />}>
-              <Route path="/whiteboard" element={<WhiteboardApp />} />
-              <Route path="/settings" element={<SettingsPage />} />
-              <Route path="/files" element={<FilesPage />} />
-            </Route>
-            {/* Public routes */}
-            <Route path="/" element={<LandingPage />} />
-            <Route path="/login" element={<LoginPage />} />
-            <Route path="/register" element={<RegisterPage />} />
-          </Routes>
-        </div>
+        <AppRoutes />
       </Router>
     </AuthProvider>
   );
 }
-
-export default App;

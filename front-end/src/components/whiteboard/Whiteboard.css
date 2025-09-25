@@ -1,0 +1,44 @@
+html, body, #root {
+  margin: 0;
+  padding: 0;
+  height: 100%;
+  width: 100%;
+  overflow: hidden; /* prevents scrollbars */
+}
+
+.whiteboard-container {
+  position: relative;
+  width: 100%;
+  height: 100%;
+}
+
+.whiteboard-canvas {
+  position: absolute;
+  top: 0;
+  left: 0;
+  cursor: crosshair;
+  display: block;
+}
+
+/* ensure the canvas shows your existing crosshair if desired */
+.whiteboard-canvas {
+  cursor: crosshair;
+}
+
+/* optional: a subtle focus ring when editing */
+.sticky-note:focus-within {
+  outline: 2px solid rgba(0,0,0,0.25);
+  outline-offset: 2px;
+}
+.sticky-note__header {
+  /* styles are inline in component; keep here if you prefer CSS */
+}
+
+/* Only if you still see reversal due to global RTL styles */
+.sticky-note [contenteditable] {
+  direction: ltr !important;
+  unicode-bidi: embed !important;
+  writing-mode: horizontal-tb !important;
+  text-align: left !important;
+  color: #000 !important;
+}
