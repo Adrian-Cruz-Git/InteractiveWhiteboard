@@ -6,7 +6,7 @@ import LiveCursors from "../components/LiveCursors";
 import { Realtime } from "ably";
 import { nanoid } from "nanoid";
 import { config } from "../config.js"; // your Ably key
-import { useAuth } from "../contexts/AuthContext";
+import { useAuth } from "../contexts/useAuth";
 
 function Whiteboard({ strokes, onChange, activeTool, onUndo, onRedo, onClear, fileId}) {
     const canvasRef = useRef(null);

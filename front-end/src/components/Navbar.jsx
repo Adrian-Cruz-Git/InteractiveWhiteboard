@@ -5,7 +5,7 @@ import { auth } from "../firebase";
 import { signInWithPopup, signOut, onAuthStateChanged } from "firebase/auth";
 import { useNavigate } from "react-router-dom";
 
-function Navbar({ boards, activeBoard, onSelectBoard, onAddBoard }) {
+function Navbar({ boards = [], activeBoard, onSelectBoard, onAddBoard }) {
     const [user, setUser] = useState(null);
     const [showShareModal, setShowShareModal] = useState(false);
     const [copySuccess, setCopySuccess] = useState(false);

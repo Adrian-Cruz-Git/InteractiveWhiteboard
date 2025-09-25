@@ -71,7 +71,6 @@ export default function App() {
   return (
     <AuthProvider>
       <Router>
-        <NavBar />
         <AppRoutes />
       </Router>
     </AuthProvider>
