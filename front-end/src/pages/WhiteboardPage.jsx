@@ -1,7 +1,7 @@
 import { useState, useRef } from "react";
 // import { nanoid } from "nanoid"; // old import
 import { useParams } from "react-router-dom";
-import Whiteboard from "../components/Whiteboard";
+import Whiteboard from "../components/whiteboard/Whiteboard";
 import Toolbar from "../components/toolbar";
 import TopNav from "../components/TopNav";
 
