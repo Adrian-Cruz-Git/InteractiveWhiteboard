@@ -6,8 +6,8 @@ import { useAuth } from "../contexts/useAuth";
 
 
 const ProtectedRoute = () => {
-  const { currentUser } = useAuth();
-  return currentUser ? <Outlet /> : <Navigate to="/login" />;
+  const { user } = useAuth();
+  return user ? <Outlet /> : <Navigate to="/login" />;
 };
 
 export default ProtectedRoute;

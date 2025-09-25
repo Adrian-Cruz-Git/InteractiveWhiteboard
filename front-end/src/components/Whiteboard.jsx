@@ -11,7 +11,7 @@ import { useAuth } from "../contexts/useAuth";
 function Whiteboard({ strokes, onChange, activeTool, onUndo, onRedo, onClear, fileId}) {
     const canvasRef = useRef(null);
     const [isDrawing, setIsDrawing] = useState(false);
-    const { currentUser } = useAuth();
+    const { user } = useAuth();
     const currentStrokeRef = useRef([]);
     const [localStrokes, setLocalStrokes] = useState([]); // local strokes for rendering
     const [client, setClient] = useState(null); // Ably client
@@ -60,11 +60,11 @@ function Whiteboard({ strokes, onChange, activeTool, onUndo, onRedo, onClear, fi
     // Ably client setup
     // -------------------------
     useEffect(() => {
-        if (!currentUser) return;
+        if (!user) return;
 
         const ablyClient = new Realtime({
             key: config.ABLY_KEY,
-            clientId: currentUser.email || nanoid(),
+            clientId: user.email || nanoid(),
         });
 
         console.log("Creating Ably client with ID:", ablyClient.auth.clientId);
@@ -77,7 +77,7 @@ function Whiteboard({ strokes, onChange, activeTool, onUndo, onRedo, onClear, fi
         return () => {
             ablyClient.close();
         };
-    }, [currentUser]);
+    }, [user]);
 
     // -------------------------
     // Ably channels
@@ -86,7 +86,7 @@ function Whiteboard({ strokes, onChange, activeTool, onUndo, onRedo, onClear, fi
     const cursorsChannel = useMemo(() => client?.channels.get(`whiteboard-cursors-${whiteboardId}`), [client, whiteboardId]);
     const eventsChannel = useMemo(() => client?.channels.get(`whiteboard-events-${whiteboardId}`), [client, whiteboardId]);
 
-    const userName = currentUser?.displayName || currentUser?.email || "Anonymous";
+    const userName = user?.displayName || user?.email || "Anonymous";
 
     // -------------------------
     // Toolbar actions

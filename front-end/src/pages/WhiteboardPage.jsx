@@ -14,8 +14,8 @@ function WhiteboardPage() {
   const redoRef = useRef();
   const clearRef = useRef();
 
-  const [strokes, setStrokes] = useState([]);
   const [activeTool, setActiveTool] = useState("pen");
+
 
   // ---- Render ----
   return (
@@ -45,11 +45,7 @@ function WhiteboardPage() {
               <div className="whiteboard-container">
                 <Whiteboard
                   fileId={id} // pass file id to whiteboard
-                  strokes={strokes}
                   activeTool={activeTool}
-                  onChange={(newStrokes) =>
-                    setStrokes(id, newStrokes)
-                  }
                   onUndo={undoRef}
                   onRedo={redoRef}
                   onClear={clearRef}
