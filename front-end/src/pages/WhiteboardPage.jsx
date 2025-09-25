@@ -61,6 +61,7 @@ function WhiteboardPage() {
         open={isChatOpen}
         onClose={() => setIsChatOpen(false)}
         user={user}
+        fileId = {id}
       />
 
       <div className="whiteboard-interface">

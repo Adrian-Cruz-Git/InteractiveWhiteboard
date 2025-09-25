@@ -2,11 +2,12 @@ import { useEffect, useState, useRef } from "react";
 import { Realtime } from "ably";
 import "../config";
 import "./Chat.css";
+import { config } from "../config";
 
-const ablyKey = import.meta.env.VITE_ABLY_KEY;
-const CHAT_CHANNEL = "whiteboard-chat";
+const ABLY_KEY = config.ABLY_KEY;
 
-function Chat({ open, onClose, user }) {
+
+function Chat({ open, onClose, user , fileId}) {
   const [messages, setMessages] = useState([]);
   const [input, setInput] = useState("");
   const clientRef = useRef(null);
@@ -15,11 +16,13 @@ function Chat({ open, onClose, user }) {
   useEffect(() => {
     if (!open) return;
     const ably = new Realtime({
-      key: window.config?.ABLY_KEY,
+      key: ABLY_KEY,
       clientId: user?.email,
     });
     clientRef.current = ably;
-    const channel = ably.channels.get(CHAT_CHANNEL);
+
+    // Channel is now tied to whiteboard
+    const channel = ably.channels.get(`whiteboard-chat-${fileId}`);
     channelRef.current = channel;
 
     channel.subscribe("message", (msg) => {

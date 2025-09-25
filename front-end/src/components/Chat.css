@@ -35,6 +35,7 @@
   background: #f8f9fa;
 }
 .chat-message {
+  color:black;
   margin-bottom: 0.5rem;
 }
 .chat-input {
