@@ -92,12 +92,12 @@
     height: auto;
     min-height: 60px;
   }
-  
+
   .topnav a {
     padding: 6px 12px;
     font-size: 0.9rem;
   }
-  
+
   .logout-btn {
     padding: 8px 15px;
     font-size: 0.9rem;
@@ -111,19 +111,19 @@
     gap: 10px;
     padding: 10px;
   }
-  
+
   .topnav a {
     padding: 5px 10px;
     font-size: 0.85rem;
   }
-  
+
   .logout-btn {
     padding: 6px 12px;
     font-size: 0.85rem;
     margin-left: auto;
     margin-top: 0;
   }
-  
+
   .topnav .logout-btn {
     margin-right: 0;
   }

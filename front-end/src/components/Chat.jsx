@@ -1,0 +1,76 @@
+import { useEffect, useState, useRef } from "react";
+import { Realtime } from "ably";
+import "../config";
+import "./Chat.css";
+
+const ablyKey = import.meta.env.VITE_ABLY_KEY;
+const CHAT_CHANNEL = "whiteboard-chat";
+
+function Chat({ open, onClose, user }) {
+  const [messages, setMessages] = useState([]);
+  const [input, setInput] = useState("");
+  const clientRef = useRef(null);
+  const channelRef = useRef(null);
+
+  useEffect(() => {
+    if (!open) return;
+    const ably = new Realtime({
+      key: window.config?.ABLY_KEY,
+      clientId: user?.email,
+    });
+    clientRef.current = ably;
+    const channel = ably.channels.get(CHAT_CHANNEL);
+    channelRef.current = channel;
+
+    channel.subscribe("message", (msg) => {
+      setMessages((prev) => [...prev, msg.data]);
+    });
+
+    return () => {
+      channel.unsubscribe();
+      ably.close();
+    };
+  }, [open, user]);
+
+  const sendMessage = () => {
+    if (input.trim()) {
+      channelRef.current.publish("message", {
+        text: input,
+        sender: user?.email || "Anonymous",
+        time: new Date().toISOString(),
+      });
+      setInput("");
+    }
+  };
+
+  if (!open) return null;
+
+  return (
+    <div className="chat-modal">
+      <div className="chat-header">
+        <span>Live Chat</span>
+        <button onClick={onClose} className="chat-close">
+          ×
+        </button>
+      </div>
+      <div className="chat-messages">
+        {messages.map((m, i) => (
+          <div key={i} className="chat-message">
+            <b>{m.sender}:</b> {m.text}
+          </div>
+        ))}
+      </div>
+      <div className="chat-input">
+        <input
+          value={input}
+          onChange={(e) => setInput(e.target.value)}
+          onKeyDown={(e) => e.key === "Enter" && sendMessage()}
+          placeholder="Type a message..."
+        />
+        <button onClick={sendMessage}>Send</button>
+      </div>
+    </div>
+  );
+}
+
+export default Chat;
