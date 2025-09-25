@@ -54,10 +54,7 @@ function Whiteboard({ strokes, onChange, activeTool, onUndo, onRedo, onClear, fi
     // -------------------------
     // Unique whiteboard ID from URL
     // -------------------------
-    const whiteboardId = useMemo(() => {
-        const params = new URLSearchParams(window.location.search);
-        return params.get("id") || "default";
-    }, []);
+    const whiteboardId = fileId || "local-" + nanoid();
 
     // -------------------------
     // Ably client setup

@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from "react";
 import { nanoid } from "nanoid";
-import { useNavigate, useLocation } from "react-router-dom";
+import { useNavigate, useLocation, useParams } from "react-router-dom";
 import Navbar from "../components/Navbar";
 import Whiteboard from "../components/Whiteboard";
 import Toolbar from "../components/toolbar";
@@ -11,33 +11,33 @@ import "./WhiteboardPage.css";
 function WhiteboardPage() {
     const navigate = useNavigate();
     const location = useLocation();
-    const searchParams = new URLSearchParams(location.search);
-    const idFromUrl = searchParams.get("id");
+    const { fileId } = useParams();
 
     const undoRef = useRef();
     const redoRef = useRef();
     const clearRef = useRef();
 
     // ---- State ----
-    const initialBoard = idFromUrl
-        ? { id: idFromUrl, strokes: [] }
+    const initialBoard = fileId
+        ? { id: fileId, strokes: [] }
         : { id: nanoid(), strokes: [] };
 
     const [boards, setBoards] = useState([initialBoard]);
     const [activeBoard, setActiveBoard] = useState(initialBoard.id);
 
     const [activeTool, setActiveTool] = useState("pen");
-    const [showWelcome, setShowWelcome] = useState(!idFromUrl); // show welcome only if no ?id
+
 
     // ---- Effect: sync URL with active board ----
     useEffect(() => {
-        if (idFromUrl && idFromUrl !== activeBoard) {
-            setActiveBoard(idFromUrl);
+        if (fileId && fileId !== activeBoard) {
+            setActiveBoard(fileId);
 
             // auto-add board if missing
-            if (!boards.find((b) => b.id === idFromUrl)) {
-                setBoards((prev) => [...prev, { id: idFromUrl, strokes: [] }]);
+            if (!boards.find((b) => b.id === fileId)) {
+                setBoards((prev) => [...prev, { id: fileId, strokes: [] }]);
             }
+            navigate(`/whiteboard/${fileId}`, { replace: true });
         }
     }, [location.search]);
 
@@ -48,16 +48,7 @@ function WhiteboardPage() {
         setBoards([...boards, newBoard]);
         setActiveBoard(whiteboardId);
         setShowWelcome(false);
-        navigate(`/whiteboard?id=${whiteboardId}`);
-    };
-
-    const openFromFiles = () => {
-        const sampleBoard = { id: nanoid(), strokes: [] };
-        setBoards([sampleBoard]);
-        setActiveBoard(sampleBoard.id);
-        setShowWelcome(false);
-        navigate("/files");
-        console.log("Opening from files...");
+        navigate(`/whiteboard/${newId}`);
     };
 
     const updateStrokes = (id, newStrokes) => {
@@ -70,90 +61,57 @@ function WhiteboardPage() {
 
     const activeBoardData = boards.find((b) => b.id === activeBoard);
 
-    // ---- Welcome Screen ----
-    const WelcomeScreen = () => (
-        <div className="welcome-screen">
-            <div className="welcome-card">
-                <h1 className="welcome-title">
-                    Welcome to Interactive Online Whiteboard
-                </h1>
-                <p className="welcome-subtitle">
-                    How would you like to get started?
-                </p>
-                <div className="welcome-buttons">
-                    <button onClick={openFromFiles} className="welcome-btn open-files">
-                        📂 Open from Files
-                    </button>
-                    <button onClick={addBoard} className="welcome-btn create-new">
-                        ✨ Create New
-                    </button>
-                </div>
-                <div className="welcome-tip">
-                    <p>
-                        💡 <strong>Tip:</strong> You can always create additional whiteboards
-                        or open saved ones using the navigation bar above.
-                    </p>
-                </div>
-            </div>
-        </div>
-    );
+
 
     // ---- Render ----
     return (
         <div className="whiteboard-app">
             <TopNav />
+            <Navbar
+                boards={boards}
+                activeBoard={activeBoard}
+                onSelectBoard={setActiveBoard}
+                onAddBoard={addBoard}
+            />
 
-            {showWelcome ? (
-                <WelcomeScreen />
-            ) : (
-                <>
-                    <Navbar
-                        boards={boards}
-                        activeBoard={activeBoard}
-                        onSelectBoard={setActiveBoard}
-                        onAddBoard={addBoard}
+            <div className="whiteboard-interface">
+                {/* Toolbar */}
+                <div className="toolbar-container">
+                    <Toolbar
+                        activeTool={activeTool}
+                        setActiveTool={setActiveTool}
+                        onUndo={() => undoRef.current && undoRef.current()}
+                        onRedo={() => redoRef.current && redoRef.current()}
+                        onClear={() => clearRef.current && clearRef.current()}
                     />
+                </div>
 
-                    <div className="whiteboard-interface">
-                        {/* Toolbar */}
-                        <div className="toolbar-container">
-                            <Toolbar
-                                activeTool={activeTool}
-                                setActiveTool={setActiveTool}
-                                onUndo={() => undoRef.current && undoRef.current()}
-                                onRedo={() => redoRef.current && redoRef.current()}
-                                onClear={() => clearRef.current && clearRef.current()}
-                            />
+                {/* Whiteboard */}
+                <div className="whiteboard-content">
+                    {activeBoardData && (
+                        <div key={activeBoardData.id} className="active-board">
+                            <div className="board-header">
+                                <h2 className="board-title">
+                                    Whiteboard {activeBoardData.id}
+                                </h2>
+                            </div>
+                            <div className="whiteboard-container">
+                                <Whiteboard
+                                    fileId={activeBoardData.id} // pass file id to whiteboard
+                                    strokes={activeBoardData.strokes}
+                                    activeTool={activeTool}
+                                    onChange={(newStrokes) =>
+                                        updateStrokes(activeBoardData.id, newStrokes)
+                                    }
+                                    onUndo={undoRef}
+                                    onRedo={redoRef}
+                                    onClear={clearRef}
+                                />
+                            </div>
                         </div>
-
-                        {/* Whiteboard */}
-                        <div className="whiteboard-content">
-                            {activeBoardData && (
-                                <div key={activeBoardData.id} className="active-board">
-                                    <div className="board-header">
-                                        <h2 className="board-title">
-                                            Whiteboard {activeBoardData.id}
-                                        </h2>
-                                    </div>
-                                    <div className="whiteboard-container">
-                                        <Whiteboard
-                                            fileId={activeBoardData.id} // pass file id to whiteboard
-                                            strokes={activeBoardData.strokes}
-                                            activeTool={activeTool}
-                                            onChange={(newStrokes) =>
-                                                updateStrokes(activeBoardData.id, newStrokes)
-                                            }
-                                            onUndo={undoRef}
-                                            onRedo={redoRef}
-                                            onClear={clearRef}
-                                        />
-                                    </div>
-                                </div>
-                            )}
-                        </div>
-                    </div>
-                </>
-            )}
+                    )}
+                </div>
+            </div>
         </div>
     );
 }

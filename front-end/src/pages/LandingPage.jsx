@@ -1,60 +1,43 @@
-// Page for landing , option to authenticate if not logged in
-// or to navigate to new whiteboard if you are
-
+// src/pages/LandingPage.jsx
 import TopNav from "../components/TopNav";
-import { useAuth } from "../contexts/useAuth";
-import { Link, useNavigate } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
 import "./LandingPage.css";
 
-//landing page
+export default function LandingPage() {
+    const navigate = useNavigate();
 
-function LandingPage() {
-  const { currentUser } = useAuth();
-  const navigate = useNavigate();
+    const createNewWhiteboard = () => {
+        navigate("/whiteboard"); // WhiteboardPage can handle generating ID
+    };
 
-  const handleCreateWhiteboard = () => {
-    navigate("/whiteboard"); 
-  };
+    const openFromFiles = () => {
+        navigate("/files");
+    };
 
-  const handleExploreTemplates = () => {
-    navigate("/whiteboard"); // Change later to wherever templates are
-  };
+    return (
+        <div className="landing-page-wrapper">
+            {/* Top navigation with login/logout */}
+            <TopNav />
 
-  return (
-    <div>
-      <TopNav />
-      <div className="landing-container">
-        <div className="landing-box">
-          {currentUser ? ( // If logged in display create or from templates
-            <>
-              <h1>Welcome to the Whiteboard App</h1>
-              <p>Start creating new whiteboards or explore templates.</p>
-              <button
-                className="landing-button"
-                onClick={handleCreateWhiteboard}
-              >
-                Create Whiteboard
-              </button>
-              <button
-                className="landing-button"
-                onClick={handleExploreTemplates}
-              >
-                Explore Templates
-              </button>
-            </>
-          ) : ( // If not logged in prompt to register / login
-            <>
-              <h1>Welcome!</h1>
-              <p>
-                Please <Link to="/login">Login</Link> or{" "}
-                <Link to="/register">Register</Link> to access the Whiteboard App.
-              </p>
-            </>
-          )}
+            {/* Main landing content */}
+            <div className="landing-page">
+                <div className="welcome-card">
+                    <h1>Welcome to Interactive Online Whiteboard</h1>
+                    <p>How would you like to get started?</p>
+                    <div className="welcome-buttons">
+                        <button onClick={openFromFiles} className="welcome-btn open-files">
+                            📂 Open from Files
+                        </button>
+                        <button onClick={createNewWhiteboard} className="welcome-btn create-new">
+                            ✨ Create New
+                        </button>
+                    </div>
+                    <div className="welcome-tip">
+                        💡 <strong>Tip:</strong> You can always create additional whiteboards
+                        or open saved ones using the navigation bar above.
+                    </div>
+                </div>
+            </div>
         </div>
-      </div>
-    </div>
-  );
+    );
 }
-
-export default LandingPage;
