@@ -154,7 +154,6 @@ const ImageObject = ({
 function Whiteboard({ strokes = [], onChange }) {
   const boardRef = useRef(null);
   const canvasRef = useRef(null);
-  const fileInputRef = useRef(null);
 
   const [isDrawing, setIsDrawing] = useState(false);
   const [currentStroke, setCurrentStroke] = useState([]);
@@ -186,14 +185,14 @@ function Whiteboard({ strokes = [], onChange }) {
     redraw();
   }, [strokes]);
 
-  // Listen for toolbar events (including "image" -> open picker)
+  // Listen for toolbar events + incoming image payloads
   useEffect(() => {
     const onSelectTool = (e) => {
       const tool = e?.detail?.tool ?? null;
       toolRef.current = tool;
       erasingRef.current = tool === "eraser";
-      if (tool === "image" && fileInputRef.current) fileInputRef.current.click();
     };
+
     const onToggleErase = (e) => {
       const on = !!e?.detail?.on;
       if (toolRef.current) {
@@ -201,17 +200,55 @@ function Whiteboard({ strokes = [], onChange }) {
         toolRef.current = on ? "eraser" : "pen";
       }
     };
+
     const onStickyColor = (e) => {
       stickyColorRef.current = e?.detail?.color ?? "#FFEB3B";
+    };
+
+    // NEW: handle image payload coming from Toolbar's file input
+    const onImageAdd = (e) => {
+      const dataUrl = e?.detail?.dataUrl;
+      if (!dataUrl) return;
+
+      const img = new Image();
+      img.onload = () => {
+        const maxSize = 400;
+        let w = img.width, h = img.height;
+        if (w > maxSize || h > maxSize) {
+          const scale = Math.min(maxSize / w, maxSize / h);
+          w *= scale; h *= scale;
+        }
+        const bounds = boardRef.current.getBoundingClientRect();
+        const x = Math.max(0, (bounds.width - w) / 2);
+        const y = Math.max(0, (bounds.height - h) / 2);
+
+        const newImage = {
+          id: `img_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`,
+          src: dataUrl, x, y, width: w, height: h, rotation: 0,
+        };
+        setImages((prev) => [...prev, newImage]);
+        setSelectedImageId(newImage.id);
+
+        // Exit image tool after placement
+        toolRef.current = null;
+        if (typeof window !== "undefined") {
+          window.__WB_TOOL__ = null;
+          window.dispatchEvent(new CustomEvent("wb:select-tool", { detail: { tool: null } }));
+        }
+      };
+      img.src = dataUrl;
     };
 
     window.addEventListener("wb:select-tool", onSelectTool);
     window.addEventListener("wb:toggle-erase", onToggleErase);
     window.addEventListener("wb:sticky-select-color", onStickyColor);
+    window.addEventListener("wb:image-add", onImageAdd);
+
     return () => {
       window.removeEventListener("wb:select-tool", onSelectTool);
       window.removeEventListener("wb:toggle-erase", onToggleErase);
       window.removeEventListener("wb:sticky-select-color", onStickyColor);
+      window.removeEventListener("wb:image-add", onImageAdd);
     };
   }, []);
 
@@ -300,50 +337,6 @@ function Whiteboard({ strokes = [], onChange }) {
     ctx.globalCompositeOperation = "source-over";
   };
 
-  /* ---------- Image upload flow (triggered by Toolbar "Image") ---------- */
-  const handleImageUpload = (e) => {
-    const file = e.target.files?.[0];
-    if (!file || !file.type.startsWith("image/")) return;
-
-    const reader = new FileReader();
-    reader.onload = (event) => {
-      const img = new Image();
-      img.onload = () => {
-        const maxSize = 400;
-        let w = img.width, h = img.height;
-        if (w > maxSize || h > maxSize) {
-          const scale = Math.min(maxSize / w, maxSize / h);
-          w *= scale; h *= scale;
-        }
-        const bounds = boardRef.current.getBoundingClientRect();
-        const x = Math.max(0, (bounds.width - w) / 2);
-        const y = Math.max(0, (bounds.height - h) / 2);
-
-        const newImage = {
-          id: `img_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`,
-          src: event.target.result, x, y, width: w, height: h, rotation: 0,
-        };
-        setImages((prev) => [...prev, newImage]);
-        setSelectedImageId(newImage.id);
-
-        // Auto-exit "image" tool after placement
-        toolRef.current = null;
-        if (typeof window !== "undefined") {
-          window.__WB_TOOL__ = null;
-          window.dispatchEvent(new CustomEvent("wb:select-tool", { detail: { tool: null } }));
-        }
-      };
-      img.src = event.target.result;
-    };
-    reader.readAsDataURL(file);
-    e.target.value = ""; // reset input so same file can be reselected later
-  };
-
-  const moveImage   = (id, pos)      => setImages((p) => p.map(i => i.id===id ? { ...i, ...pos } : i));
-  const resizeImage = (id, size)     => setImages((p) => p.map(i => i.id===id ? { ...i, ...size } : i));
-  const rotateImage = (id, rotation) => setImages((p) => p.map(i => i.id===id ? { ...i, rotation } : i));
-  const deleteImage = (id) => { setImages((p) => p.filter(i => i.id!==id)); if (selectedImageId===id) setSelectedImageId(null); };
-
   /* Sticky notes */
   const handleCanvasClick = (e) => {
     if (e.target === canvasRef.current) setSelectedImageId(null);
@@ -378,14 +371,6 @@ function Whiteboard({ strokes = [], onChange }) {
       style={{ position: "relative", width: "100%", height: "calc(100vh - 100px)", overflow: "hidden" }}
       onClick={() => setSelectedImageId(null)}
     >
-      <input
-        ref={fileInputRef}
-        type="file"
-        accept="image/*"
-        style={{ display: "none" }}
-        onChange={handleImageUpload}
-      />
-
       <canvas
         ref={canvasRef}
         className="whiteboard-canvas"
@@ -403,10 +388,10 @@ function Whiteboard({ strokes = [], onChange }) {
           {...img}
           isSelected={selectedImageId === img.id}
           onSelect={setSelectedImageId}
-          onMove={moveImage}
-          onResize={resizeImage}
-          onRotate={rotateImage}
-          onDelete={deleteImage}
+          onMove={(_id, pos) => setImages((p) => p.map(i => i.id===_id ? { ...i, ...pos } : i))}
+          onResize={(_id, size) => setImages((p) => p.map(i => i.id===_id ? { ...i, ...size } : i))}
+          onRotate={(_id, rotation) => setImages((p) => p.map(i => i.id===_id ? { ...i, rotation } : i))}
+          onDelete={(_id) => { setImages((p) => p.filter(i => i.id!==_id)); if (selectedImageId===_id) setSelectedImageId(null); }}
           boundsRef={boardRef}
         />
       ))}

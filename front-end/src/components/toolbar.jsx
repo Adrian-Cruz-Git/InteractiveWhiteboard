@@ -15,27 +15,23 @@ import clearIcon from '../assets/clear.png';
 
 /* 8 colors for a clean 2×4 symmetric grid */
 const NOTE_COLORS = [
-  '#FFEB3B',
-  '#FFF59D',
-  '#FFD54F',
-  '#FFAB91',
-  '#F48FB1',
-  '#90CAF9',
-  '#A5D6A7',
-  '#E1BEE7',
+  '#FFEB3B', '#FFF59D', '#FFD54F', '#FFAB91',
+  '#F48FB1', '#90CAF9', '#A5D6A7', '#E1BEE7',
 ];
 
 export default function Toolbar({ activeTool, setActiveTool, onUndo, onRedo, onClear }) {
   const [showPalette, setShowPalette] = useState(false);
   const paletteRef = useRef(null);
 
-  // one-time globals for sticky + eraser
+  // Hidden file input (lives in Toolbar so the click is a direct user gesture)
+  const imageInputRef = useRef(null);
+
+  // one-time globals
   if (typeof window !== 'undefined' && window.__WB_TOOL__ === undefined) {
     window.__WB_TOOL__ = null;
     window.__WB_ERASE__ = false;
   }
 
-  // close palette when clicking outside
   useEffect(() => {
     const onDocClick = (e) => {
       if (!paletteRef.current) return;
@@ -58,12 +54,44 @@ export default function Toolbar({ activeTool, setActiveTool, onUndo, onRedo, onC
 
   const chooseStickyColor = (color) => {
     window.dispatchEvent(new CustomEvent('wb:sticky-select-color', { detail: { color } }));
-    selectTool('sticky');   // Whiteboard will auto-toggle off after placing one note
+    selectTool('sticky');
     setShowPalette(false);
+  };
+
+  // IMAGE: open picker directly, then broadcast the data URL to Whiteboard
+  const onImageClick = () => {
+    if (imageInputRef.current) imageInputRef.current.click();
+  };
+
+  const onImageChosen = (e) => {
+    const file = e.target.files?.[0];
+    e.target.value = ""; // allow re-selecting the same file next time
+    if (!file) return;
+    if (!file.type.startsWith('image/')) {
+      alert('Please choose an image file');
+      return;
+    }
+    const reader = new FileReader();
+    reader.onload = (ev) => {
+      // send data URL to Whiteboard
+      window.dispatchEvent(new CustomEvent('wb:image-add', { detail: { dataUrl: ev.target.result } }));
+      // leave image mode after placement
+      selectTool(null);
+    };
+    reader.readAsDataURL(file);
   };
 
   return (
     <div className="toolbar">
+      {/* Hidden input tied to the Image button */}
+      <input
+        ref={imageInputRef}
+        type="file"
+        accept="image/*"
+        style={{ display: 'none' }}
+        onChange={onImageChosen}
+      />
+
       {/* 1. Cursor */}
       <button onClick={() => selectTool('cursor')} title="Cursor" aria-label="Cursor">
         <img src={cursorIcon} alt="Cursor" style={{ width: 25, height: 25 }} />
@@ -84,7 +112,7 @@ export default function Toolbar({ activeTool, setActiveTool, onUndo, onRedo, onC
         <img src={eraserIcon} alt="Eraser" style={{ width: 25, height: 25 }} />
       </button>
 
-      {/* 5. Sticky Note (palette) */}
+      {/* 5. Sticky Note (with palette) */}
       <div className="palette-anchor">
         <button onClick={startStickyFlow} title="Sticky Note" aria-label="Sticky Note">
           <img src={stickyNoteIcon} alt="Sticky Note" style={{ width: 25, height: 25 }} />
@@ -121,8 +149,8 @@ export default function Toolbar({ activeTool, setActiveTool, onUndo, onRedo, onC
         <img src={textIcon} alt="Text" style={{ width: 25, height: 25 }} />
       </button>
 
-      {/* 8. Image (opens picker → place draggable/rotatable/resizable image) */}
-      <button onClick={() => selectTool("image")} title="Image" aria-label="Image">
+      {/* 8. Image (opens system picker directly in this component) */}
+      <button onClick={onImageClick} title="Image" aria-label="Image">
         <img src={imageIcon} alt="Image" style={{ width: 25, height: 25 }} />
       </button>
 
