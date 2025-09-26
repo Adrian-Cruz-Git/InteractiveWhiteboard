@@ -2,7 +2,8 @@ import React, { useRef, useEffect } from "react";
 import "./Whiteboard.css";
 import { useAuth } from "../../contexts/useAuth";
 import { useStrokes } from "./hooks/useStrokes";
-import { useRealtime } from "./hooks/useRealtime";
+// Remove this import since client is already created in WhiteboardPage
+// import { useRealtime } from "./hooks/useRealtime";
 import { useStickyNotes } from "./hooks/useStickyNotes";
 import Canvas from "./Canvas";
 import StickyNote from "./StickyNote";
@@ -14,12 +15,29 @@ function Whiteboard({ client, onChange, activeTool, fileId, onUndo, onRedo, onCl
   const canvasRef = useRef(null);
   const overlayRef = useRef(null);
 
-  const { undoStack ,addStroke, undo, redo, setUndoStack, clear } = useStrokes(fileId, () => {}, onChange);
+  const { undoStack, addStroke, undo, redo, setUndoStack, clear } = useStrokes(fileId, () => {}, onChange);
 
-  // Realtime setup
+  // Use the client passed from WhiteboardPage
   const strokesChannel = client?.channels.get(`whiteboard-strokes-${whiteboardId}`);
+
   // stickynotes
-  const { notes, focusNoteId, setFocusNoteId, addNote, removeNote, moveNote, resizeNote, typeNote, } = useStickyNotes();
+  const { notes, focusNoteId, setFocusNoteId, addNote, removeNote, moveNote, resizeNote, typeNote } = useStickyNotes();
+
+  // Set up real-time stroke subscription
+  useEffect(() => {
+    if (!strokesChannel) return;
+
+    const handleRemoteStroke = (message) => {
+      console.log('Received remote stroke:', message.data.stroke);
+      addStroke(message.data.stroke);
+    };
+
+    strokesChannel.subscribe("new-stroke", handleRemoteStroke);
+
+    return () => {
+      strokesChannel.unsubscribe("new-stroke", handleRemoteStroke);
+    };
+  }, [strokesChannel, addStroke]);
 
   useEffect(() => {
     if (onUndo) onUndo.current = undo;
@@ -28,6 +46,7 @@ function Whiteboard({ client, onChange, activeTool, fileId, onUndo, onRedo, onCl
   }, [onUndo, onRedo, onClear, undo, redo, clear]);
 
   const handleStrokeComplete = (stroke) => {
+    console.log('Publishing stroke:', stroke);
     addStroke(stroke);
     strokesChannel?.publish("new-stroke", { stroke });
   };
@@ -89,7 +108,6 @@ function Whiteboard({ client, onChange, activeTool, fileId, onUndo, onRedo, onCl
           whiteboardId={whiteboardId}
         />
       )}
-      {/* Sticky notes will go here */}
     </div>
   );
 }
