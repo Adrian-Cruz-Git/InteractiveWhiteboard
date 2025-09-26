@@ -113,7 +113,8 @@ function Canvas({ canvasRef, activeTool, strokes, onStrokeComplete }) {
       style={{
         backgroundColor: "white",
         display: "block",
-        position: "absolute", // ✅ pinned inside 5000x5000 board
+        position: "relative",
+        overflow: "scroll",
         top: 0,
         left: 0,
       }}
