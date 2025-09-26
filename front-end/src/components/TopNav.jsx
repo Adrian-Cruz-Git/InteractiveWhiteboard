@@ -18,8 +18,8 @@ const TopNav = ({ boardId, client }) => {
       <Link to="/">Home</Link>
       {user ? (
         <>
-          {/* Removed /whiteboard link to avoid invalid route */}
-          <Link to="/settings">Settings</Link>
+          {/* Removed /whiteboard link to avoid invalid route, and incomplete settings page */}
+          {/* <Link to="/settings">Settings</Link> */}
           <Link to="/files">Files</Link>
           {/* Render online users only on whiteboard */}
           {boardId && client && <OnlineUsers boardId={boardId} client={client} />}
