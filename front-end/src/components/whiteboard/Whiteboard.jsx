@@ -1,4 +1,3 @@
-// Whiteboard.jsx
 import React, { useRef, useEffect } from "react";
 import "./Whiteboard.css";
 import { useAuth } from "../../contexts/useAuth";
@@ -51,7 +50,7 @@ function Whiteboard({ onChange, activeTool, fileId, onUndo, onRedo, onClear }) {
       ref={boardRef}
       style={{
         position: "relative",
-        overflow: "scroll",
+        overflow: "hidden-scroll",
         width: "100%",
         height: "100%"
       }}

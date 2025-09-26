@@ -20,21 +20,17 @@ html, body, #root {
   display: block;
 }
 
-/* ensure the canvas shows your existing crosshair if desired */
 .whiteboard-canvas {
   cursor: crosshair;
 }
 
-/* optional: a subtle focus ring when editing */
+
 .sticky-note:focus-within {
   outline: 2px solid rgba(0,0,0,0.25);
   outline-offset: 2px;
 }
-.sticky-note__header {
-  /* styles are inline in component; keep here if you prefer CSS */
-}
 
-/* Only if you still see reversal due to global RTL styles */
+
 .sticky-note [contenteditable] {
   direction: ltr !important;
   unicode-bidi: embed !important;
