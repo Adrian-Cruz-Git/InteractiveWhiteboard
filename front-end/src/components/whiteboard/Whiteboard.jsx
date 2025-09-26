@@ -43,7 +43,7 @@ function Whiteboard({ client, onChange, activeTool, fileId, onUndo, onRedo, onCl
       ref={boardRef}
       style={{
         position: "relative",
-        overflow: "hidden-scroll",
+        overflow: "scroll",
         width: "100%",
         height: "100%"
       }}
