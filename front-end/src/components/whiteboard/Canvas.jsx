@@ -113,8 +113,7 @@ function Canvas({ canvasRef, activeTool, strokes, onStrokeComplete }) {
       style={{
         backgroundColor: "white",
         display: "block",
-        position: "relative",
-        overflow: "scroll",
+        position: "absolute",
         top: 0,
         left: 0,
       }}

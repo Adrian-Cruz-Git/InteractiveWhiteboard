@@ -6,14 +6,14 @@ import { useStrokes } from "./hooks/useStrokes";
 import { useRealtime } from "./hooks/useRealtime";
 
 import Canvas from "./Canvas";
-import StickyNotesLayer from "./Layers/StickyNotesLayer"; // ✅ new clean layer
+import StickyNotesLayer from "./Layers/StickyNotesLayer";
 import LiveCursors from "../../components/LiveCursors";
 
 function Whiteboard({ onChange, activeTool, fileId, onUndo, onRedo, onClear }) {
   const { user } = useAuth();
   const whiteboardId = fileId || "local-" + Math.random();
   const canvasRef = useRef(null);
-  const boardRef = useRef(null); // ✅ shared board wrapper (scrolls canvas + notes)
+  const boardRef = useRef(null);
 
   const {
     undoStack,
@@ -22,7 +22,7 @@ function Whiteboard({ onChange, activeTool, fileId, onUndo, onRedo, onClear }) {
     redo,
     setUndoStack,
     clear,
-  } = useStrokes(fileId, () => {}, onChange);
+  } = useStrokes(fileId, () => { }, onChange);
 
   const { client, strokesChannel } = useRealtime(
     user,
@@ -49,7 +49,12 @@ function Whiteboard({ onChange, activeTool, fileId, onUndo, onRedo, onClear }) {
     <div
       className="whiteboard-container"
       ref={boardRef}
-      style={{ position: "relative", width: "100%", height: "100%" }}
+      style={{
+        position: "relative",
+        overflow: "scroll",
+        width: "100%",
+        height: "100%"
+      }}
     >
       {/* Canvas */}
       <Canvas
@@ -59,8 +64,11 @@ function Whiteboard({ onChange, activeTool, fileId, onUndo, onRedo, onClear }) {
         onStrokeComplete={handleStrokeComplete}
       />
 
-      {/* Sticky Notes Layer (above canvas but transparent background) */}
-      <StickyNotesLayer activeTool={activeTool} boardRef={boardRef} fileId={fileId}/>
+      {/* Sticky Notes Layer above canvas but transparent background */}
+      <StickyNotesLayer
+        activeTool={activeTool}
+        boardRef={boardRef}
+        fileId={fileId} />
 
       {/* Live Cursors */}
       {client && (

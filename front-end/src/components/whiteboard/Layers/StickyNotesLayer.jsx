@@ -58,7 +58,7 @@ export default function StickyNotesLayer({ activeTool, boardRef, fileId }) {
             style={{
                 position: "absolute",
                 inset: 0,
-                pointerEvents: activeTool === "sticky" ? "auto" : "none", // 👈 key fix
+                pointerEvents: activeTool === "sticky" ? "auto" : "none", 
             }}
             onClick={handleBoardClick}
             onMouseUp={handleMouseUpBoard}
