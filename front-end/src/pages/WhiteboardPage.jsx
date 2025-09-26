@@ -34,6 +34,7 @@ function WhiteboardPage() {
     // ---- Render ----
     return (
         <div className="whiteboard-app">
+            {/* Give client and boardId to topnav to display active users */}
             <TopNav client={client} boardId={id} />
             {/*Chat Icon/Button*/}
             <button

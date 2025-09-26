@@ -2,6 +2,7 @@ import { Link } from "react-router-dom";
 import { useAuth } from "../contexts/useAuth";
 import { signOut } from "firebase/auth";
 import { auth } from "../firebase";
+import ShareBtn from "./ShareBtn";
 import OnlineUsers from "./Users/OnlineUsers";
 import "./TopNav.css";
 
@@ -26,6 +27,7 @@ const TopNav = ({ boardId, client }) => {
           <button onClick={handleLogout} className="logout-btn">
             Logout
           </button>
+          <ShareBtn activeBoard={boardId} />
         </>
       ) : (
         <Link to="/login">Login</Link>

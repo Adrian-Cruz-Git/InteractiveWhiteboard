@@ -1,17 +1,15 @@
-
 import "./Navbar.css";
 import { useEffect, useState } from "react";
 import { auth } from "../firebase";
-import { signInWithPopup, signOut, onAuthStateChanged } from "firebase/auth";
+import { signInWithPopup, signOut, onAuthStateChanged, GoogleAuthProvider } from "firebase/auth";
 import { useNavigate } from "react-router-dom";
 import OnlineUsers from "./Users/OnlineUsers";
 import UserPermissions from "./Users/UserPermissions";
 import BoardPermissionsManager from "./Users/BoardPermissionsManager";
+import ShareBtn from "./ShareBtn"; // Import the new ShareBtn component
 
 function Navbar({ boards = [], activeBoard, onSelectBoard, onAddBoard }) {
     const [user, setUser] = useState(null);
-    const [showShareModal, setShowShareModal] = useState(false);
-    const [copySuccess, setCopySuccess] = useState(false);
     const navigate = useNavigate();
 
     // Listen for auth state changes
@@ -22,34 +20,6 @@ function Navbar({ boards = [], activeBoard, onSelectBoard, onAddBoard }) {
         return () => unsubscribe();
     }, []);
 
-    // Generate shareable link
-    const generateShareLink = () => {
-        const baseUrl = window.location.origin;
-        const boardPath = `/whiteboard/${activeBoard}`;
-        return `${baseUrl}${boardPath}`;
-    };
-
-    // Copy link to clipboard
-    const handleCopyLink = async () => {
-        const shareLink = generateShareLink();
-        try {
-            await navigator.clipboard.writeText(shareLink);
-            setCopySuccess(true);
-            setTimeout(() => setCopySuccess(false), 2000);
-        } catch (err) {
-            console.error('Failed to copy link:', err);
-            // Fallback for older browsers
-            const textArea = document.createElement('textarea');
-            textArea.value = shareLink;
-            document.body.appendChild(textArea);
-            textArea.select();
-            document.execCommand('copy');
-            document.body.removeChild(textArea);
-            setCopySuccess(true);
-            setTimeout(() => setCopySuccess(false), 2000);
-        }
-    };
-
     return (
         <>
             <nav className="navbar">
@@ -58,17 +28,19 @@ function Navbar({ boards = [], activeBoard, onSelectBoard, onAddBoard }) {
                     {boards.map((board) => (
                         <button
                             key={board.id}
-                        onClick={() => { // on click navigate to that board ( update url id?= , and set active board)
-                            onSelectBoard(board.id);
-                            navigate(`/whiteboard/?id=${board.id}`);
-                        }}
+                            onClick={() => {
+                                // on click navigate to that board (update url id?, and set active board)
+                                onSelectBoard(board.id);
+                                navigate(`/whiteboard/?id=${board.id}`);
+                            }}
                             className={activeBoard === board.id ? "active" : ""}
-                            
                         >
                             Board {board.id}
                         </button>
                     ))}
-                    <button onClick={onAddBoard} className="new-board">New Board</button>
+                    <button onClick={onAddBoard} className="new-board">
+                        New Board
+                    </button>
                 </div>
 
                 {/* User Management Section */}
@@ -80,7 +52,7 @@ function Navbar({ boards = [], activeBoard, onSelectBoard, onAddBoard }) {
 
                 {/* Action Buttons */}
                 <div className="action-buttons">
-                    <button onClick={() => setShowShareModal(true)} className="share">Share</button>
+                    <ShareBtn activeBoard={activeBoard} />
                     
                     {user ? (
                         <div className="current-user">
@@ -91,53 +63,21 @@ function Navbar({ boards = [], activeBoard, onSelectBoard, onAddBoard }) {
                                     className="user-avatar"
                                 />
                             ) : (
-                                <span className="user-avatar">{user.displayName?.[0]}</span>
+                                <span className="user-avatar">
+                                    {user.displayName?.[0]}
+                                </span>
                             )}
                         </div>
                     ) : (
                         <button
                             className="login-btn"
-                            onClick={() => signInWithPopup(auth, new auth.GoogleAuthProvider())}
+                            onClick={() => signInWithPopup(auth, new GoogleAuthProvider())}
                         >
                             Login
                         </button>
                     )}
                 </div>
             </nav>
-
-            {/* Share Modal */}
-            {showShareModal && (
-                <div className="share-modal-overlay" onClick={() => setShowShareModal(false)}>
-                    <div className="share-modal" onClick={(e) => e.stopPropagation()}>
-                        <div className="share-modal-header">
-                            <h3>Share Board {activeBoard}</h3>
-                            <button className="close-btn" onClick={() => setShowShareModal(false)}>×</button>
-                        </div>
-                        <div className="share-modal-content">
-                            <div className="share-link-section">
-                                <label>Shareable Link:</label>
-                                <div className="link-container">
-                                    <input
-                                        type="text"
-                                        value={generateShareLink()}
-                                        readOnly
-                                        className="share-link-input"
-                                    />
-                                </div>
-                            </div>
-                            <div className="share-actions">
-                                <button
-                                    onClick={handleCopyLink}
-                                    className="copy-link-btn"
-                                    disabled={copySuccess}
-                                >
-                                    {copySuccess ? '✓ Copied!' : 'Copy Link'}
-                                </button>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            )}
         </>
     );
 }

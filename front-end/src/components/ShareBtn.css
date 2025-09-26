@@ -1,0 +1,255 @@
+/* Share Button */
+.share {
+  background: #007bff;
+  color: white;
+  border: none;
+  padding: 8px 16px;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 14px;
+  font-weight: 500;
+  transition: background-color 0.2s ease;
+}
+
+.share:hover {
+  background: #0056b3;
+}
+
+.share:active {
+  background: #004494;
+}
+
+/* Modal Overlay */
+.share-modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  backdrop-filter: blur(2px);
+}
+
+/* Modal Container */
+.share-modal {
+  background: white;
+  border-radius: 12px;
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2);
+  width: 90%;
+  max-width: 500px;
+  max-height: 90vh;
+  overflow-y: auto;
+  animation: modalSlideIn 0.2s ease-out;
+  position: relative;
+  margin: 20px;
+}
+
+@keyframes modalSlideIn {
+  from {
+    opacity: 0;
+    transform: scale(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+/* Modal Header */
+.share-modal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 20px 24px 16px;
+  border-bottom: 1px solid #e5e7eb;
+  border-radius: 12px 12px 0 0;
+  position: relative;
+}
+
+.share-modal-header h3 {
+  margin: 0;
+  font-size: 18px;
+  font-weight: 600;
+  color: #1f2937;
+}
+
+.close-btn {
+  background: #ef4444;
+  border: none;
+  color: white;
+  cursor: pointer;
+  padding: 10px 16px;
+  border-radius: 8px;
+  font-size: 16px;
+  font-weight: 500;
+  transition: all 0.2s ease;
+  min-width: 80px;
+}
+
+.close-btn:hover {
+  background: #dc2626;
+  transform: translateY(-1px);
+}
+
+.close-btn:active {
+  background: #b91c1c;
+  transform: translateY(0);
+}
+
+/* Modal Content */
+.share-modal-content {
+  padding: 24px;
+}
+
+.share-link-section {
+  margin-bottom: 24px;
+}
+
+.share-link-section label {
+  display: block;
+  font-weight: 500;
+  color: #374151;
+  margin-bottom: 8px;
+  font-size: 14px;
+}
+
+.link-container {
+  position: relative;
+}
+
+.share-link-input {
+  width: 100%;
+  padding: 12px 16px;
+  border: 2px solid #e5e7eb;
+  border-radius: 8px;
+  font-size: 14px;
+  color: #1f2937;
+  background: #f9fafb;
+  box-sizing: border-box;
+  font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
+  transition: border-color 0.2s ease;
+}
+
+.share-link-input:focus {
+  outline: none;
+  border-color: #3b82f6;
+  background: white;
+}
+
+.share-link-input:hover {
+  border-color: #d1d5db;
+}
+
+/* Share Actions */
+.share-actions {
+  display: flex;
+  gap: 12px;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.copy-link-btn {
+  background: #10b981;
+  color: white;
+  border: none;
+  padding: 10px 20px;
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 14px;
+  font-weight: 500;
+  transition: all 0.2s ease;
+  min-width: 100px;
+}
+
+.copy-link-btn:hover:not(:disabled) {
+  background: #059669;
+  transform: translateY(-1px);
+}
+
+.copy-link-btn:active:not(:disabled) {
+  background: #047857;
+  transform: translateY(0);
+}
+
+.copy-link-btn:disabled {
+  background: #34d399;
+  cursor: default;
+  transform: none;
+}
+
+/* Responsive Design */
+@media (max-width: 640px) {
+  .share-modal {
+    width: 95%;
+    margin: 20px;
+  }
+  
+  .share-modal-header {
+    padding: 16px 20px 12px;
+  }
+  
+  .share-modal-content {
+    padding: 20px;
+  }
+  
+  .share-link-input {
+    font-size: 16px; /* Prevent zoom on iOS */
+  }
+  
+  .share-actions {
+    flex-direction: column;
+    gap: 8px;
+  }
+  
+  .copy-link-btn,
+  .close-btn {
+    width: 100%;
+  }
+}
+
+/* Dark mode support (optional) */
+@media (prefers-color-scheme: dark) {
+  .share-modal {
+    background: #1f2937;
+    color: #f9fafb;
+  }
+  
+  .share-modal-header {
+    border-bottom-color: #374151;
+  }
+  
+  .share-modal-header h3 {
+    color: #f9fafb;
+  }
+  
+  .close-btn {
+    background: #dc2626;
+  }
+  
+  .close-btn:hover {
+    background: #b91c1c;
+  }
+  
+  .share-link-section label {
+    color: #e5e7eb;
+  }
+  
+  .share-link-input {
+    background: #374151;
+    border-color: #4b5563;
+    color: #f9fafb;
+  }
+  
+  .share-link-input:focus {
+    border-color: #60a5fa;
+    background: #4b5563;
+  }
+  
+  .share-link-input:hover {
+    border-color: #6b7280;
+  }
+}
