@@ -9,7 +9,7 @@ import Canvas from "./Canvas";
 import StickyNotesLayer from "./Layers/StickyNotesLayer";
 import LiveCursors from "../../components/LiveCursors";
 
-function Whiteboard({ onChange, activeTool, fileId, onUndo, onRedo, onClear }) {
+function Whiteboard({ client, onChange, activeTool, fileId, onUndo, onRedo, onClear }) {
   const { user } = useAuth();
   const whiteboardId = fileId || "local-" + Math.random();
   const canvasRef = useRef(null);
@@ -24,16 +24,9 @@ function Whiteboard({ onChange, activeTool, fileId, onUndo, onRedo, onClear }) {
     clear,
   } = useStrokes(fileId, () => { }, onChange);
 
-  const { client, strokesChannel } = useRealtime(
-    user,
-    whiteboardId,
-    addStroke,
-    undo,
-    redo,
-    () => setUndoStack([])
-  );
+  // Realtime setup
+  const strokesChannel = client?.channels.get(`whiteboard-strokes-${whiteboardId}`);
 
-  // expose undo/redo/clear to parent refs
   useEffect(() => {
     if (onUndo) onUndo.current = undo;
     if (onRedo) onRedo.current = redo;
