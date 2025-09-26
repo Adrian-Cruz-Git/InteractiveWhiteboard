@@ -23,7 +23,7 @@ export default function Toolbar({ activeTool, setActiveTool, onUndo, onRedo, onC
   const [showPalette, setShowPalette] = useState(false);
   const paletteRef = useRef(null);
 
-  // Hidden file input (lives in Toolbar so the click is a direct user gesture)
+  // Hidden file input (lives in Toolbar so picker opens under user gesture)
   const imageInputRef = useRef(null);
 
   // one-time globals
@@ -58,27 +58,24 @@ export default function Toolbar({ activeTool, setActiveTool, onUndo, onRedo, onC
     setShowPalette(false);
   };
 
-  // IMAGE: open picker directly, then broadcast the data URL to Whiteboard
+  // IMAGE: open picker directly, then broadcast a blob URL to Whiteboard
   const onImageClick = () => {
-    if (imageInputRef.current) imageInputRef.current.click();
+    imageInputRef.current?.click();
   };
 
   const onImageChosen = (e) => {
     const file = e.target.files?.[0];
-    e.target.value = ""; // allow re-selecting the same file next time
+    e.target.value = ""; // allow re-selecting same file next time
     if (!file) return;
     if (!file.type.startsWith('image/')) {
       alert('Please choose an image file');
       return;
     }
-    const reader = new FileReader();
-    reader.onload = (ev) => {
-      // send data URL to Whiteboard
-      window.dispatchEvent(new CustomEvent('wb:image-add', { detail: { dataUrl: ev.target.result } }));
-      // leave image mode after placement
-      selectTool(null);
-    };
-    reader.readAsDataURL(file);
+
+    const objectUrl = URL.createObjectURL(file);
+    window.dispatchEvent(new CustomEvent('wb:image-add', { detail: { objectUrl } }));
+    // leave image mode after placement
+    selectTool(null);
   };
 
   return (

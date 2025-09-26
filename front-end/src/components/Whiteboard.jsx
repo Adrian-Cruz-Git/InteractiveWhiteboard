@@ -99,6 +99,7 @@ const ImageObject = ({
         border: isSelected ? "2px solid #2196F3" : "none",
         boxSizing: "border-box",
         zIndex: 2,
+        pointerEvents: "auto",
       }}
       onClick={(e) => { e.stopPropagation(); onSelect(id); }}
       onMouseDown={(e) => handleMouseDown(e, "drag")}
@@ -118,7 +119,7 @@ const ImageObject = ({
               cursor: "pointer", fontSize: 16, display: "flex", alignItems: "center",
               justifyContent: "center", zIndex: 10,
             }}
-            onClick={(e) => { e.stopPropagation(); onDelete(id); }}
+            onClick={(e) => { e.stopPropagation(); onDelete(id, src); }}
             title="Delete image"
           >
             ×
@@ -172,6 +173,9 @@ function Whiteboard({ strokes = [], onChange }) {
   const [images, setImages] = useState([]);
   const [selectedImageId, setSelectedImageId] = useState(null);
 
+  // Pending image to be placed
+  const [pendingImage, setPendingImage] = useState(null);
+
   useEffect(() => {
     const canvas = canvasRef.current;
     if (!canvas) return;
@@ -205,38 +209,31 @@ function Whiteboard({ strokes = [], onChange }) {
       stickyColorRef.current = e?.detail?.color ?? "#FFEB3B";
     };
 
-    // NEW: handle image payload coming from Toolbar's file input
+    // Handle image payload coming from Toolbar (supports dataUrl & objectUrl)
     const onImageAdd = (e) => {
-      const dataUrl = e?.detail?.dataUrl;
-      if (!dataUrl) return;
+      const src = e?.detail?.objectUrl || e?.detail?.dataUrl;
+      if (!src) return;
 
-      const img = new Image();
+      const img = new window.Image();
       img.onload = () => {
         const maxSize = 400;
         let w = img.width, h = img.height;
         if (w > maxSize || h > maxSize) {
           const scale = Math.min(maxSize / w, maxSize / h);
-          w *= scale; h *= scale;
+          w *= scale;
+          h *= scale;
         }
-        const bounds = boardRef.current.getBoundingClientRect();
-        const x = Math.max(0, (bounds.width - w) / 2);
-        const y = Math.max(0, (bounds.height - h) / 2);
 
-        const newImage = {
-          id: `img_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`,
-          src: dataUrl, x, y, width: w, height: h, rotation: 0,
-        };
-        setImages((prev) => [...prev, newImage]);
-        setSelectedImageId(newImage.id);
-
-        // Exit image tool after placement
-        toolRef.current = null;
-        if (typeof window !== "undefined") {
-          window.__WB_TOOL__ = null;
-          window.dispatchEvent(new CustomEvent("wb:select-tool", { detail: { tool: null } }));
-        }
+        setPendingImage({ src, width: w, height: h });
+        toolRef.current = 'image';
       };
-      img.src = dataUrl;
+
+      img.onerror = () => {
+        alert("Failed to load image.");
+        console.error("Failed to load image from src:", src);
+      };
+
+      img.src = src;
     };
 
     window.addEventListener("wb:select-tool", onSelectTool);
@@ -337,18 +334,49 @@ function Whiteboard({ strokes = [], onChange }) {
     ctx.globalCompositeOperation = "source-over";
   };
 
-  /* Sticky notes */
+  /* Sticky notes and image placement */
   const handleCanvasClick = (e) => {
     if (e.target === canvasRef.current) setSelectedImageId(null);
+
+    // Handle pending image placement (before sticky note logic)
+    if (pendingImage && e.target === canvasRef.current) {
+      const pos = getMousePos(e);
+      const x = pos.x - pendingImage.width / 2;
+      const y = pos.y - pendingImage.height / 2;
+
+      const newImage = {
+        id: `img_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`,
+        src: pendingImage.src,
+        x,
+        y,
+        width: pendingImage.width,
+        height: pendingImage.height,
+        rotation: 0,
+      };
+
+      setImages((prev) => [...prev, newImage]);
+      setSelectedImageId(newImage.id);
+      setPendingImage(null);
+      toolRef.current = null;
+
+      if (typeof window !== "undefined") {
+        window.__WB_TOOL__ = null;
+        window.dispatchEvent(new CustomEvent("wb:select-tool", { detail: { tool: null } }));
+      }
+
+      return;
+    }
+
+    // Sticky note placement
     if (toolRef.current !== "sticky" || e.target !== canvasRef.current) return;
 
     const pos = getMousePos(e);
     const DEFAULT_W = 180, DEFAULT_H = 160;
     let x = pos.x - DEFAULT_W / 2, y = pos.y - DEFAULT_H / 2;
 
-    const bounds = boardRef.current.getBoundingClientRect();
-    const maxX = Math.max(0, bounds.width - DEFAULT_W);
-    const maxY = Math.max(0, bounds.height - DEFAULT_H);
+    const bounds = boardRef.current?.getBoundingClientRect();
+    const maxX = Math.max(0, (bounds?.width ?? 0) - DEFAULT_W);
+    const maxY = Math.max(0, (bounds?.height ?? 0) - DEFAULT_H);
     x = Math.max(0, Math.min(x, maxX));
     y = Math.max(0, Math.min(y, maxY));
 
@@ -362,6 +390,15 @@ function Whiteboard({ strokes = [], onChange }) {
       window.__WB_TOOL__ = null;
       window.dispatchEvent(new CustomEvent("wb:select-tool", { detail: { tool: null } }));
       window.dispatchEvent(new CustomEvent("wb:toggle-erase", { detail: { on: false } }));
+    }
+  };
+
+  // revoke blob URLs on delete
+  const deleteImage = (id, src) => {
+    setImages((p) => p.filter((i) => i.id !== id));
+    if (selectedImageId === id) setSelectedImageId(null);
+    if (typeof src === "string" && src.startsWith("blob:")) {
+      try { URL.revokeObjectURL(src); } catch {}
     }
   };
 
@@ -379,7 +416,8 @@ function Whiteboard({ strokes = [], onChange }) {
         onMouseUp={endDrawing}
         onMouseLeave={endDrawing}
         onClick={handleCanvasClick}
-        style={{ display: "block", width: "100%", height: "100%", zIndex: 1 }}
+        /* IMPORTANT: make canvas positioned so images (zIndex:2) can layer above */
+        style={{ position: "absolute", inset: 0, display: "block", width: "100%", height: "100%", zIndex: 1 }}
       />
 
       {images.map((img) => (
@@ -391,7 +429,7 @@ function Whiteboard({ strokes = [], onChange }) {
           onMove={(_id, pos) => setImages((p) => p.map(i => i.id===_id ? { ...i, ...pos } : i))}
           onResize={(_id, size) => setImages((p) => p.map(i => i.id===_id ? { ...i, ...size } : i))}
           onRotate={(_id, rotation) => setImages((p) => p.map(i => i.id===_id ? { ...i, rotation } : i))}
-          onDelete={(_id) => { setImages((p) => p.filter(i => i.id!==_id)); if (selectedImageId===_id) setSelectedImageId(null); }}
+          onDelete={deleteImage}
           boundsRef={boardRef}
         />
       ))}
