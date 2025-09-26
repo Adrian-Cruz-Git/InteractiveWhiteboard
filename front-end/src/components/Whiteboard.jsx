@@ -1,4 +1,3 @@
-// front-end/src/components/Whiteboard.jsx
 import React, { useRef, useState, useEffect } from "react";
 import "./Whiteboard.css";
 import StickyNote from "./StickyNote";
@@ -187,6 +186,7 @@ function Whiteboard({ strokes = [], onChange }) {
     redraw();
   }, [strokes]);
 
+  // Listen for toolbar events (including "image" -> open picker)
   useEffect(() => {
     const onSelectTool = (e) => {
       const tool = e?.detail?.tool ?? null;
@@ -300,7 +300,7 @@ function Whiteboard({ strokes = [], onChange }) {
     ctx.globalCompositeOperation = "source-over";
   };
 
-  /* Image upload */
+  /* ---------- Image upload flow (triggered by Toolbar "Image") ---------- */
   const handleImageUpload = (e) => {
     const file = e.target.files?.[0];
     if (!file || !file.type.startsWith("image/")) return;
@@ -326,6 +326,7 @@ function Whiteboard({ strokes = [], onChange }) {
         setImages((prev) => [...prev, newImage]);
         setSelectedImageId(newImage.id);
 
+        // Auto-exit "image" tool after placement
         toolRef.current = null;
         if (typeof window !== "undefined") {
           window.__WB_TOOL__ = null;
@@ -335,7 +336,7 @@ function Whiteboard({ strokes = [], onChange }) {
       img.src = event.target.result;
     };
     reader.readAsDataURL(file);
-    e.target.value = "";
+    e.target.value = ""; // reset input so same file can be reselected later
   };
 
   const moveImage   = (id, pos)      => setImages((p) => p.map(i => i.id===id ? { ...i, ...pos } : i));

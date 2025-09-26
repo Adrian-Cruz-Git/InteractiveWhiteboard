@@ -1,4 +1,3 @@
-// Toolbar.jsx
 import { useState, useRef, useEffect } from 'react';
 import './toolbar.css';
 
@@ -16,14 +15,14 @@ import clearIcon from '../assets/clear.png';
 
 /* 8 colors for a clean 2×4 symmetric grid */
 const NOTE_COLORS = [
-  '#FFEB3B', // yellow
-  '#FFF59D', // light yellow
-  '#FFD54F', // amber
-  '#FFAB91', // peach
-  '#F48FB1', // pink
-  '#90CAF9', // blue
-  '#A5D6A7', // green
-  '#E1BEE7', // lavender
+  '#FFEB3B',
+  '#FFF59D',
+  '#FFD54F',
+  '#FFAB91',
+  '#F48FB1',
+  '#90CAF9',
+  '#A5D6A7',
+  '#E1BEE7',
 ];
 
 export default function Toolbar({ activeTool, setActiveTool, onUndo, onRedo, onClear }) {
@@ -47,7 +46,7 @@ export default function Toolbar({ activeTool, setActiveTool, onUndo, onRedo, onC
   }, []);
 
   const selectTool = (tool) => {
-    setActiveTool(tool);
+    setActiveTool?.(tool);
     window.__WB_TOOL__ = tool;
     window.__WB_ERASE__ = tool === 'eraser';
     window.dispatchEvent(new CustomEvent('wb:select-tool', { detail: { tool } }));
@@ -65,27 +64,27 @@ export default function Toolbar({ activeTool, setActiveTool, onUndo, onRedo, onC
 
   return (
     <div className="toolbar">
-      {/* Cursor */}
+      {/* 1. Cursor */}
       <button onClick={() => selectTool('cursor')} title="Cursor" aria-label="Cursor">
         <img src={cursorIcon} alt="Cursor" style={{ width: 25, height: 25 }} />
       </button>
 
-      {/* Pen */}
+      {/* 2. Pen */}
       <button onClick={() => selectTool("pen")} title="Pen" aria-label="Pen">
         <img src={penIcon} alt="Pen" style={{ width: 25, height: 25 }} />
       </button>
 
-      {/* Highlighter (placeholder) */}
+      {/* 3. Highlighter (placeholder) */}
       <button onClick={() => selectTool("highlighter")} title="Highlighter" aria-label="Highlighter">
         <img src={highlightIcon} alt="Highlighter" style={{ width: 25, height: 25 }} />
       </button>
 
-      {/* Eraser */}
+      {/* 4. Eraser */}
       <button onClick={() => selectTool("eraser")} title="Eraser" aria-label="Eraser">
         <img src={eraserIcon} alt="Eraser" style={{ width: 25, height: 25 }} />
       </button>
 
-      {/* Sticky Note (with palette) */}
+      {/* 5. Sticky Note (palette) */}
       <div className="palette-anchor">
         <button onClick={startStickyFlow} title="Sticky Note" aria-label="Sticky Note">
           <img src={stickyNoteIcon} alt="Sticky Note" style={{ width: 25, height: 25 }} />
@@ -112,17 +111,17 @@ export default function Toolbar({ activeTool, setActiveTool, onUndo, onRedo, onC
         )}
       </div>
 
-      {/* Shapes */}
+      {/* 6. Shapes */}
       <button onClick={() => selectTool("shapes")} title="Shapes" aria-label="Shapes">
         <img src={shapesIcon} alt="Shapes" style={{ width: 25, height: 25 }} />
       </button>
 
-      {/* Text */}
+      {/* 7. Text */}
       <button onClick={() => selectTool("text")} title="Text" aria-label="Text">
         <img src={textIcon} alt="Text" style={{ width: 25, height: 25 }} />
       </button>
 
-      {/* Image */}
+      {/* 8. Image (opens picker → place draggable/rotatable/resizable image) */}
       <button onClick={() => selectTool("image")} title="Image" aria-label="Image">
         <img src={imageIcon} alt="Image" style={{ width: 25, height: 25 }} />
       </button>
@@ -141,7 +140,7 @@ export default function Toolbar({ activeTool, setActiveTool, onUndo, onRedo, onC
       <button
         onClick={() => {
           if (window.confirm('Are you sure you want to clear the whiteboard? This action cannot be undone.')) {
-            onClear();
+            onClear?.();
           } else {
             console.log('Clear whiteboard action cancelled.');
           }
