@@ -1,11 +1,7 @@
-// StickyNotesLayer.jsx
 import React, { useState, useEffect } from "react";
 import StickyNote from "../StickyNote";
-import { useStickyNotes } from "../hooks/useStickyNotes";
 
-// Layer that manages and renders sticky notes on the whiteboard
-export default function StickyNotesLayer({ activeTool, boardRef, fileId, notes, setNotes, focusNoteId, setFocusNoteId, addNote, removeNote, moveNote, resizeNote, typeNote }) {
-
+export default function StickyNotesLayer({ activeTool, setActiveTool, boardRef, notes, focusNoteId, setFocusNoteId, addNote, removeNote, moveNote, resizeNote, typeNote }) {
     const [stickyColor, setStickyColor] = useState("#FFEB3B");
     const [draggingNote, setDraggingNote] = useState(false);
 
@@ -46,9 +42,15 @@ export default function StickyNotesLayer({ activeTool, boardRef, fileId, notes, 
         };
 
         // Save to Supabase, hook will update `notes` state
-        const saved = await addNote(newNote);
-        if (saved?.id) {
-            setFocusNoteId(saved.id);
+        try {
+            const saved = await addNote(newNote);
+            if (saved?.id) setFocusNoteId(saved.id);
+        } finally {
+            // switch back to pen no matter what
+            setActiveTool?.("pen");
+            // keep Toolbar in sync too (optional)
+            window.__WB_TOOL__ = "pen";
+            window.dispatchEvent(new CustomEvent("wb:select-tool", { detail: { tool: "pen" } }));
         }
     };
 
@@ -56,10 +58,13 @@ export default function StickyNotesLayer({ activeTool, boardRef, fileId, notes, 
         <div
             style={{
                 position: "absolute",
-                inset: 0,
+                top: 0,
+                left: 0,
+                width: 5000,
+                height: 5000,
                 pointerEvents: activeTool === "sticky" ? "auto" : "none",
             }}
-            onClick={handleBoardClick}
+            onMouseDown={handleBoardClick}
             onMouseUp={handleMouseUpBoard}
         >
             {notes.map((note) => (
@@ -82,5 +87,4 @@ export default function StickyNotesLayer({ activeTool, boardRef, fileId, notes, 
             ))}
         </div>
     );
-
 }

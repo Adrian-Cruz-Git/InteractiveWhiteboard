@@ -93,6 +93,7 @@ function WhiteboardPage() {
                                 client={client}
                                 fileId={id} // pass file id to whiteboard
                                 activeTool={activeTool}
+                                setActiveTool={setActiveTool}
                                 onUndo={undoRef}
                                 onRedo={redoRef}
                                 onClear={clearRef}

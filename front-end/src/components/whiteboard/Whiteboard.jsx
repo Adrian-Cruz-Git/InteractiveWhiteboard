@@ -9,8 +9,7 @@ import { useStickyNotes } from "./hooks/useStickyNotes";
 import StickyNotesLayer from "./Layers/StickyNotesLayer";
 import LiveCursors from "../../components/LiveCursors";
 
-function Whiteboard({ client, onChange, activeTool, fileId, onUndo, onRedo, onClear, }) {
-  const { user } = useAuth();
+function Whiteboard({ client, onChange, activeTool, setActiveTool, fileId, onUndo, onRedo, onClear, }) {
   const whiteboardId = fileId || "local-" + Math.random();
   const canvasRef = useRef(null);
   const boardRef = useRef(null);
@@ -74,6 +73,7 @@ function Whiteboard({ client, onChange, activeTool, fileId, onUndo, onRedo, onCl
       {/* Sticky Notes Layer above canvas but transparent background */}
       <StickyNotesLayer
         activeTool={activeTool}
+        setActiveTool={setActiveTool}
         boardRef={boardRef}
         fileId={fileId}
         notes={notes}

@@ -1,20 +1,18 @@
-// Canvas.jsx
-import React, { useEffect } from "react";
+import React, { useEffect, useRef } from "react";
 
 function Canvas({ canvasRef, activeTool, strokes, onStrokeComplete }) {
+  const currentStroke = useRef([]);
+
   useEffect(() => {
     const canvas = canvasRef.current;
     if (!canvas) return;
 
-    // Large board size — matches Whiteboard
     canvas.width = 5000;
     canvas.height = 5000;
-
     const ctx = canvas.getContext("2d");
 
     const redraw = () => {
       ctx.clearRect(0, 0, ctx.canvas.width, ctx.canvas.height);
-
       if (!Array.isArray(strokes)) return;
 
       strokes.forEach((stroke) => {
@@ -45,31 +43,33 @@ function Canvas({ canvasRef, activeTool, strokes, onStrokeComplete }) {
     redraw();
   }, [strokes, canvasRef]);
 
-  // Get mouse position relative to canvas
-  const getMousePos = (e) => {
+  const getPos = (e) => {
     const rect = canvasRef.current.getBoundingClientRect();
     const scaleX = canvasRef.current.width / rect.width;
     const scaleY = canvasRef.current.height / rect.height;
+    if (e.touches && e.touches.length > 0) {
+      return {
+        x: (e.touches[0].clientX - rect.left) * scaleX,
+        y: (e.touches[0].clientY - rect.top) * scaleY,
+      };
+    }
     return {
       x: (e.clientX - rect.left) * scaleX,
       y: (e.clientY - rect.top) * scaleY,
     };
   };
 
-  let currentStroke = [];
-
-  // --- Drawing logic ---
   const startDrawing = (e) => {
     if (activeTool !== "pen" && activeTool !== "eraser") return;
-    currentStroke = [getMousePos(e)];
+    currentStroke.current = [getPos(e)];
     canvasRef.current.isDrawing = true;
   };
 
   const draw = (e) => {
     if (!canvasRef.current.isDrawing) return;
-    const pos = getMousePos(e);
+    const pos = getPos(e);
     const ctx = canvasRef.current.getContext("2d");
-    const lastPos = currentStroke[currentStroke.length - 1];
+    const lastPos = currentStroke.current[currentStroke.current.length - 1];
 
     ctx.lineJoin = "round";
     ctx.lineCap = "round";
@@ -90,21 +90,21 @@ function Canvas({ canvasRef, activeTool, strokes, onStrokeComplete }) {
       ctx.stroke();
     }
 
-    currentStroke.push(pos);
+    currentStroke.current.push(pos);
   };
 
   const endDrawing = () => {
     if (!canvasRef.current.isDrawing) return;
     canvasRef.current.isDrawing = false;
 
-    if (currentStroke.length > 1) {
+    if (currentStroke.current.length > 1) {
       onStrokeComplete({
-        points: currentStroke,
+        points: currentStroke.current,
         erase: activeTool === "eraser",
       });
     }
 
-    currentStroke = [];
+    currentStroke.current = [];
   };
 
   return (
@@ -121,6 +121,9 @@ function Canvas({ canvasRef, activeTool, strokes, onStrokeComplete }) {
       onMouseMove={draw}
       onMouseUp={endDrawing}
       onMouseLeave={endDrawing}
+      onTouchStart={startDrawing}
+      onTouchMove={draw}
+      onTouchEnd={endDrawing}
     />
   );
 }

@@ -71,11 +71,16 @@ export default function StickyNote({
 
   // ---------- helpers ----------
   const clampToBounds = (nx, ny, el) => {
-    const bounds = boundsRef?.current?.getBoundingClientRect?.();
-    if (!bounds || !el) return { x: Math.max(0, nx), y: Math.max(0, ny) };
-    const maxX = Math.max(0, bounds.width - el.offsetWidth);
-    const maxY = Math.max(0, bounds.height - el.offsetHeight);
-    return { x: Math.max(0, Math.min(nx, maxX)), y: Math.max(0, Math.min(ny, maxY)) };
+    const boundsEl = boundsRef?.current;
+    if (!boundsEl || !el) return { x: Math.max(0, nx), y: Math.max(0, ny) };
+
+    const maxX = boundsEl.scrollWidth - el.offsetWidth;
+    const maxY = boundsEl.scrollHeight - el.offsetHeight;
+
+    return {
+      x: Math.max(0, Math.min(nx, maxX)),
+      y: Math.max(0, Math.min(ny, maxY)),
+    };
   };
 
   const ancestorFlippedX = (el) => {
@@ -198,7 +203,7 @@ export default function StickyNote({
     const newText = e.target.value;
     onChangeText?.(id, newText);
   };
-  
+
   // This useEffect ensures the display div always shows the latest text
   useEffect(() => {
     if (displayRef.current) {
