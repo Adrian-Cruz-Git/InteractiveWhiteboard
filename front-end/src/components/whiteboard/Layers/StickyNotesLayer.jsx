@@ -41,7 +41,6 @@ export default function StickyNotesLayer({ activeTool, setActiveTool, boardRef, 
             text: "",
         };
 
-        // Save to Supabase, hook will update `notes` state
         try {
             const saved = await addNote(newNote);
             if (saved?.id) setFocusNoteId(saved.id);
