@@ -47,7 +47,7 @@ export default function StickyNotesLayer({ activeTool, setActiveTool, boardRef, 
         } finally {
             // switch back to pen no matter what
             setActiveTool?.("pen");
-            // keep Toolbar in sync too (optional)
+            // keep Toolbar in sync too 
             window.__WB_TOOL__ = "pen";
             window.dispatchEvent(new CustomEvent("wb:select-tool", { detail: { tool: "pen" } }));
         }
