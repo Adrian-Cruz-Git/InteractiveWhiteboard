@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback } from "react";
 import { supabase } from "../../../config/supabase";
 
-export function useStrokes(fileId, onUndoRedo, onChange, setNotes) {
+export function useStrokes(fileId, onUndoRedo, onChange, loadNotes, setNotes) {
     const [undoStack, setUndoStack] = useState([]);
     const [redoStack, setRedoStack] = useState([]);
     const [loaded, setLoaded] = useState(false);
@@ -66,31 +66,33 @@ export function useStrokes(fileId, onUndoRedo, onChange, setNotes) {
     }, []);
 
     const clear = useCallback(async () => {
+        // local clear
         setUndoStack([]);
         setRedoStack([]);
-        if (setNotes) setNotes([]);
+        if (typeof onChange === "function") onChange([]);
+
+        if (typeof setNotes === "function") {
+            setNotes([]); // 🔥 wipe notes instantly
+        }
 
         if (fileId) {
-            const { error: Strokes } = await supabase
+            const { error: strokesError } = await supabase
                 .from("whiteboards")
-                .update({ content: [] }) // or whatever column holds strokes
+                .update({ content: [] })
                 .eq("file_id", fileId);
-
-            if (Strokes) {
-                console.error("Error clearing strokes in Supabase:", error.message);
+            if (strokesError) {
+                console.error("Error clearing strokes:", strokesError.message);
             }
 
-            const { error: stickyNotes } = await supabase
+            const { error: stickynoteError } = await supabase
                 .from("sticky_notes")
                 .delete()
-                .eq("file_id", fileId)
-
-            if (stickyNotes) {
-                console.error("Error deleting sticky notes in Supabase:", noteError.message);
+                .eq("file_id", fileId);
+            if (stickynoteError) {
+                console.error("Error clearing sticky notes:", stickynoteError.message);
             }
         }
-        
-    }, [fileId, setNotes]);
+    }, [fileId, onChange, setNotes, loadNotes]);
 
     return { undoStack, redoStack, addStroke, undo, redo, setUndoStack, clear };
 }

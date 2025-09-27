@@ -5,17 +5,19 @@ import { useStrokes } from "./hooks/useStrokes";
 // Remove this import since client is already created in WhiteboardPage
 // import { useRealtime } from "./hooks/useRealtime";
 import Canvas from "./Canvas";
+import { useStickyNotes } from "./hooks/useStickyNotes";
 import StickyNotesLayer from "./Layers/StickyNotesLayer";
 import LiveCursors from "../../components/LiveCursors";
 
-function Whiteboard({ client, onChange, activeTool, fileId, onUndo, onRedo, onClear, setNotes }) {
+function Whiteboard({ client, onChange, activeTool, fileId, onUndo, onRedo, onClear, }) {
   const { user } = useAuth();
   const whiteboardId = fileId || "local-" + Math.random();
   const canvasRef = useRef(null);
   const boardRef = useRef(null);
 
+  const { notes, setNotes, focusNoteId, setFocusNoteId, addNote, removeNote, moveNote, resizeNote, typeNote, loadNotes } = useStickyNotes(fileId);
 
-  const { undoStack, addStroke, undo, redo, setUndoStack, clear } = useStrokes(fileId, () => {}, onChange, setNotes);
+  const { undoStack, addStroke, undo, redo, setUndoStack, clear } = useStrokes(fileId, () => { }, onChange, loadNotes, setNotes);
 
 
   // Use the client passed from WhiteboardPage
@@ -73,7 +75,17 @@ function Whiteboard({ client, onChange, activeTool, fileId, onUndo, onRedo, onCl
       <StickyNotesLayer
         activeTool={activeTool}
         boardRef={boardRef}
-        fileId={fileId} />
+        fileId={fileId}
+        notes={notes}
+        setNotes={setNotes}
+        focusNoteId={focusNoteId}
+        setFocusNoteId={setFocusNoteId}
+        addNote={addNote}
+        removeNote={removeNote}
+        moveNote={moveNote}
+        resizeNote={resizeNote}
+        typeNote={typeNote}
+        />
 
       {/* Live Cursors */}
       {client && (

@@ -4,8 +4,7 @@ import StickyNote from "../StickyNote";
 import { useStickyNotes } from "../hooks/useStickyNotes";
 
 // Layer that manages and renders sticky notes on the whiteboard
-export default function StickyNotesLayer({ activeTool, boardRef, fileId }) {
-    const { notes, focusNoteId, setFocusNoteId, addNote, removeNote, moveNote, resizeNote, typeNote, } = useStickyNotes(fileId);
+export default function StickyNotesLayer({ activeTool, boardRef, fileId, notes, setNotes, focusNoteId, setFocusNoteId, addNote, removeNote, moveNote, resizeNote, typeNote }) {
 
     const [stickyColor, setStickyColor] = useState("#FFEB3B");
     const [draggingNote, setDraggingNote] = useState(false);
@@ -58,7 +57,7 @@ export default function StickyNotesLayer({ activeTool, boardRef, fileId }) {
             style={{
                 position: "absolute",
                 inset: 0,
-                pointerEvents: activeTool === "sticky" ? "auto" : "none", 
+                pointerEvents: activeTool === "sticky" ? "auto" : "none",
             }}
             onClick={handleBoardClick}
             onMouseUp={handleMouseUpBoard}

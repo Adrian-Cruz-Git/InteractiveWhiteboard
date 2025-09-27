@@ -5,23 +5,25 @@ export function useStickyNotes(fileId) {
   const [notes, setNotes] = useState([]);
   const [focusNoteId, setFocusNoteId] = useState(null);
 
+  const loadNotes = async (forceClear = false) => {
+    if (!fileId) return;
+    if (forceClear) {
+      setNotes([]);
+    }
+    const { data, error } = await supabase
+      .from("sticky_notes")
+      .select("*")
+      .eq("file_id", fileId);
+
+    if (error) {
+      console.error("Error loading sticky notes:", error.message);
+    } else {
+      setNotes(data || []);
+    }
+  };
+
   // Load sticky notes from Supabase when fileId changes
   useEffect(() => {
-    if (!fileId) return;
-
-    const loadNotes = async () => {
-      const { data, error } = await supabase
-        .from("sticky_notes")
-        .select("*")
-        .eq("file_id", fileId);
-
-      if (error) {
-        console.error("Error loading sticky notes:", error.message);
-      } else {
-        setNotes(data || []);
-      }
-    };
-
     loadNotes();
   }, [fileId]);
 
@@ -105,6 +107,7 @@ export function useStickyNotes(fileId) {
 
   return {
     notes,
+    setNotes,
     focusNoteId,
     setFocusNoteId,
     addNote,
@@ -112,5 +115,6 @@ export function useStickyNotes(fileId) {
     moveNote,
     resizeNote,
     typeNote,
+    loadNotes,
   };
 }
