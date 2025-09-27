@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback } from "react";
 import { supabase } from "../../../config/supabase";
 
-export function useStrokes(fileId, onUndoRedo, onChange) {
+export function useStrokes(fileId, onUndoRedo, onChange, setNotes) {
     const [undoStack, setUndoStack] = useState([]);
     const [redoStack, setRedoStack] = useState([]);
     const [loaded, setLoaded] = useState(false);
@@ -65,5 +65,32 @@ export function useStrokes(fileId, onUndoRedo, onChange) {
         });
     }, []);
 
-    return { undoStack, redoStack, addStroke, undo, redo, setUndoStack };
+    const clear = useCallback(async () => {
+        setUndoStack([]);
+        setRedoStack([]);
+        if (setNotes) setNotes([]);
+
+        if (fileId) {
+            const { error: Strokes } = await supabase
+                .from("whiteboards")
+                .update({ content: [] }) // or whatever column holds strokes
+                .eq("file_id", fileId);
+
+            if (Strokes) {
+                console.error("Error clearing strokes in Supabase:", error.message);
+            }
+
+            const { error: stickyNotes } = await supabase
+                .from("sticky_notes")
+                .delete()
+                .eq("file_id", fileId)
+
+            if (stickyNotes) {
+                console.error("Error deleting sticky notes in Supabase:", noteError.message);
+            }
+        }
+        
+    }, [fileId, setNotes]);
+
+    return { undoStack, redoStack, addStroke, undo, redo, setUndoStack, clear };
 }

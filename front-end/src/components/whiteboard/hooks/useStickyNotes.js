@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { supabase } from "../../../config/supabase"; // adjust import path if needed
+import { supabase } from "../../../config/supabase";
 
 export function useStickyNotes(fileId) {
   const [notes, setNotes] = useState([]);
@@ -25,7 +25,7 @@ export function useStickyNotes(fileId) {
     loadNotes();
   }, [fileId]);
 
-  // --- CRUD operations ---
+  // CRUD operations 
 
   const addNote = async (note) => {
     // don’t include id → Supabase will auto-generate it
@@ -38,11 +38,16 @@ export function useStickyNotes(fileId) {
     if (error) {
       console.error("Error adding sticky note:", error.message);
       return;
+
     }
 
     // Update local state with returned row (includes auto-generated id)
     setNotes((prev) => [...prev, data]);
     setFocusNoteId(data.id);
+
+    if (typeof setActiveTool === "sticky") {
+      setActiveTool("pen");
+    }
   };
 
   const removeNote = async (id) => {

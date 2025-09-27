@@ -4,27 +4,22 @@ import { useAuth } from "../../contexts/useAuth";
 import { useStrokes } from "./hooks/useStrokes";
 // Remove this import since client is already created in WhiteboardPage
 // import { useRealtime } from "./hooks/useRealtime";
-import { useStickyNotes } from "./hooks/useStickyNotes";
 import Canvas from "./Canvas";
 import StickyNotesLayer from "./Layers/StickyNotesLayer";
 import LiveCursors from "../../components/LiveCursors";
 
-function Whiteboard({ client, onChange, activeTool, fileId, onUndo, onRedo, onClear }) {
+function Whiteboard({ client, onChange, activeTool, fileId, onUndo, onRedo, onClear, setNotes }) {
   const { user } = useAuth();
   const whiteboardId = fileId || "local-" + Math.random();
   const canvasRef = useRef(null);
   const boardRef = useRef(null);
 
 
-  const { undoStack, addStroke, undo, redo, setUndoStack, clear } = useStrokes(fileId, () => {}, onChange);
+  const { undoStack, addStroke, undo, redo, setUndoStack, clear } = useStrokes(fileId, () => {}, onChange, setNotes);
 
 
   // Use the client passed from WhiteboardPage
   const strokesChannel = client?.channels.get(`whiteboard-strokes-${whiteboardId}`);
-
-
-  // stickynotes
-  const { notes, focusNoteId, setFocusNoteId, addNote, removeNote, moveNote, resizeNote, typeNote } = useStickyNotes();
 
   // Set up real-time stroke subscription
   useEffect(() => {
