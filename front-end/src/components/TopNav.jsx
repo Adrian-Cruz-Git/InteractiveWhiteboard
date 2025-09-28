@@ -24,10 +24,13 @@ const TopNav = ({ boardId, client }) => {
           <Link to="/files">Files</Link>
           {/* Render online users only on whiteboard */}
           {boardId && client && <OnlineUsers boardId={boardId} client={client} />}
+          {boardId && <ShareBtn activeBoard={boardId} /> }
+
+ 
           <button onClick={handleLogout} className="logout-btn">
             Logout
           </button>
-          <ShareBtn activeBoard={boardId} />
+
         </>
       ) : (
         <Link to="/login">Login</Link>
