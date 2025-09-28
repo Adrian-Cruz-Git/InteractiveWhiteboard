@@ -1,0 +1,146 @@
+/* Center the register container */
+.register-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  background-color: #363535; /* Page background */
+  min-height: 50vh;
+  padding: 2rem;
+  text-align: center;
+ max-width: 400px;
+}
+
+/* Register box styling */
+.register-box {
+  border: 2px solid #007bff; /* Outline color */
+  border-radius: 10px;
+  padding: 2rem;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  width: 90%;
+  max-width: 400px; /* Prevent box from being too wide */
+  text-align: center;
+  background-color: rgba(255, 255, 255, 0.05); /* Subtle background for the box */
+}
+
+/* Title */
+.register-title {
+  font-size: 2rem;
+  margin-bottom: 1.5rem;
+  color: #007bff;
+  font-weight: bold;
+}
+
+/* Input fields */
+.register-input {
+  width: 100%;
+  padding: 10px;
+  margin: 10px 0;
+  border: 1px solid #aaa;
+  border-radius: 5px;
+  font-size: 1rem;
+  box-sizing: border-box;
+  background-color: rgba(255, 255, 255, 0.1);
+  color: #fff;
+}
+
+/* Placeholder styling */
+.register-input::placeholder {
+  color: rgba(255, 255, 255, 0.6);
+}
+
+/* Input focus state */
+.register-input:focus {
+  outline: none;
+  border-color: #007bff;
+  box-shadow: 0 0 5px rgba(0, 123, 255, 0.3);
+}
+
+/* Buttons (base styling) */
+.register-button {
+  width: 100%;
+  padding: 10px;
+  margin: 10px 0;
+  font-size: 1rem;
+  border: none;
+  border-radius: 5px;
+  cursor: pointer;
+  color: white;
+  transition: 0.2s ease;
+}
+
+/* Blue button (email register) */
+.blue-btn {
+  background-color: #007bff;
+}
+
+.blue-btn:hover {
+  background-color: #0056b3;
+}
+
+/* Red button (Google register) */
+.red-btn {
+  background-color: #dc3545;
+}
+
+.red-btn:hover {
+  background-color: #a71d2a;
+}
+
+/* Login text/link */
+.login {
+  margin-top: 1rem;
+  font-size: 0.9rem;
+  color: #555;
+}
+
+.login a {
+  color: #007bff;
+  text-decoration: none;
+}
+
+.login a:hover {
+  text-decoration: underline;
+}
+
+/* Password requirements text */
+.password-requirements {
+  margin-top: 0.5rem;
+  font-size: 0.8rem;
+  color: #aaa;
+  text-align: left;
+}
+
+/* Terms and conditions text */
+.terms-text {
+  margin-top: 1rem;
+  font-size: 0.8rem;
+  color: #aaa;
+  line-height: 1.4;
+}
+
+.terms-text a {
+  color: #007bff;
+  text-decoration: none;
+}
+
+.terms-text a:hover {
+  text-decoration: underline;
+}
+
+/* Responsive adjustments */
+@media (max-width: 480px) {
+  .register-title {
+    font-size: 1.5rem;
+  }
+
+  .register-input,
+  .register-button {
+    font-size: 0.9rem;
+    padding: 8px;
+  }
+
+  .register-box {
+    padding: 1.5rem;
+  }
+}

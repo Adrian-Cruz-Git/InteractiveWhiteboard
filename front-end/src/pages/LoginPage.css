@@ -7,20 +7,11 @@
   background-color: #363535; /* Page background */
   min-height: 50vh;
   padding: 2rem;
-}
-
-/* Login box styling */
-.login-container {
-
-  border: 2px solid #007bff; /* Outline color */
-  border-radius: 10px;
-  padding: 2rem;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
-  width: 90%;
-  max-width: 400px; /* Prevent box from being too wide */
   text-align: center;
-  
+   max-width: 400px;
 }
+
+
 
 /* Title */
 .login-title {
