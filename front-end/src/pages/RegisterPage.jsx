@@ -65,40 +65,40 @@ function RegisterPage() {
   return (
     <>
       <TopNav />
-
-      <div className="register-container">
-        <h1 className="register-title">Register</h1>
-        <input
-          type="email"
-          placeholder="Email"
-          className="register-input"
-          value={email}
-          onChange={(e) => setEmail(e.target.value)}
-        />
-        <input
-          type="password"
-          placeholder="Password"
-          className="register-input"
-          value={password}
-          onChange={(e) => setPassword(e.target.value)}
-        />
-        <button
-          onClick={handleEmailRegister}
-          className="register-button blue-btn"
-        >
-          Sign Up with Email
-        </button>
-        <button
-          onClick={handleGoogleRegister}
-          className="register-button red-btn"
-        >
-          Continue with Google
-        </button>
-        <p className="login">
-          Already have an account? <Link to="/login">Login</Link>
-        </p>
+      <div className="register-wrapper">
+        <div className="register-container">
+          <h1 className="register-title">Register</h1>
+          <input
+            type="email"
+            placeholder="Email"
+            className="register-input"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+          />
+          <input
+            type="password"
+            placeholder="Password"
+            className="register-input"
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+          />
+          <button
+            onClick={handleEmailRegister}
+            className="register-button blue-btn"
+          >
+            Sign Up with Email
+          </button>
+          <button
+            onClick={handleGoogleRegister}
+            className="register-button red-btn"
+          >
+            Continue with Google
+          </button>
+          <p className="login">
+            Already have an account? <Link to="/login">Login</Link>
+          </p>
+        </div>
       </div>
-
       {/* Popup for errors */}
       <Popup trigger={showPopup} setTrigger={setShowPopup}>
         <h3 style={{ color: "black" }}>Error</h3>

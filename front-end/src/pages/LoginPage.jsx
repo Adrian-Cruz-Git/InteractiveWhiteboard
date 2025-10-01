@@ -63,34 +63,34 @@ function LoginPage() {
   return (
     <>
       <TopNav />
-
-      <div className="login-container">
-        <h1 className="login-title">Login</h1>
-        <input
-          type="email"
-          placeholder="Email"
-          className="login-input"
-          value={email}
-          onChange={(e) => setEmail(e.target.value)}
-        />
-        <input
-          type="password"
-          placeholder="Password"
-          className="login-input"
-          value={password}
-          onChange={(e) => setPassword(e.target.value)}
-        />
-        <button onClick={handleEmailLogin} className="login-button blue-btn">
-          Login with Email
-        </button>
-        <button onClick={handleGoogleLogin} className="login-button red-btn">
-          Continue with Google
-        </button>
-        <p className="register">
-          Don&apos;t have an account? <Link to="/register">Register</Link>
-        </p>
-      </div>
-
+      <div className="login-wrapper">
+          <div className="login-container">
+            <h1 className="login-title">Login</h1>
+            <input
+              type="email"
+              placeholder="Email"
+              className="login-input"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+            />
+            <input
+              type="password"
+              placeholder="Password"
+              className="login-input"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+            />
+            <button onClick={handleEmailLogin} className="login-button blue-btn">
+              Login with Email
+            </button>
+            <button onClick={handleGoogleLogin} className="login-button red-btn">
+              Continue with Google
+            </button>
+            <p className="register">
+              Don&apos;t have an account? <Link to="/register">Register</Link>
+            </p>
+          </div>
+        </div>
       {/* Popup */}
       <Popup trigger={showPopup} setTrigger={setShowPopup}>
         <h3 style={{ color: "black" }}>Error</h3>
