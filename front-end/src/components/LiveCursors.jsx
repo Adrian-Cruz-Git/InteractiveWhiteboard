@@ -35,9 +35,9 @@ export default function LiveCursors({ canvasRef, client, channel, whiteboardId }
     const updateContainerPosition = () => {
       const canvas = canvasRef.current;
       const rect = canvas.getBoundingClientRect();
-      
+
       setContainerStyle({
-        position: 'absolute',
+        position: 'fixed',
         top: `${rect.top}px`,
         left: `${rect.left}px`,
         width: `${rect.width}px`,
@@ -53,7 +53,7 @@ export default function LiveCursors({ canvasRef, client, channel, whiteboardId }
     // Update on resize and scroll
     window.addEventListener('resize', updateContainerPosition);
     window.addEventListener('scroll', updateContainerPosition);
-    
+
     // Also update when the canvas might resize (using MutationObserver)
     const resizeObserver = new ResizeObserver(updateContainerPosition);
     resizeObserver.observe(canvasRef.current);
@@ -76,11 +76,11 @@ export default function LiveCursors({ canvasRef, client, channel, whiteboardId }
       if (now - lastSent < interval) return; // if havent been 50ms since last update, dont update
       lastSent = now; // if it has, send channel update, and update the last sent time to now
       const rect = canvasRef.current.getBoundingClientRect();
-      
+
       // Calculate relative position within canvas
       const x = ((e.clientX - rect.left) / rect.width) * 100; // Percentage for scaling
       const y = ((e.clientY - rect.top) / rect.height) * 100;
-
+      
       console.log("Cursor coords:", x, y, "Canvas rect:", rect, "Mouse:", e.clientX, e.clientY);
 
       // console.log("Publishing cursor update:", { x, y, name: userName }); // DEBUG PRINT REMOVE IN PRODUCTION
@@ -160,7 +160,7 @@ export default function LiveCursors({ canvasRef, client, channel, whiteboardId }
             gap: "4px",
             pointerEvents: "none",
             zIndex: 9999,
-            transform: "translate(-50%, -50%)", // Center the cursor
+            transform:"translate(0,0)" 
           }}
         >
           {/* Actual cursor */}
