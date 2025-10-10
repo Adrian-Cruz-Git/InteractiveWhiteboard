@@ -14,7 +14,7 @@ import undoIcon from '../assets/undo.png';
 import redoIcon from '../assets/redo.png';
 import clearIcon from '../assets/clear.png';
 
-/* 8 colors for a clean 2×4 symmetric grid */
+/* 8 colors for sticky notes - clean 2×4 symmetric grid */
 const NOTE_COLORS = [
   '#FFEB3B', // yellow
   '#FFF59D', // light yellow
@@ -26,21 +26,40 @@ const NOTE_COLORS = [
   '#E1BEE7', // lavender
 ];
 
-export default function Toolbar({ activeTool, setActiveTool, onUndo, onRedo, onClear }) {
-  const [showPalette, setShowPalette] = useState(false);
-  const paletteRef = useRef(null);
+/* 8 colors for highlighter */
+const HIGHLIGHTER_COLORS = [
+  '#FFEB3B', // yellow
+  '#FFD54F', // amber
+  '#FFAB91', // peach
+  '#F48FB1', // pink
+  '#90CAF9', // blue
+  '#A5D6A7', // green
+  '#E1BEE7', // lavender
+  '#FFA726', // orange
+];
 
-  // one-time globals for sticky + eraser
+export default function Toolbar({ activeTool, setActiveTool, onUndo, onRedo, onClear }) {
+  const [showStickyPalette, setShowStickyPalette] = useState(false);
+  const [showHighlighterPalette, setShowHighlighterPalette] = useState(false);
+  const stickyPaletteRef = useRef(null);
+  const highlighterPaletteRef = useRef(null);
+
+  // one-time globals for sticky + eraser + highlighter
   if (typeof window !== 'undefined' && window.__WB_TOOL__ === undefined) {
     window.__WB_TOOL__ = null;
     window.__WB_ERASE__ = false;
+    window.__WB_HIGHLIGHTER_COLOR__ = HIGHLIGHTER_COLORS[0]; // default yellow
   }
 
-  // close palette when clicking outside
+  // close palettes when clicking outside
   useEffect(() => {
     const onDocClick = (e) => {
-      if (!paletteRef.current) return;
-      if (!paletteRef.current.contains(e.target)) setShowPalette(false);
+      if (stickyPaletteRef.current && !stickyPaletteRef.current.contains(e.target)) {
+        setShowStickyPalette(false);
+      }
+      if (highlighterPaletteRef.current && !highlighterPaletteRef.current.contains(e.target)) {
+        setShowHighlighterPalette(false);
+      }
     };
     document.addEventListener('mousedown', onDocClick, true);
     return () => document.removeEventListener('mousedown', onDocClick, true);
@@ -55,12 +74,22 @@ export default function Toolbar({ activeTool, setActiveTool, onUndo, onRedo, onC
     console.log('[Toolbar] tool ->', tool || 'none');
   };
 
-  const startStickyFlow = () => setShowPalette((v) => !v);
+  const startStickyFlow = () => setShowStickyPalette((v) => !v);
 
   const chooseStickyColor = (color) => {
     window.dispatchEvent(new CustomEvent('wb:sticky-select-color', { detail: { color } }));
-    selectTool('sticky');   // Whiteboard will auto-toggle off after placing one note
-    setShowPalette(false);
+    selectTool('sticky');
+    setShowStickyPalette(false);
+  };
+
+  const startHighlighterFlow = () => setShowHighlighterPalette((v) => !v);
+
+  const chooseHighlighterColor = (color) => {
+    window.__WB_HIGHLIGHTER_COLOR__ = color;
+    window.dispatchEvent(new CustomEvent('wb:highlighter-select-color', { detail: { color } }));
+    selectTool('highlighter');
+    setShowHighlighterPalette(false);
+    console.log('[Toolbar] Highlighter color selected:', color);
   };
 
   return (
@@ -75,10 +104,37 @@ export default function Toolbar({ activeTool, setActiveTool, onUndo, onRedo, onC
         <img src={penIcon} alt="Pen" style={{ width: 25, height: 25 }} />
       </button>
 
-      {/* Highlighter (placeholder) */}
-      <button onClick={() => selectTool("highlighter")} title="Highlighter" aria-label="Highlighter">
-        <img src={highlightIcon} alt="Highlighter" style={{ width: 25, height: 25 }} />
-      </button>
+      {/* Highlighter (with palette) */}
+      <div className="palette-anchor">
+        <button 
+          onClick={startHighlighterFlow} 
+          title="Highlighter" 
+          aria-label="Highlighter"
+          className={activeTool === 'highlighter' ? 'active' : ''}
+        >
+          <img src={highlightIcon} alt="Highlighter" style={{ width: 25, height: 25 }} />
+        </button>
+
+        {showHighlighterPalette && (
+          <div
+            ref={highlighterPaletteRef}
+            className="color-picker"
+            role="listbox"
+            aria-label="Highlighter colors"
+          >
+            {HIGHLIGHTER_COLORS.map((c) => (
+              <button
+                key={c}
+                type="button"
+                className="color-swatch"
+                aria-label={`Color ${c}`}
+                style={{ background: c }}
+                onClick={() => chooseHighlighterColor(c)}
+              />
+            ))}
+          </div>
+        )}
+      </div>
 
       {/* Eraser */}
       <button onClick={() => selectTool("eraser")} title="Eraser" aria-label="Eraser">
@@ -91,9 +147,9 @@ export default function Toolbar({ activeTool, setActiveTool, onUndo, onRedo, onC
           <img src={stickyNoteIcon} alt="Sticky Note" style={{ width: 25, height: 25 }} />
         </button>
 
-        {showPalette && (
+        {showStickyPalette && (
           <div
-            ref={paletteRef}
+            ref={stickyPaletteRef}
             className="color-picker"
             role="listbox"
             aria-label="Sticky note colors"
