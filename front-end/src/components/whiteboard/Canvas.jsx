@@ -3,6 +3,7 @@ import React, { useEffect, useRef } from "react";
 function Canvas({ canvasRef, activeTool, strokes, onStrokeComplete }) {
   const currentStroke = useRef([]);
   const highlighterColorRef = useRef('#FFEB3B');
+  const offscreenHighlighter = useRef(null);
 
   useEffect(() => {
     const onHighlighterSelectColor = (e) => {
@@ -21,57 +22,16 @@ function Canvas({ canvasRef, activeTool, strokes, onStrokeComplete }) {
     const canvas = canvasRef.current;
     if (!canvas) return;
 
+    // Fixed large working area; no compositing/replay of strokes
     canvas.width = 5000;
     canvas.height = 5000;
-    const ctx = canvas.getContext("2d");
 
-    const redraw = () => {
-      ctx.clearRect(0, 0, ctx.canvas.width, ctx.canvas.height);
-      if (!Array.isArray(strokes)) return;
-
-      strokes.forEach((stroke) => {
-        const points = stroke.points || stroke;
-        const isErase = stroke.erase;
-        const isHighlighter = stroke.tool === 'highlighter';
-        const highlighterColor = stroke.color || '#FFEB3B';
-
-        if (!points || points.length < 2) return;
-
-        ctx.lineJoin = "round";
-        ctx.lineCap = "round";
-
-        if (isErase) {
-          ctx.globalCompositeOperation = "destination-out";
-          ctx.lineWidth = 20;
-          ctx.strokeStyle = "black";
-        } else if (isHighlighter) {
-          ctx.globalCompositeOperation = "source-over";
-          ctx.globalAlpha = 0.35;
-          ctx.lineWidth = 25;
-          ctx.strokeStyle = highlighterColor;
-        } else {
-          ctx.globalCompositeOperation = "source-over";
-          ctx.globalAlpha = 1.0;
-          ctx.lineWidth = 2;
-          ctx.strokeStyle = "black";
-        }
-
-        for (let i = 1; i < points.length; i++) {
-          const from = points[i - 1];
-          const to = points[i];
-          ctx.beginPath();
-          ctx.moveTo(from.x, from.y);
-          ctx.lineTo(to.x, to.y);
-          ctx.stroke();
-        }
-
-        ctx.globalCompositeOperation = "source-over";
-        ctx.globalAlpha = 1.0;
-      });
-    };
-
-    redraw();
-  }, [strokes, canvasRef]);
+    if (!offscreenHighlighter.current) {
+      offscreenHighlighter.current = document.createElement('canvas');
+      offscreenHighlighter.current.width = 5000;
+      offscreenHighlighter.current.height = 5000;
+    }
+  }, [canvasRef]);
 
   const getPos = (e) => {
     const rect = canvasRef.current.getBoundingClientRect();
@@ -91,102 +51,72 @@ function Canvas({ canvasRef, activeTool, strokes, onStrokeComplete }) {
 
   const startDrawing = (e) => {
     if (activeTool !== "pen" && activeTool !== "eraser" && activeTool !== "highlighter") return;
-    currentStroke.current = [getPos(e)];
+    const start = getPos(e);
+    currentStroke.current = [start];
     canvasRef.current.isDrawing = true;
-  };
 
-  const draw = (e) => {
-    if (!canvasRef.current.isDrawing) return;
-    const pos = getPos(e);
-    currentStroke.current.push(pos);
-
-    const ctx = canvasRef.current.getContext("2d");
-    
-    // Set up the drawing style
+    let ctx;
+    if (activeTool === "highlighter") {
+      ctx = offscreenHighlighter.current.getContext("2d");
+    } else {
+      ctx = canvasRef.current.getContext("2d");
+    }
     ctx.lineJoin = "round";
     ctx.lineCap = "round";
 
     if (activeTool === "eraser") {
       ctx.globalCompositeOperation = "destination-out";
       ctx.lineWidth = 20;
-      ctx.strokeStyle = "rgba(0,0,0,1)";
+      ctx.strokeStyle = "black";
+      ctx.globalAlpha = 1.0;
     } else if (activeTool === "highlighter") {
       ctx.globalCompositeOperation = "source-over";
-      ctx.globalAlpha = 0.35;
-      ctx.lineWidth = 25;
+      ctx.lineWidth = 20; // thicker than pen
       ctx.strokeStyle = highlighterColorRef.current;
-    } else {
+      ctx.globalAlpha = 0.1; // 10% opacity
+    } else { // pen
       ctx.globalCompositeOperation = "source-over";
-      ctx.globalAlpha = 1.0;
       ctx.lineWidth = 2;
       ctx.strokeStyle = "black";
+      ctx.globalAlpha = 1.0;
     }
 
-    // Redraw the entire current stroke smoothly
-    if (currentStroke.current.length > 1) {
-      // Clear and redraw everything to avoid overlapping opacity issues
-      const canvas = canvasRef.current;
-      ctx.clearRect(0, 0, canvas.width, canvas.height);
-      
-      // Redraw all completed strokes
-      redrawCompletedStrokes();
-      
-      // Draw the current stroke
-      ctx.beginPath();
-      ctx.moveTo(currentStroke.current[0].x, currentStroke.current[0].y);
-      
-      for (let i = 1; i < currentStroke.current.length; i++) {
-        ctx.lineTo(currentStroke.current[i].x, currentStroke.current[i].y);
-      }
-      
-      ctx.stroke();
-    }
-
-    ctx.globalAlpha = 1.0;
+    // Open a single path for the whole stroke
+    ctx.beginPath();
+    ctx.moveTo(start.x, start.y);
   };
 
-  const redrawCompletedStrokes = () => {
-    const ctx = canvasRef.current.getContext("2d");
-    if (!Array.isArray(strokes)) return;
+  const draw = (e) => {
+    if (!canvasRef.current.isDrawing) return;
 
-    strokes.forEach((stroke) => {
-      const points = stroke.points || stroke;
-      const isErase = stroke.erase;
-      const isHighlighter = stroke.tool === 'highlighter';
-      const highlighterColor = stroke.color || '#FFEB3B';
+    const pos = getPos(e);
+    let ctx;
+    if (activeTool === "highlighter") {
+      ctx = offscreenHighlighter.current.getContext("2d");
+    } else {
+      ctx = canvasRef.current.getContext("2d");
+    }
 
-      if (!points || points.length < 2) return;
-
-      ctx.lineJoin = "round";
-      ctx.lineCap = "round";
-
-      if (isErase) {
-        ctx.globalCompositeOperation = "destination-out";
-        ctx.lineWidth = 20;
-        ctx.strokeStyle = "rgba(0,0,0,1)";
-      } else if (isHighlighter) {
-        ctx.globalCompositeOperation = "source-over";
-        ctx.globalAlpha = 0.35;
-        ctx.lineWidth = 25;
-        ctx.strokeStyle = highlighterColor;
-      } else {
-        ctx.globalCompositeOperation = "source-over";
-        ctx.globalAlpha = 1.0;
-        ctx.lineWidth = 2;
-        ctx.strokeStyle = "black";
-      }
-
-      ctx.beginPath();
-      ctx.moveTo(points[0].x, points[0].y);
-      
-      for (let i = 1; i < points.length; i++) {
-        ctx.lineTo(points[i].x, points[i].y);
-      }
-      
+    // Single continuous path for pen, highlighter, and eraser
+    if (activeTool === "pen") {
+      const last = currentStroke.current[currentStroke.current.length - 1];
+      const midX = (last.x + pos.x) / 2;
+      const midY = (last.y + pos.y) / 2;
+      ctx.quadraticCurveTo(last.x, last.y, midX, midY);
       ctx.stroke();
-      ctx.globalCompositeOperation = "source-over";
-      ctx.globalAlpha = 1.0;
-    });
+    } else {
+      ctx.lineTo(pos.x, pos.y);
+      ctx.stroke();
+    }
+
+    if (activeTool === "highlighter") {
+      const ctxMain = canvasRef.current.getContext("2d");
+      ctxMain.globalCompositeOperation = "destination-over";
+      ctxMain.drawImage(offscreenHighlighter.current, 0, 0);
+      ctxMain.globalCompositeOperation = "source-over";
+    }
+
+    currentStroke.current.push(pos);
   };
 
   const endDrawing = () => {
@@ -197,12 +127,29 @@ function Canvas({ canvasRef, activeTool, strokes, onStrokeComplete }) {
       onStrokeComplete({
         points: currentStroke.current,
         erase: activeTool === "eraser",
-        tool: activeTool === "highlighter" ? "highlighter" : "pen",
+        tool: activeTool,
         color: activeTool === "highlighter" ? highlighterColorRef.current : "#000000",
       });
     }
 
     currentStroke.current = [];
+    let ctx;
+    if (activeTool === "highlighter") {
+      ctx = offscreenHighlighter.current.getContext("2d");
+    } else {
+      ctx = canvasRef.current.getContext("2d");
+    }
+    if (ctx.closePath) ctx.closePath();
+    ctx.globalAlpha = 1.0;
+    ctx.globalCompositeOperation = "source-over";
+
+    if (activeTool === "highlighter") {
+      const ctxMain = canvasRef.current.getContext("2d");
+      ctxMain.globalCompositeOperation = "destination-over";
+      ctxMain.drawImage(offscreenHighlighter.current, 0, 0);
+      ctxMain.globalCompositeOperation = "source-over";
+      // Removed clearing of highlighter canvas to preserve previous marks
+    }
   };
 
   return (
