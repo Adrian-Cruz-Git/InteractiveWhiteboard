@@ -12,6 +12,26 @@ export default function FileSystem() {
   const [loading, setLoading] = useState(true);
   const [currentFolder, setCurrentFolder] = useState(null); // null = root
   const [breadcrumb, setBreadcrumb] = useState([]);         // [{id, name}...]
+  const [workingId, setWorkingId] = useState(null);         // item currently being deleted
+
+  const deleteFolderRecursively = async (folderId) => {
+    const { data: children, error } = await supabase
+      .from("files")
+      .select("id, type")
+      .eq("parent_id", folderId);
+    if (error) throw error;
+
+    for (const child of children) {
+      if (child.type === "folder") {
+        await deleteFolderRecursively(child.id);
+      } else {
+        await supabase.from("whiteboards").delete().eq("file_id", child.id);
+        await supabase.from("files").delete().eq("id", child.id);
+      }
+    }
+
+    await supabase.from("files").delete().eq("id", folderId);
+  };
 
   const loadItems = async (folderId = null) => {
     if (!user) return;
@@ -92,6 +112,48 @@ export default function FileSystem() {
     setCurrentFolder(target.id);
   };
 
+  const handleDeleteWhiteboard = async (item, e) => {
+    e?.stopPropagation?.();
+    if (!user || !item) return;
+
+    const itemName = item.name || "Untitled";
+    const confirmed = window.confirm(
+      item.type === "folder"
+        ? `Delete folder “${itemName}” and all its contents?`
+        : `Delete whiteboard “${itemName}”? This cannot be undone.`
+    );
+    if (!confirmed) return;
+
+    setWorkingId(item.id);
+    try {
+      if (item.type === "folder") {
+        await deleteFolderRecursively(item.id);
+      } else {
+        // delete content first (safe if none)
+        const { error: wbErr } = await supabase
+          .from("whiteboards")
+          .delete()
+          .eq("file_id", item.id);
+        if (wbErr) throw wbErr;
+
+        // delete file row (owner guard)
+        const { error: fErr } = await supabase
+          .from("files")
+          .delete()
+          .eq("id", item.id)
+          .eq("owner", user.uid);
+        if (fErr) throw fErr;
+      }
+
+      await loadItems(currentFolder);
+    } catch (err) {
+      console.error("Delete failed:", err.message);
+      alert("Failed to delete. Please try again.");
+    } finally {
+      setWorkingId(null);
+    }
+  };
+
   if (loading) return <p>Loading...</p>;
 
   return (
@@ -115,12 +177,48 @@ export default function FileSystem() {
 
       {/* Grid of items */}
       <ul className="items-grid">
-        {items.map((item) => (
-          <li key={item.id} onClick={() => openItem(item)} className="item-card">
-            <div className="icon">{item.type === "folder" ? "📁" : "📝"}</div>
-            <div className="name">{item.name || "Untitled"}</div>
-          </li>
-        ))}
+        {items.map((item) => {
+          const isFolder = item.type === "folder";
+          const isDeleting = workingId === item.id;
+          return (
+            <li key={item.id} className="item-card">
+              {/* Main clickable row */}
+              <div className="item-row" onClick={() => openItem(item)}>
+                <div className="icon" aria-hidden>
+                  {isFolder ? "📁" : "📝"}
+                </div>
+                <div className="name" title={item.name || "Untitled"}>
+                  {item.name || "Untitled"}
+                </div>
+              </div>
+
+              {/* Action buttons (Open / Delete) */}
+              <div className="item-actions">
+                <button
+                  className="btn btn-small"
+                  onClick={(e) => {
+                    e.stopPropagation(); // prevent triggering openItem twice
+                    openItem(item);
+                  }}
+                  disabled={isDeleting}
+                  title={isFolder ? "Open folder" : "Open whiteboard"}
+                >
+                  Open
+                </button>
+
+                {/* Delete works for both whiteboards and folders */}
+                <button
+                  className="btn btn-small btn-danger"
+                  onClick={(e) => handleDeleteWhiteboard(item, e)}
+                  disabled={isDeleting}
+                  title={isFolder ? "Delete folder and all contents" : "Delete whiteboard"}
+                >
+                  {isDeleting ? "Deleting…" : "Delete"}
+                </button>
+              </div>
+            </li>
+          );
+        })}
         {items.length === 0 && <li className="empty">No items here yet.</li>}
       </ul>
     </div>
