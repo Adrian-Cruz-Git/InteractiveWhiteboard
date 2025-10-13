@@ -5,6 +5,7 @@ import { auth } from "../firebase";
 import ShareBtn from "./ShareBtn";
 import OnlineUsers from "./Users/OnlineUsers";
 import "./TopNav.css";
+import BoardPermissionsManager from "./Users/BoardPermissionsManager";
 
 const TopNav = ({ boardId, client }) => {
   const { user } = useAuth();
@@ -25,8 +26,8 @@ const TopNav = ({ boardId, client }) => {
           {/* Render online users only on whiteboard */}
           {boardId && client && <OnlineUsers boardId={boardId} client={client} />}
           {boardId && <ShareBtn activeBoard={boardId} /> }
-
- 
+          {boardId && <BoardPermissionsManager boardId={boardId} />}
+        
           <button onClick={handleLogout} className="logout-btn">
             Logout
           </button>
