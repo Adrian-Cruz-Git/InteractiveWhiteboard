@@ -12,6 +12,7 @@ export default function FileSystem() {
   const [loading, setLoading] = useState(true);
   const [currentFolder, setCurrentFolder] = useState(null); // null = root
   const [breadcrumb, setBreadcrumb] = useState([]);         // [{id, name}...]
+  const [workingId, setWorkingId] = useState(null);         // item currently being deleted
 
   const loadItems = async (folderId = null) => {
     if (!user) return;
@@ -92,6 +93,42 @@ export default function FileSystem() {
     setCurrentFolder(target.id);
   };
 
+  const handleDeleteWhiteboard = async (item) => {
+    if (!user || !item || item.type === "folder") return;
+
+    const name = item.name || "Untitled";
+    const ok = window.confirm(
+      `Delete whiteboard “${name}”? This cannot be undone.`
+    );
+    if (!ok) return;
+
+    setWorkingId(item.id);
+    try {
+      // Delete content row first (safe if none exists)
+      const { error: wErr } = await supabase
+        .from("whiteboards")
+        .delete()
+        .eq("file_id", item.id);
+      if (wErr) throw wErr;
+
+      // Delete the files row
+      const { error: fErr } = await supabase
+        .from("files")
+        .delete()
+        .eq("id", item.id)
+        .eq("owner", user.uid);
+      if (fErr) throw fErr;
+
+      // Refresh current list
+      await loadItems(currentFolder);
+    } catch (e) {
+      console.error("Delete failed:", e.message);
+      alert("Failed to delete whiteboard. Please try again.");
+    } finally {
+      setWorkingId(null);
+    }
+  };
+
   if (loading) return <p>Loading...</p>;
 
   return (
@@ -115,12 +152,45 @@ export default function FileSystem() {
 
       {/* Grid of items */}
       <ul className="items-grid">
-        {items.map((item) => (
-          <li key={item.id} onClick={() => openItem(item)} className="item-card">
-            <div className="icon">{item.type === "folder" ? "📁" : "📝"}</div>
-            <div className="name">{item.name || "Untitled"}</div>
-          </li>
-        ))}
+        {items.map((item) => {
+          const isFolder = item.type === "folder";
+          const isDeleting = workingId === item.id;
+          return (
+            <li key={item.id} className="item-card">
+              <div className="item-row" onClick={() => openItem(item)}>
+                <div className="icon" aria-hidden>
+                  {isFolder ? "📁" : "📝"}
+                </div>
+                <div className="name" title={item.name || "Untitled"}>
+                  {item.name || "Untitled"}
+                </div>
+              </div>
+
+              {/* Actions row */}
+              <div className="item-actions">
+                <button
+                  className="btn btn-small"
+                  onClick={() => openItem(item)}
+                  disabled={isDeleting}
+                  title={isFolder ? "Open folder" : "Open whiteboard"}
+                >
+                  Open
+                </button>
+
+                {!isFolder && (
+                  <button
+                    className="btn btn-small btn-danger"
+                    onClick={() => handleDeleteWhiteboard(item)}
+                    disabled={isDeleting}
+                    title="Delete whiteboard"
+                  >
+                    {isDeleting ? "Deleting…" : "Delete"}
+                  </button>
+                )}
+              </div>
+            </li>
+          );
+        })}
         {items.length === 0 && <li className="empty">No items here yet.</li>}
       </ul>
     </div>

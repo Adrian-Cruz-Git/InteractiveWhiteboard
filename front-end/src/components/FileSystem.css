@@ -97,3 +97,44 @@
   color: #666;
   font-style: italic;
 }
+
+.item-actions {
+  margin-top: 12px;
+  display: flex;
+  gap: 8px;
+  justify-content: center;
+}
+
+.btn {
+  padding: 6px 10px;
+  border: 1px solid #ddd;
+  background: #f8f8f8;
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 13px;
+  font-weight: 600;
+  color: #000;
+}
+
+.btn:hover {
+  background: #f0f0f0;
+}
+
+.btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.btn-small {
+  padding: 4px 8px;
+  font-size: 12px;
+}
+
+.btn-danger {
+  border-color: #f3c2c2;
+  background: #fde9e9;
+}
+
+.btn-danger:hover {
+  background: #fbdede;
+}
