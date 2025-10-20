@@ -28,7 +28,10 @@ by default the server is on: http://localhost:5173
 
 ## extra information
 ### Change port
+```bash
 npm run dev -- --port 3000
-
+```
 ### expose to lan/devices
+```bash
 npm run dev -- --host
+```
