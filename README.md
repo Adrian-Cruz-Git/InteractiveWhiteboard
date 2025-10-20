@@ -1,24 +1,45 @@
 # InteractiveWhiteboard
+## Overview
+The outcome of this project was to show our understanding of team collaboration and adaptibility shown through planning and coding of the interactive whiteboard project applying agile practices, version control and code principles.
+
+### Features
+- Canvas drawing (pen/eraser)
+- Sticky notes (add, move, edit, resize)
+- File system (folders, boards/whiteboards)
+- Persistence via database (e.g., Supabase)
+- Authentication (e.g., Firebase Auth)
+- Real-time collaboration (e.g., Ably)
+
+### Team Structure:<br>
+Scrum master: 
+  - George Coiller
+
+Product Owner: 
+  - Adrian Cruz
+
+Scrum Development Team:
+  - Geroge Collier
+  - Adrian Cruz
+  - Yuna Giang
+  - Erfan Rangsaz
+
 
 
 ## Installation
-### Perequisites
+### Prerequisites
 - **Node.js 18+ (LTS recommended)**
 - Package Manager: **npm**
 - coding enviroment of choice: Vscode
-
-#### Prequisite installation
-Node.js download (donwload LTS version):
-- https://nodejs.org/en/download/current
-
-Vscode enviroment download:
-- https://code.visualstudio.com/download
 
 check your versions:
 ```bash
 node -v
 npm -v
 ```
+Downloads:
+Node.js download (donwload LTS version): https://nodejs.org/en/download/current
+
+Vscode enviroment download: https://code.visualstudio.com/download
 
 ## Start project
 ### 1) Unzip the project
