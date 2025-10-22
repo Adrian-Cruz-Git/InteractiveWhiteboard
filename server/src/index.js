@@ -9,9 +9,9 @@ const cors = require("cors"); // Rules for front end requests to back end
 const { v4: uuidv4 } = require("uuid"); // For generating unique IDs (websoccket connections)
 const url = require("url");
 
-
-const app = express();
-const PORT = 5000;
+// -------------------------------------------
+// Lots of old code in this file
+// -------------------------------------------
 
 
 // Allow requests from frontend
@@ -46,7 +46,7 @@ function authMiddleware(req, res, next) {
   next();
 }
 
-// 🔹 Upload endpoint
+//  Upload endpoint
 app.post("/api/files/upload", authMiddleware, upload.single("file"), (req, res) => {
   if (!req.file) return res.status(400).json({ error: "No file uploaded" });
 
@@ -59,7 +59,7 @@ app.post("/api/files/upload", authMiddleware, upload.single("file"), (req, res) 
   });
 });
 
-// 🔹 List files endpoint
+//  List files endpoint
 app.get("/api/files", authMiddleware, (req, res) => {
   const fs = require("fs");
   const uploadDir = path.join(__dirname, "uploads");
@@ -74,14 +74,42 @@ app.get("/api/files", authMiddleware, (req, res) => {
     url: `http://localhost:${PORT}/uploads/${filename}`,
   }));
 
-// EXAMPLES
-// Simple test route
-app.get("/", (req, res) => {
-  res.json({ message: "Hello from Express server API is running " }); 
+
+// api endpoint to respond to response to get all the users on a whiteboard permissions
+// containts supabase call to select all from board_user table
+//front end calls route /api/bourdUsers with the board ID , and we return all users with permissions for that board
+app.get("/api/boardUsers", async (req, res) => {
+  const { data, error } = await supabase
+    .from("board_user")
+    .select("*");
+
+  if (error) {
+    console.error("Error fetching board_user data:", error);
+    return res.status(500).json({ error: "Failed to fetch data" });
+  }
+
+  res.json(data);
 });
 
-//Websocket connection handling - (not ably)
+//another endpoint to upload a new board user permission
+// Contains Supabase call to insert data into table board_user
+// insert fields = id (uuid), board_id (uuid), user_id (text), permission (text: owner, editor, viewer)
+app.post("/api/boardUsers", async (req, res) => {
+  const { board_id, user_id, permission } = req.body; // Expecting these fields in the request body (from front end)
+  const { data, error } = await supabase
+    .from("board_user")
+    .insert([{ board_id, user_id, permission }]);
+  if (error) {
+    console.error("Error inserting board_user data:", error);
+    return res.status(500).json({ error: "Failed to insert data" });
+  }
+  res.status(201).json(data);
+});
 
+
+
+//Websocket connection handling - (not ably)
+//OLD
 const broadcastUsers = () => {
   //Send message to all connected users except the sender
   Object.keys(connections).forEach(uuid => { // Iterate over all connections
@@ -91,7 +119,7 @@ const broadcastUsers = () => {
   });
 }
 
-
+//OLD
 const handleMessage = (bytes, uuid) => {
   //Copy object, and replace the state of the user with the new state
   const message = JSON.parse(bytes.toString()); // Convert bytes to string // Get bytes from the server
@@ -105,7 +133,7 @@ const handleMessage = (bytes, uuid) => {
 }
 
 
-
+//OLD
 const handleClose = (uuid) => {
   console.log(`Client disconnected: ${users[uuid].username} ${uuid}`); // Log the disconnection of the user
 
@@ -115,8 +143,9 @@ const handleClose = (uuid) => {
   broadcastUsers(); // Broadcast the updated users list to all remaining connections
 }
 
+// OLD - george - not using ably - keeping track of connections (to the server) manually
 // When client connects to sever
-server.on('connection', async (connection, req) => {
+wsServer.on('connection', async (connection, req) => {
   const query = new URL(req.url, `http://${req.headers.host}`).searchParams; // Query passed by frontend, with firebase auth token
   const idToken = query.get("token");
 

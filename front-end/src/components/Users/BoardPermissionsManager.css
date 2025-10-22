@@ -36,6 +36,7 @@
 /* Modal Styles */
 .permissions-modal-overlay {
     position: fixed;
+    padding-top:300px;
     top: 0;
     left: 0;
     right: 0;
@@ -46,6 +47,7 @@
     justify-content: center;
     z-index: 1000;
     backdrop-filter: blur(2px);
+    overflow:visible;
 }
 
 .permissions-modal {

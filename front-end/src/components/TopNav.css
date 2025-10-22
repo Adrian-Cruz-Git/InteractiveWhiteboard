@@ -40,7 +40,7 @@
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
 }
 
-/* Active link styling (you can add this class to current page) */
+/* Active link styling ( can add this class to current page) */
 .topnav a.active {
   background: linear-gradient(135deg, #007bff, #0056b3);
   box-shadow: 0 2px 8px rgba(0, 123, 255, 0.3);

@@ -1,6 +1,8 @@
 import * as Ably from 'ably';
 import dotenv from "dotenv";
 
+
+//OLD -I think
 dotenv.config("../.env");
 
 //Test printout to see if api key is set properly, if it saysi n the console undefined then make sure you have .env in the server file with ABLY_API_KEY=

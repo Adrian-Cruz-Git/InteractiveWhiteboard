@@ -40,7 +40,7 @@ function BoardPermissionsManager({ boardId }) {
             // const data = await response.json();
             // setUserPermission(data.permission);
             
-            // Simulate API delay
+            // Simulate API delay - delete after actuall api is implemented (server backend)
             await new Promise(resolve => setTimeout(resolve, 300));
             
             // Mocked data for now - you can customize this for testing
