@@ -8,7 +8,7 @@ const router = express.Router();
 const upload = multer({ storage: multer.memoryStorage() });
 
 
- //Debug route
+ // /files Route to create/get/update whiteboards and files
  
 router.get("/test", (req, res) => {
   res.json({ message: " Upload route is working" });

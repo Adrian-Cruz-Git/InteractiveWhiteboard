@@ -69,27 +69,36 @@ export default function FileSystem() {
     }
   };
 
+  //new method to create a whiteboard in the current folder
+  //calls the backend api endpoint /api/whiteboards with POST method
+  //sends name and parent id in the body (currentfolder)
+  //on success, adds the new whiteboard to the items state to update the UI
   const createWhiteboard = async () => {
-    const name = prompt("Whiteboard name:");
-    if (!name?.trim()) return;
-    try {
-      const { data: fileData, error: fileError } = await supabase
-        .from("files")
-        .insert([{ name, type: "whiteboard", owner: user.uid, parent_id: currentFolder || null }])
-        .select();
-      if (fileError) throw fileError;
-      const file = fileData[0];
+  const name = prompt("Whiteboard name:");
+  if (!name?.trim()) return;
 
-      const { error: wbError } = await supabase
-        .from("whiteboards")
-        .insert([{ file_id: file.id, content: "[]" }]);
-      if (wbError) throw wbError;
+  try {
+    const res = await fetch("http://localhost:5000/api/whiteboards", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${user.token}`, 
+      },
+      body: JSON.stringify({ name, parentId: currentFolder }),
+    });
 
-      setItems((prev) => [...prev, file]);
-    } catch (e) {
-      console.error("Error creating whiteboard:", e.message);
+    if (!res.ok) { // if response not ok, throw error
+      const errData = await res.json();
+      throw new Error(errData.error || "Failed to create whiteboard");
     }
-  };
+    // else get the created file data
+    const file = await res.json();
+    setItems((prev) => [...prev, file]); // update UI with new whiteboard
+  } catch (err) {
+    console.error("Error creating whiteboard:", err.message);
+  }
+};
+
 
   const openItem = (item) => {
     if (item.type === "folder") {
