@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { supabase } from "../../../server/src/config/supabase";
+import {api} from "../config/api";
 import { useAuth } from "../contexts/useAuth";
 import "./FileSystem.css";
 

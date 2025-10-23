@@ -21,6 +21,8 @@ app.use(express.json());
 
 app.get('/api/health', (req, res) => res.json({ ok: true }));
 
+
+app.use('/api/files', require('./routes/files'));
 app.use('/api/whiteboards', require('./routes/whiteboards'));
 app.use('/api/sticky-notes', require('./routes/stickyNotes'));
 

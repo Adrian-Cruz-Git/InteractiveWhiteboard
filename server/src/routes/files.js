@@ -1,76 +1,137 @@
-const express = require("express");
-const multer = require("multer");
-const verifyJWT = require("../middleware/verifyJWT");
-const supabase = require("../config/supabase");
-const { db } = require("../config/firebase");
-
+const express = require("express")
 const router = express.Router();
-const upload = multer({ storage: multer.memoryStorage() });
+const supabase = require("../config/supabase");
 
+// the helper function for deletion
+// recursive function that goes through if there are any folders within the folder 
+async function deleteRecursively(fileId) {
+  // find children
+  const { data: children, error: childrenError } = await supabase.from("files").select("id, type").eq("parent_id", fileId);
 
- //Debug route
- 
-router.get("/test", (req, res) => {
-  res.json({ message: " Upload route is working" });
+  if (childrenError) {
+    throw childrenError;
+  }
+
+  for (const child of (children || [])) {
+    await deleteRecursively(child.id);
+  }
+
+  const { data: fileRow, error: fileError } = await supabase.from("files").select("type").eq("id", fileId).single();
+
+  if (fileError) {
+    throw fileError;
+  }
+
+  if (fileRow?.type === "whiteboards") {
+    await supabase.from("whiteboards").delete().eq("file_id", fileId);
+    await supabase.from("sticky_notes").delete().eq("file_id", fileId);
+  }
+
+  const { error } = await supabase.from("files").delete().eq("id", fileId);
+  if (error) {
+    throw error;
+  }
+}
+
+// get parentid / uuid
+router.get("/", async (req, res) => {
+  //parent id for finding files through user
+  const parent_id = req.query.parent_id ?? null;
+  console.log(parent_id);
+  //query to find files
+  const query = supabase.from("files").select("*").order("type", { ascending: true }).order("name", { ascending: true });
+
+  let result;
+
+  if (parent_id === null || parent_id === "null") {
+    result = await query.is("parent_id", null);
+  } else {
+    result = await query.eq("parent_id", parent_id);
+  }
+
+  const { data, error } = result;
+
+  if (error) {
+    console.log(error.message);
+    return res.status(400).json({ error: error.message });
+  }
+  res.json(data || []);
 });
-// file route
-router.post("/upload", verifyJWT, upload.single("file"), async (req, res) => {
+
+// get breadcrumbs
+router.get("/breadcrumb/:id", async (req, res) => {
+  const id = req.params.id;
+  const trail = [];
+  let current = id;
+
+  while (current) {
+    // supabase call to find the files inside thats eq to the file id of the user
+    const { data, error } = await supabase.from("files").select("id,name,parent_id").eq("id", current).single();
+
+    if (error) {
+      console.log(error.message);
+      return res.status(400).json({ error: error.message });
+    }
+
+    trail.unshift({ id: data.id, name: data.name });
+    current = data.parent_id;
+  }
+  res.json(trail);
+});
+
+// post folders
+router.post("/folders", async (req, res) => {
+  const { name, parent_id } = req.body;
+  const { data, error } = await supabase.from("files").insert({ name, parent_id, type: "folder" }).select().single();
+  if (error) {
+    console.log(error.message);
+    return res.status(400).json({ error: error.message });
+  }
+  res.status(201).json(data);
+});
+
+// post whiteboards
+router.post("/whiteboards", async (req, res) => {
+  const { name, parent_id } = req.body;
+
+  const { data: file, error: filError } = await supabase.from("files").insert({ name, parent_id, type: "whiteboards" }).select().single();
+
+  if (filError) {
+    console.log(filError.message);
+    return res.status(400).json({ error: filError.message });
+  }
+
+  const { error: wbError } = await supabase.from("whiteboards").insert({ file_id: file.id, content: [] });
+
+  if (wbError) {
+    console.log(wbError.message);
+    return res.status(400).json({ error: wbError.message });
+  }
+
+  res.status(201).json(file);
+});
+
+// patch files
+router.patch("/:id", async (req, res) => {
+  const { name } = req.body;
+  const { data, error } = await supabase.from("files").update({ name }).eq("id", req.params.id).select().single();
+  if (error) {
+    console.log(error.message);
+    return res.status(400).json({ error: error.message });
+  }
+  res.status(201).json(data);
+});
+
+
+// delete files
+router.delete("/:id", async (req, res) => {
   try {
-    // Check: file exists
-    if (!req.file) {
-      return res.status(400).json({ error: "No file uploaded" });
-    }
-    if (!req.user || !req.user.uid) {
-      return res.status(401).json({ error: "Unauthorized: no user info" });
-    }
+    await deleteRecursively(req.params.id);
+    res.json({ ok: true })
 
-    const file = req.file;
-    const filePath = `${req.user}/${Date.now()}_${file.originalname}`;
-
-    console.log(`[UPLOAD] User: ${req.user.uid}, File: ${file.originalname}`);
-
-    // upload to supabase
-    const { error: supabaseError } = await supabase.storage
-      .from("user-files")
-      .upload(filePath, file.buffer, { contentType: file.mimetype });
-
-    if (supabaseError) {
-      console.error("Supabase error:", supabaseError);
-      return res.status(500).json({ error: "Failed to upload file" });
-    }
-
-    await db.collection("users").doc(req.user.uid).collection("files").add({
-      name: file.originalname,
-      path: filePath,
-      type: file.mimetype,
-      size: file.size,
-      uploadedAt: new Date(),
-    });
-
-    res.status(201).json({ message: "File uploaded", path: filePath });
-  } catch (err) {
-    console.error("Unexpected error:", err);
-    res.status(500).json({ error: "Unexpected server error" });
+  } catch (errors) {
+    res.status(400).json({ error: errors.message });
   }
 });
-
-// List files for the logged-in user
-router.get("/files", verifyJWT, async (req, res) => {
-  try {
-    const { data, error } = await supabase.storage
-      .from("user-files")
-      .list(req.user.uid, {
-        limit: 100, // limit for safety
-        offset: 0,
-      });
-
-    if (error) throw error;
-
-    res.json(data);
-  } catch (err) {
-    res.status(500).json({ error: err.message });
-  }
-});
-
 
 module.exports = router;
