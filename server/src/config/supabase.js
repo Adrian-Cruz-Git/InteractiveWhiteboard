@@ -11,4 +11,8 @@ if (!supabaseAnonKey) {
   throw new Error("Missing VITE_SUPABASE_ANON_KEY. Check your .env file dumbasses");
 }
 
-export const supabase = createClient(supabaseUrl, supabaseAnonKey);
+export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
+  auth: { persistSession: false },
+});
+
+module.exports = { supabase };

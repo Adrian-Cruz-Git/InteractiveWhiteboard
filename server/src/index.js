@@ -1,7 +1,9 @@
 const http = require('http');
 const express = require('express');
 const { WebSocketServer } = require('ws');
-const app = express(); // Create an instance of Express
+// Create an instance of Express
+const app = express();
+
 const server = http.createServer(app); // Create an HTTP server using the Express app
 const wsServer = new WebSocketServer({ server });
 //Cant use import syntax unless type: module in package.json
@@ -9,9 +11,9 @@ const cors = require("cors"); // Rules for front end requests to back end
 const { v4: uuidv4 } = require("uuid"); // For generating unique IDs (websoccket connections)
 const url = require("url");
 
-
-const app = express();
-const PORT = 5000;
+const path = require('path');
+const fs = require('fs');
+const multer = require('multer');
 
 
 // Allow requests from frontend
@@ -22,8 +24,16 @@ const users = {}; // Object to store user information, using username as keys
 
 const PORT = process.env.NODE_PORT || 5000;
 
+
+
 // Middleware
-app.use(cors());
+app.use(cors({ origin: true, credentials: true }));
+app.use(express.json());
+
+app.get('/api/health', (req, res) => res.json({ ok: true }));
+
+app.use('/api/whiteboards', require('./routes/whiteboards'));
+app.use('/api/sticky-notes', require('./routes/stickyNotes'));
 
 // Serve uploaded files as static
 const __filename = fileURLToPath(import.meta.url);
@@ -59,25 +69,10 @@ app.post("/api/files/upload", authMiddleware, upload.single("file"), (req, res) 
   });
 });
 
-// 🔹 List files endpoint
-app.get("/api/files", authMiddleware, (req, res) => {
-  const fs = require("fs");
-  const uploadDir = path.join(__dirname, "uploads");
-
-  if (!fs.existsSync(uploadDir)) {
-    return res.json([]);
-  }
-
-  const files = fs.readdirSync(uploadDir).map((filename) => ({
-    id: filename,
-    name: filename.split("-").slice(1).join("-"), // original name
-    url: `http://localhost:${PORT}/uploads/${filename}`,
-  }));
-
 // EXAMPLES
 // Simple test route
 app.get("/", (req, res) => {
-  res.json({ message: "Hello from Express server API is running " }); 
+  res.json({ message: "Hello from Express server API is running " });
 });
 
 //Websocket connection handling - (not ably)
@@ -127,7 +122,7 @@ server.on('connection', async (connection, req) => {
 
   try {
     const decodedToken = await admin.auth().verifyIdToken(idToken);
-    const username = decodedToken.email || decodedToken.uid; 
+    const username = decodedToken.email || decodedToken.uid;
 
     const uuid = uuidv4();
     console.log(`New client connected: ${username} ${uuid}`);
@@ -155,6 +150,3 @@ server.listen(PORT, (connections, req) => {
   console.log(`Server is listening on port ${PORT}`);
 
 });
-
-
-
