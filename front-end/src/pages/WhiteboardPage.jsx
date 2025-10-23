@@ -85,9 +85,6 @@ function WhiteboardPage() {
                 {/* Whiteboard */}
                 <div className="whiteboard-content">
                     <div className="active-board">
-                        <div className="board-header">
-                            <h2 className="board-title">Whiteboard {id}</h2>
-                        </div>
                         <div className="whiteboard-container">
                             <Whiteboard
                                 client={client}

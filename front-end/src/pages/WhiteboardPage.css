@@ -3,12 +3,13 @@
     height: 100vh;
     display: flex;
     flex-direction: column;
+    border:solid red 2px;   
 }
 
 /* Welcome screen overlay */
 .welcome-screen {
     position: fixed;
-    top: 60px; /* Below TopNav */
+    top: 60px; /*Below TopNav*/
     left: 0;
     right: 0;
     bottom: 0;
@@ -107,15 +108,15 @@
     margin: 0;
     line-height: 1.4;
 }
-
-/* Main whiteboard interface */
+/* Whiteboard interface container */
 .whiteboard-interface {
     flex: 1;
     display: flex;
     background: #f8f9fa;
-    margin-top: 110px; /* Space for TopNav + Navbar */
-    height: calc(100vh - 110px);
+    position: relative;
+    height: 100%; /* rely on .whiteboard-app's flex layout */
 }
+
 
 /* Toolbar container */
 .toolbar-container {
@@ -125,8 +126,11 @@
     position: absolute;
     left: 10px;
     top: 50%;
+    /* top: 120px; */
     transform: translateY(-50%);
+    /* transform: none; */
     z-index: 10;
+
 }
 
 /* Whiteboard content area */
@@ -187,8 +191,8 @@
     }
     
     .whiteboard-interface {
-        margin-top: 120px; /* Account for potential navbar wrapping */
-        height: calc(100vh - 120px);
+        /* height: calc(100vh - 120px); */
+        /* border:solid red 2px; */
     }
     
     .whiteboard-content {
