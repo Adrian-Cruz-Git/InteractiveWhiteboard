@@ -37,9 +37,9 @@ function Chat({ open, onClose, user, fileId }) {
           const data = msg.data || {};
           return {
             id: data.id || `${data.time || msg.timestamp || Date.now()}-${data.sender || "unknown"}`,
-            text: data.text,
-            sender: data.sender,
-            time: data.time,
+            text: data.text || "",
+            sender: data.sender || "Anonymous",
+            time: data.time || msg.timestamp || new Date().toISOString(),
             seenBy: data.seenBy || [],
           };
         });
@@ -73,8 +73,8 @@ function Chat({ open, onClose, user, fileId }) {
             `${data.time || new Date().toISOString()}-${data.sender || "unknown"}-${Math.random()
               .toString(36)
               .substr(2, 7)}`,
-          text: data.text,
-          sender: data.sender,
+          text: data.text || "",
+          sender: data.sender || "Anonymous",
           time: data.time,
           seenBy: data.seenBy || [],
         };
@@ -203,7 +203,7 @@ function Chat({ open, onClose, user, fileId }) {
         {messages.map((m, i) => (
           <div key={m.id || i} className="chat-message">
             <div>
-              <b>{m.sender}:</b> {m.text}
+              {m.sender ? <b>{m.sender}:</b> : null} {m.text}
             </div>
             {/* show seen indicator only for messages I sent and that have others in seenBy */}
             {m.sender === (user?.email || "Anonymous") && m.seenBy && m.seenBy.length > 0 && (
