@@ -1,9 +1,11 @@
 import React, { useState, useEffect } from "react";
 import StickyNote from "../StickyNote";
+import { useView } from "../ViewContext";
 
 export default function StickyNotesLayer({ activeTool, setActiveTool, boardRef, notes, focusNoteId, setFocusNoteId, addNote, removeNote, moveNote, resizeNote, typeNote }) {
     const [stickyColor, setStickyColor] = useState("#FFEB3B");
     const [draggingNote, setDraggingNote] = useState(false);
+    const { view } = useView();// new view context for zooming and panning
 
     // listen for color picker
     useEffect(() => {
@@ -29,12 +31,16 @@ export default function StickyNotesLayer({ activeTool, setActiveTool, boardRef, 
         const x = boardRef.current.scrollLeft + (e.clientX - rect.left);
         const y = boardRef.current.scrollTop + (e.clientY - rect.top);
 
+        // Convert to world space
+        const worldX = (clientX - view.offsetX) / view.scale;
+        const worldY = (clientY - view.offsetY) / view.scale;
+
         const DEFAULT_W = 180;
         const DEFAULT_H = 160;
 
         const newNote = {
-            x: x - DEFAULT_W / 2,
-            y: y - DEFAULT_H / 2,
+            x: worldX - DEFAULT_W / 2,
+            y: worldY - DEFAULT_H / 2,
             w: DEFAULT_W,
             h: DEFAULT_H,
             color: stickyColor,
@@ -59,31 +65,45 @@ export default function StickyNotesLayer({ activeTool, setActiveTool, boardRef, 
                 position: "absolute",
                 top: 0,
                 left: 0,
-                width: 5000,
-                height: 5000,
+                width: "100%",
+                height: "100%",
                 pointerEvents: activeTool === "sticky" ? "auto" : "none",
             }}
             onMouseDown={handleBoardClick}
             onMouseUp={handleMouseUpBoard}
         >
-            {notes.map((note) => (
-                <StickyNote
-                    key={note.id}
-                    id={note.id}
-                    x={note.x}
-                    y={note.y}
-                    w={note.w}
-                    h={note.h}
-                    color={note.color}
-                    text={note.text}
-                    boundsRef={boardRef}
-                    autoFocus={focusNoteId === note.id}
-                    onMove={handleMoveNote}
-                    onChangeSize={resizeNote}
-                    onChangeText={typeNote}
-                    onRemove={removeNote}
-                />
-            ))}
+            {notes.map((note) => {
+                // Compute transformed position and size based on view state
+                //new global view model
+                const screenX = note.x * view.scale + view.offsetX;
+                const screenY = note.y * view.scale + view.offsetY;
+
+                return (
+                    <div
+                        key={note.id}
+                        style={{
+                            position: "absolute",
+                            transform: `translate(${screenX}px, ${screenY}px)`,
+                            width: note.w * view.scale,
+                            height: note.h * view.scale,
+                            transformOrigin: "0 0",
+                            // Optional: keep text readable even when zoomed
+                            fontSize: `${14 * (1 / view.scale)}px`,
+                        }}
+                    >
+                        <StickyNote
+                            id={note.id}
+                            color={note.color}
+                            text={note.text}
+                            autoFocus={focusNoteId === note.id}
+                            onMove={handleMoveNote}
+                            onChangeSize={resizeNote}
+                            onChangeText={typeNote}
+                            onRemove={removeNote}
+                        />
+                    </div>
+                );
+            })}
         </div>
     );
 }

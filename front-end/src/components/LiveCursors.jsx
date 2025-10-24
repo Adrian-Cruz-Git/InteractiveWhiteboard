@@ -2,6 +2,7 @@ import React, { useEffect, useRef, useState, useMemo } from "react";
 import CursorSvg from "./CursorSvg.jsx";
 import { useAuth } from "../contexts/useAuth";
 import { colors } from "../config.js"; // your Ably key
+import { useView } from "./whiteboard/ViewContext";
 
 export default function LiveCursors({ canvasRef, client, channel, whiteboardId }) { // get all the ably stuff from whiteboard 
 
@@ -9,6 +10,8 @@ export default function LiveCursors({ canvasRef, client, channel, whiteboardId }
   const { currentUser } = useAuth(); // currentUser should have email or username
   const cursorContainerRef = useRef(null);
   const [containerStyle, setContainerStyle] = useState({});
+
+  const { view } = useView();// new view context for zooming and panning
 
   const userName = useMemo(() => {
     // Try to get from client first, then fallback
@@ -75,20 +78,27 @@ export default function LiveCursors({ canvasRef, client, channel, whiteboardId }
       const now = Date.now(); // get date for now
       if (now - lastSent < interval) return; // if havent been 50ms since last update, dont update
       lastSent = now; // if it has, send channel update, and update the last sent time to now
-      const rect = canvasRef.current.getBoundingClientRect();
+      //old live cursors
+      // const rect = canvasRef.current.getBoundingClientRect();
 
-      // Calculate relative position within canvas
-      const x = ((e.clientX - rect.left) / rect.width) * 100; // Percentage for scaling
-      const y = ((e.clientY - rect.top) / rect.height) * 100;
-      
-      console.log("Cursor coords:", x, y, "Canvas rect:", rect, "Mouse:", e.clientX, e.clientY);
+      // // Calculate relative position within canvas
+      // const x = ((e.clientX - rect.left) / rect.width) * 100; // Percentage for scaling
+      // const y = ((e.clientY - rect.top) / rect.height) * 100;
+
+      // new live cursors with zooming support
+      const rect = canvasRef.current.getBoundingClientRect();
+      const worldX = (e.clientX - rect.left - view.offsetX) / view.scale;
+      const worldY = (e.clientY - rect.top - view.offsetY) / view.scale;
+
+      console.log("Cursor coords:", worldX, worldY, "Canvas rect:", rect, "Mouse:", e.clientX, e.clientY);
+
 
       // console.log("Publishing cursor update:", { x, y, name: userName }); // DEBUG PRINT REMOVE IN PRODUCTION
 
       channel.publish("cursor-update", {
         clientId: clientId,
-        x,
-        y,
+        x: worldX,
+        y: worldY,
         name: userName,
         color: userColor,
         state: "move",
@@ -147,38 +157,42 @@ export default function LiveCursors({ canvasRef, client, channel, whiteboardId }
       ref={cursorContainerRef}
       style={containerStyle}
     >
+      {Object.values(members).map((m) => {
+        const screenX = m.x * view.scale + view.offsetX;
+        const screenY = m.y * view.scale + view.offsetY;
 
-      {Object.values(members).map((m) => (
-        <div
-          key={m.clientId}
-          style={{
-            position: "absolute",
-            left: `${m.x}%`, // Use percentage for scaling
-            top: `${m.y}%`,
-            display: "flex",
-            alignItems: "center",
-            gap: "4px",
-            pointerEvents: "none",
-            zIndex: 9999,
-            transform:"translate(0,0)" 
-          }}
-        >
-          {/* Actual cursor */}
-          <CursorSvg cursorColor={m.color} />
+        return (
           <div
+            key={m.clientId}
             style={{
-              backgroundColor: m.color,
-              color: "white",
-              padding: "2px 6px",
-              borderRadius: "4px",
-              fontSize: "12px",
-              whiteSpace: "nowrap",
+              position: "absolute",
+              left: `${screenX}px`,
+              top: `${screenY}px`,
+              display: "flex",
+              alignItems: "center",
+              gap: "4px",
+              pointerEvents: "none",
+              zIndex: 9999,
+              transform: "translate(-2px, -2px)", // optional offset for pointer tip
             }}
           >
-            {m.name}
+            {/* Actual cursor */}
+            <CursorSvg cursorColor={m.color} />
+            <div
+              style={{
+                backgroundColor: m.color,
+                color: "white",
+                padding: "2px 6px",
+                borderRadius: "4px",
+                fontSize: "12px",
+                whiteSpace: "nowrap",
+              }}
+            >
+              {m.name}
+            </div>
           </div>
-        </div>
-      ))}
+        );
+      })}
     </div>
   );
 }
