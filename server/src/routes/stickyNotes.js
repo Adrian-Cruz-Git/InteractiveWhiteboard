@@ -1,6 +1,6 @@
 const express = require('express');
 const router = express.Router();
-const { supabase } = require('../config/supabase');
+const supabase = require('../config/supabase');
 
 // GET /api/sticky-notes?fileId=...
 router.get('/', async (req,res) => {

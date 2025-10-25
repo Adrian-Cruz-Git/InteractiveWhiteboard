@@ -81,7 +81,12 @@ router.get("/breadcrumb/:id", async (req, res) => {
 
 // post folders
 router.post("/folders", async (req, res) => {
-  const { name, parent_id } = req.body;
+  const { name, parent_id, owner } = req.body;
+
+  if (!name || !owner){
+    return res.status(400).json({error: "name and owner required"});
+  }
+
   const { data, error } = await supabase.from("files").insert({ name, parent_id, type: "folder" }).select().single();
   if (error) {
     console.log(error.message);
@@ -92,9 +97,9 @@ router.post("/folders", async (req, res) => {
 
 // post whiteboards
 router.post("/whiteboards", async (req, res) => {
-  const { name, parent_id } = req.body;
+  const { name, parent_id, owner } = req.body;
 
-  const { data: file, error: filError } = await supabase.from("files").insert({ name, parent_id, type: "whiteboards" }).select().single();
+  const { data: file, error: filError } = await supabase.from("files").insert({ name, parent_id, type: "whiteboards", owner }).select().single();
 
   if (filError) {
     console.log(filError.message);

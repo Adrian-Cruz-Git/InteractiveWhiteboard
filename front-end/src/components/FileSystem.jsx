@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import {api} from "../config/api";
+import { api } from "../config/api";
 import { useAuth } from "../contexts/useAuth";
 import "./FileSystem.css";
 
@@ -42,7 +42,7 @@ export default function FileSystem() {
     const name = prompt("Folder name:");
     if (!name?.trim()) return;
     try {
-      await api(`/files/folders`, { method: "POST", body: { name, parent_id: currentFolder } });
+      await api(`/files/folders`, { method: "POST", body: { name, parent_id: currentFolder, owner: currentUser } });
       loadItems(currentFolder);
     } catch (e) {
       console.error("Error creating folder:", e.message);
@@ -53,7 +53,7 @@ export default function FileSystem() {
     const name = prompt("Whiteboard name:");
     if (!name?.trim()) return;
     try {
-      const created = await api(`/files/whiteboards`, { method: "POST", body: { name, parent_id: currentFolder } });
+      const created = await api(`/files/whiteboards`, { method: "POST", body: { name, parent_id: currentFolder, owner: currentUser } });
       loadItems(currentFolder);
       navigate(`/whiteboard/${created.id}`);
     } catch (e) {
@@ -88,44 +88,96 @@ export default function FileSystem() {
     if (item.type === "folder") {
       setCurrentFolder(item.id);
     }
-    if (item.type === "whiteboard") {
-      navigate(`/whiteboard/${item.id}`);
+    if (item.type === "whiteboards") {
+      navigate(`/whiteboards/${item.id}`);
     }
   };
 
- return (
-    <div className="file-system">
-      <div className="fs-toolbar">
-        <button onClick={() => setCurrentFolder(null)}>Root</button>
-        <button onClick={createFolder}>+ Folder</button>
-        <button onClick={createWhiteboard}>+ Whiteboard</button>
-      </div>
+  const goRoot = () => {
+    setCurrentFolder(null);
+    setBreadcrumb([{ id: null, name: "Root" }]);
+  };
 
-      <div className="fs-breadcrumb">
-        {breadcrumb.map((b, i) => (
-          <span key={b.id ?? 'root'} onClick={() => setCurrentFolder(b.id)}>
-            {b.name}{i < breadcrumb.length - 1 ? " / " : ""}
+  const goToCrumb = (i) => {
+    const target = breadcrumb[i];
+    setCurrentFolder(target?.id ?? null);
+    setBreadcrumb(breadcrumb.slice(0, i + 1));
+  };
+
+  return (
+    <div className="filesystem">
+      {/* Breadcrumbs */}
+      <div className="breadcrumbs">
+        <button type="button" onClick={goRoot}>Root</button>
+        {breadcrumb.map((c, i) => (
+          <span key={c.id}>
+            {" › "}
+            <button type="button" onClick={() => goToCrumb(i)}>{c.name}</button>
           </span>
         ))}
       </div>
 
-      {loading ? <div>Loading...</div> : (
-        <ul className="fs-grid">
-          {items.map((item) => (
-            <li key={item.id} className={`fs-item fs-${item.type}`}>
-              <div className="fs-item-main" onDoubleClick={() => openItem(item)}>
-                <div className="fs-item-name">{item.name}</div>
+      {/* Actions */}
+      <div className="actions">
+        <button type="button" onClick={createFolder} className="folder-btn">+ Folder</button>
+        <button type="button" onClick={createWhiteboard} className="whiteboard-btn">+ Whiteboard</button>
+      </div>
+
+      {/* Grid of items */}
+      <ul className="items-grid">
+        {items.map((item) => {
+          const isFolder = item.type === "folder";
+          const isDeleting = workingId === item.id;
+          return (
+            <li key={item.id} className="item-card">
+              {/* Main clickable row */}
+              <div className="item-row" onClick={() => openItem(item)}>
+                <div className="icon" aria-hidden="true">
+                  {isFolder ? "📁" : "📝"}
+                </div>
+                <div className="name" title={item.name || "Untitled"}>
+                  {item.name || "Untitled"}
+                </div>
               </div>
-              <div className="fs-item-actions">
+
+              {/* Action buttons (Open / Delete) */}
+              <div className="item-actions">
+                <button
+                  type="button"
+                  className="btn btn-small"
+                  onClick={(e) => {
+                    e.stopPropagation();        // don't trigger row click
+                    openItem(item);
+                  }}
+                  disabled={isDeleting}
+                  title={isFolder ? "Open folder" : "Open whiteboard"}
+                >
+                  Open
+                </button>
+
+                {/* Delete works for both whiteboards and folders */}
+                <button
+                  type="button"
+                  className="btn btn-small btn-danger"
+                  onClick={(e) => {
+                    e.stopPropagation();        // don't trigger row click
+                    handleDeleteWhiteboard(item, e);
+                  }}
+                  disabled={isDeleting}
+                  title={isFolder ? "Delete folder and all contents" : "Delete whiteboard"}
+                >
+                  {isDeleting ? "Deleting…" : "Delete"}
+                </button>
                 <button onClick={() => renameItem(item.id, item.name)}>Rename</button>
                 <button disabled={workingId === item.id} onClick={() => deleteItem(item.id)}>
                   {workingId === item.id ? "Deleting..." : "Delete"}
                 </button>
               </div>
             </li>
-          ))}
-        </ul>
-      )}
+          );
+        })}
+        {items.length === 0 && <li className="empty">No items here yet.</li>}
+      </ul>
     </div>
   );
 }
