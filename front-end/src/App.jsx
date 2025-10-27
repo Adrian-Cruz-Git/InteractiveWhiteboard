@@ -48,7 +48,7 @@ function AppRoutes() {
         <>
           <Route path="/" element={<LandingPage />} />
           <Route path="/files" element={<FilesPage />} />
-          <Route path="/whiteboard/:id" element={<WhiteboardPage />} />
+          <Route path="/whiteboards/:id" element={<WhiteboardPage />} />
           <Route path="/settings" element={<SettingsPage />} />
           {/* // Wildcard route (default route, any other link route to /login)  */}
           <Route path="*" element={<Navigate to="/files" replace />} />
