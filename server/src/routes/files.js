@@ -28,12 +28,11 @@ function getUid(req) {
 // ensure that a user has a root folder, return its id
 async function ensureRoot(uid) {
   // Try user_roots first
-  const { data: ur, error: urErr } = await supabase
-    .from("user_roots").select("root_id").eq("owner", uid).single();
+  const { data: ur, error: urErr } = await supabase.from("user_roots").select("root_id").eq("owner", uid).maybeSingle();
   if (!urErr && ur) return ur.root_id;
 
   // Look for an existing root-like row (folder with parent_id null)
-  const { data: existingRoot } = await supabase.from("files").select("id").eq("owner", uid).is("parent_id", null).eq("type", "folder").single();
+  const { data: existingRoot } = await supabase.from("files").select("id").eq("owner", uid).is("parent_id", null).eq("type", "folder").maybeSingle();
 
   let rootId = existingRoot?.id;
 
@@ -72,10 +71,10 @@ router.get("/:id/permissions", async (req, res) => {
   // find owner permissions
   const { data: dataOwner, error: ownerError } = await supabase.from("files").select("id, owner").eq("id", fileId).single();
 
-  if (ownerError){
+  if (ownerError) {
     return res.status(400).json({ error: errorOwner.message });
   }
-  
+
   if (!dataOwner) {
     return res.status(404).json({ error: "File not found" });
   }
@@ -95,6 +94,38 @@ router.get("/:id/permissions", async (req, res) => {
   }
 
   return res.json({ permissions: none });
+});
+
+
+
+
+router.get('/:id/users', async (req, res) => {
+  const uid = getUid(req);
+
+  if (!uid) {
+    return res.status(401).json({ error: "Unauthorized" });
+  }
+
+  const boardId = req.params.id;
+
+  const { data: board, error: boardError } = await supabase.from("files").select("owner").eq("id", boardId).single();
+
+  if (boardError) {
+    return res.status(400).json({ error: boardError.message });
+  }
+
+  if (!board) {
+    return res.status(404).json({ error: "Board not found" });
+  }
+
+  const { data: collaborators, error: collabErrors } = await supabase.from("board_users").select("*").eq("file_id", boardId).eq("user_id", uid).single();
+
+
+  if (collabErrors) {
+    return res.status(400).json({ error: collabErrors.message });
+  }
+
+  res.json([{ user_id: board.owner, permission: "owner" }, ...(collaborators || [])]);
 });
 
 
@@ -156,10 +187,10 @@ router.get("/", async (req, res) => {
   const { data, error } = await supabase.from("files").select("*").eq("owner", uid).eq("parent_id", parent_id).order("type", { ascending: true }).order("name", { ascending: true });
 
   // respond with data or error
-  if (error){
+  if (error) {
     console.log(error.message);
     return res.status(400).json({ error: error.message });
-  } 
+  }
   res.json(data || []);
 });
 
