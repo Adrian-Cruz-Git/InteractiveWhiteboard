@@ -72,17 +72,17 @@ function OnlineUsers({ client, boardId }) {
 
         // Subscribe to presence events
         const onEnter = (member) => {
-            console.log("Member entered:", member);
+            // console.log("Member entered:", member);
             handlePresence();
         };
 
         const onLeave = (member) => {
-            console.log("Member left:", member);
+            // console.log("Member left:", member);
             handlePresence();
         };
 
         const onUpdate = (member) => {
-            console.log("Member updated:", member);
+            // console.log("Member updated:", member);
             handlePresence();
         };
 
