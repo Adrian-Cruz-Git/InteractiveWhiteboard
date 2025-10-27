@@ -1,7 +1,9 @@
 import React, { useEffect, useRef } from "react";
+import { useView } from "./ViewContext";  
 
 function Canvas({ canvasRef, activeTool, strokes, onStrokeComplete }) {
   const currentStroke = useRef([]);
+  const { view } = useView();// new view context for zooming and panning
 
   useEffect(() => {
     const canvas = canvasRef.current;
@@ -11,9 +13,17 @@ function Canvas({ canvasRef, activeTool, strokes, onStrokeComplete }) {
     canvas.height = 5000;
     const ctx = canvas.getContext("2d");
 
-    const redraw = () => {
-      ctx.clearRect(0, 0, ctx.canvas.width, ctx.canvas.height);
-      if (!Array.isArray(strokes)) return;
+    const redraw = () => { // updated to use view for panning and zooming
+      ctx.save();
+      ctx.setTransform(view.scale, 0, 0, view.scale, view.offsetX, view.offsetY);
+      ctx.clearRect(
+        -view.offsetX / view.scale,
+        -view.offsetY / view.scale,
+        canvas.width / view.scale,
+        canvas.height / view.scale //updated
+      );
+
+      if (!Array.isArray(strokes)) return; // safety check
 
       strokes.forEach((stroke) => {
         const points = stroke.points || stroke;
@@ -41,22 +51,20 @@ function Canvas({ canvasRef, activeTool, strokes, onStrokeComplete }) {
     };
 
     redraw();
-  }, [strokes, canvasRef]);
+  }, [strokes, view]);
 
   const getPos = (e) => {
     const rect = canvasRef.current.getBoundingClientRect();
-    const scaleX = canvasRef.current.width / rect.width;
-    const scaleY = canvasRef.current.height / rect.height;
-    if (e.touches && e.touches.length > 0) {
-      return {
-        x: (e.touches[0].clientX - rect.left) * scaleX,
-        y: (e.touches[0].clientY - rect.top) * scaleY,
-      };
-    }
-    return {
-      x: (e.clientX - rect.left) * scaleX,
-      y: (e.clientY - rect.top) * scaleY,
-    };
+
+    // Mouse position on screen (in pixels)
+    const clientX = e.touches?.[0]?.clientX ?? e.clientX;
+    const clientY = e.touches?.[0]?.clientY ?? e.clientY;
+
+    // Convert to world coordinates
+    const x = (clientX - rect.left - view.offsetX) / view.scale;
+    const y = (clientY - rect.top - view.offsetY) / view.scale;
+
+    return { x, y }; // return world coordinates
   };
 
   const startDrawing = (e) => {
@@ -103,7 +111,6 @@ function Canvas({ canvasRef, activeTool, strokes, onStrokeComplete }) {
         erase: activeTool === "eraser",
       });
     }
-
     currentStroke.current = [];
   };
 

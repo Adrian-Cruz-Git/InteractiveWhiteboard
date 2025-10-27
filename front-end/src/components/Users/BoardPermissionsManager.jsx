@@ -30,7 +30,7 @@ function BoardPermissionsManager({ boardId }) {
     const fetchUserPermissions = async (boardId) => {
         try {
             setLoading(true);
-            const response = await api(`/files/${encodneURIComponent(boardId)}/permissions`, withAuth());
+            const response = await api(`/files/${encodeURIComponent(boardId)}/permissions`, withAuth());
             console.log('Fetched user permissions:', response);
 
             // Assuming response has a 'permission' field

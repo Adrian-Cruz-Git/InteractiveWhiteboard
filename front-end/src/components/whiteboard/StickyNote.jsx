@@ -1,32 +1,20 @@
-// StickyNote.jsx
-// - Resizable via CSS (resize: both)
-// - Drag via top handle
-// - Text is black, LTR, and NOT reversed
-// - Size updates via ResizeObserver
-// - BIG FIX: We use a hidden textarea for all typing, and a visible,
-//            mirrored div for display. This bypasses the contenteditable bug.
-// - NEW FIX: Adds a visible blinking cursor to the display div when focused.
+import { useRef, useEffect } from "react";
+import { useView } from "./ViewContext";
 
-import { useRef, useEffect } from 'react';
-
-// Define the blinking cursor styles
 const cursorStyles = `
   @keyframes blink-animation {
-    to {
-      visibility: hidden;
-    }
+    to { visibility: hidden; }
   }
   .blinking-cursor::after {
     content: '|';
     animation: blink-animation 1s steps(2, start) infinite;
     margin-left: 2px;
   }
-  /* Style for the close button */
   .sticky-note__close-button {
     position: absolute;
     top: 2px;
     right: 2px;
-    background: #e74c3c; /* Red background */
+    background: #e74c3c;
     color: white;
     border: none;
     border-radius: 4px;
@@ -38,190 +26,188 @@ const cursorStyles = `
     font-size: 14px;
     font-weight: bold;
     cursor: pointer;
-    z-index: 1; /* Ensure it's above other elements */
+    z-index: 1;
     padding: 0;
     line-height: 1;
   }
   .sticky-note__close-button:hover {
-    background: #c0392b; /* Darker red on hover */
+    background: #c0392b;
   }
 `;
 
 export default function StickyNote({
-  id, x, y, w, h, color, text,
-  boundsRef,
+  id,
+  x,
+  y,
+  w,
+  h,
+  color,
+  text,
   autoFocus,
-  onMove,
-  onChangeSize,
-  onChangeText,
+  activeTool,
   onRemove,
+  onChangeText,
+  onChangeSize,
+  onDragMove,
+  onDragEnd,
 }) {
   const rootRef = useRef(null);
   const editorRef = useRef(null);
   const displayRef = useRef(null);
   const dragging = useRef(null);
+  const { view } = useView();
 
-  // Add a style tag for the cursor animation
   useEffect(() => {
-    const styleEl = document.createElement('style');
+    const styleEl = document.createElement("style");
     styleEl.innerHTML = cursorStyles;
     document.head.appendChild(styleEl);
-    return () => document.head.removeChild(styleEl);
+    return () => {
+      document.head.removeChild(styleEl);
+    };
   }, []);
 
-  // ---------- helpers ----------
-  const clampToBounds = (nx, ny, el) => {
-    const boundsEl = boundsRef?.current;
-    if (!boundsEl || !el) return { x: Math.max(0, nx), y: Math.max(0, ny) };
-
-    const maxX = boundsEl.scrollWidth - el.offsetWidth;
-    const maxY = boundsEl.scrollHeight - el.offsetHeight;
-
-    return {
-      x: Math.max(0, Math.min(nx, maxX)),
-      y: Math.max(0, Math.min(ny, maxY)),
-    };
-  };
-
-  const ancestorFlippedX = (el) => {
-    let node = el?.parentElement;
-    while (node && node !== document.documentElement) {
-      const t = getComputedStyle(node).transform;
-      if (t && t !== 'none') {
-        if (t.startsWith('matrix3d(')) {
-          const m = t.slice(9, -1).split(',').map(parseFloat);
-          if (m[0] < 0) return true;
-        } else if (t.startsWith('matrix(')) {
-          const m = t.slice(7, -1).split(',').map(parseFloat);
-          if (m[0] < 0) return true;
-        } else if (/scaleX\(\s*-1\s*\)/.test(t) || /rotateY\(\s*180deg\s*\)/.test(t)) {
-          return true;
-        }
-      }
-      node = node.parentElement;
-    }
-    return false;
-  };
-
-  // ---------- apply initial position/size ----------
-  useEffect(() => {
-    const el = rootRef.current;
-    if (!el) return;
-    el.style.left = `${x}px`;
-    el.style.top = `${y}px`;
-    el.style.width = `${w}px`;
-    el.style.height = `${h}px`;
-  }, [x, y, w, h]);
-
-  // ---------- focus when created ----------
   useEffect(() => {
     if (autoFocus && editorRef.current) {
       editorRef.current.focus();
     }
   }, [autoFocus]);
 
-  // ---------- keep size via ResizeObserver ----------
+  // ResizeObserver - reports size in world units
   useEffect(() => {
     const el = rootRef.current;
     if (!el) return;
-    const ro = new ResizeObserver(() => {
-      const rect = el.getBoundingClientRect();
-      const bounds = boundsRef?.current?.getBoundingClientRect?.();
-      if (bounds) {
-        let newW = Math.min(rect.width, bounds.width - (el.offsetLeft ?? 0));
-        let newH = Math.min(rect.height, bounds.height - (el.offsetTop ?? 0));
-        newW = Math.max(newW, 120);
-        newH = Math.max(newH, 100);
-        onChangeSize?.(id, { w: Math.round(newW), h: Math.round(newH) });
-      } else {
-        onChangeSize?.(id, { w: Math.round(rect.width), h: Math.round(rect.height) });
+
+    let lastReportedSize = { w, h };
+
+    const ro = new ResizeObserver((entries) => {
+      for (let entry of entries) {
+        const rect = entry.target.getBoundingClientRect();
+        
+        // The element is scaled by view.scale via parent transform
+        // So we need to divide by scale to get world units
+        const scale = view?.scale ?? 1;
+        const worldW = rect.width / scale;
+        const worldH = rect.height / scale;
+
+        const minW = 120;
+        const minH = 100;
+
+        const finalW = Math.max(worldW, minW);
+        const finalH = Math.max(worldH, minH);
+
+        const roundedW = Math.round(finalW);
+        const roundedH = Math.round(finalH);
+
+        // Only update if size actually changed (avoid infinite loops)
+        if (roundedW !== lastReportedSize.w || roundedH !== lastReportedSize.h) {
+          lastReportedSize = { w: roundedW, h: roundedH };
+          onChangeSize?.(id, { w: roundedW, h: roundedH });
+        }
       }
     });
+
     ro.observe(el);
     return () => ro.disconnect();
-  }, [boundsRef, id, onChangeSize]);
+  }, [id, onChangeSize, w, h, view?.scale]);
 
-  // ---------- drag via header, clamped ----------
+  // Drag handler
   useEffect(() => {
     const el = rootRef.current;
     if (!el) return;
-    const header = el.querySelector('.sticky-note__header');
+    const header = el.querySelector(".sticky-note__header");
     if (!header) return;
 
-    const onDown = (e) => {
+    const handleMouseDown = (e) => {
+      // Only allow dragging with edit tool
+      if (activeTool !== "edit") return;
+      
+      // console.log("Starting drag setup"); // debug
+      e.stopPropagation();
       e.preventDefault();
+
+      document.body.style.cursor = "grabbing";
+
+      const scale = view?.scale ?? 1;
+      const offsetX = view?.offsetX ?? 0;
+      const offsetY = view?.offsetY ?? 0;
+
+      // Convert screen position to world position
+      const startWorldX = (e.clientX - offsetX) / scale;
+      const startWorldY = (e.clientY - offsetY) / scale;
+
       dragging.current = {
-        startX: e.clientX,
-        startY: e.clientY,
-        origX: el.offsetLeft,
-        origY: el.offsetTop,
+        startWorldX,
+        startWorldY,
+        origX: x,
+        origY: y,
       };
-      document.addEventListener('mousemove', onMoveDoc, true);
-      document.addEventListener('mouseup', onUpDoc, true);
+
+      // console.log("Dragging state set:", dragging.current); // debug
+      // console.log("Adding event listeners"); //debug
+
+      const handleMouseMove = (e) => {
+        // console.log("MouseMove fired, dragging.current :", dragging.current); // debug
+        if (!dragging.current) return;
+
+        const scale = view?.scale ?? 1;
+        const offsetX = view?.offsetX ?? 0;
+        const offsetY = view?.offsetY ?? 0;
+
+        const currWorldX = (e.clientX - offsetX) / scale;
+        const currWorldY = (e.clientY - offsetY) / scale;
+
+        // console.log("World coords:", { currWorldX, currWorldY }); // debug
+
+        if (!Number.isFinite(currWorldX) || !Number.isFinite(currWorldY)) return;
+
+        const dx = currWorldX - dragging.current.startWorldX;
+        const dy = currWorldY - dragging.current.startWorldY;
+
+        const nx = dragging.current.origX + dx;
+        const ny = dragging.current.origY + dy;
+
+        // console.log("Calling onDragMove with:", { nx, ny }); // debug
+        onDragMove?.(id, { x: nx, y: ny });
+      };
+
+      const handleMouseUp = () => {
+        // console.log("MouseUp fired"); //debug
+        document.body.style.cursor = "default";
+
+        if (dragging.current) {
+          onDragEnd?.(id);
+        }
+
+        dragging.current = null;
+        window.removeEventListener("mousemove", handleMouseMove);
+        window.removeEventListener("mouseup", handleMouseUp);
+      };
+
+      window.addEventListener("mousemove", handleMouseMove);
+      window.addEventListener("mouseup", handleMouseUp);
     };
 
-    const onMoveDoc = (e) => {
-      if (!dragging.current) return;
-      const dx = e.clientX - dragging.current.startX;
-      const dy = e.clientY - dragging.current.startY;
-      const nx = dragging.current.origX + dx;
-      const ny = dragging.current.origY + dy;
-      const clamped = clampToBounds(nx, ny, el);
-      onMove?.(id, { x: Math.round(clamped.x), y: Math.round(clamped.y) });
+    header.addEventListener("mousedown", handleMouseDown);
+    return () => {
+      header.removeEventListener("mousedown", handleMouseDown);
     };
+  }, [activeTool, id, onDragMove, onDragEnd, view, x, y]);
 
-    const onUpDoc = () => {
-      dragging.current = null;
-      document.removeEventListener('mousemove', onMoveDoc, true);
-      document.removeEventListener('mouseup', onUpDoc, true);
-    };
-
-    header.addEventListener('mousedown', onDown, true);
-    return () => header.removeEventListener('mousedown', onDown, true);
-  }, [boundsRef, id, onMove]);
-
-  // ---------- FIX REVERSED TYPING ----------
-  useEffect(() => {
-    const el = rootRef.current;
-    const displayEl = displayRef.current;
-    if (!el || !displayEl) return;
-    const flipped = ancestorFlippedX(el);
-
-    if (flipped) {
-      el.style.transform = 'scaleX(-1)';
-      displayEl.style.transform = 'scaleX(-1)';
-      displayEl.style.transformOrigin = 'right center';
-    } else {
-      el.style.transform = 'none';
-      displayEl.style.transform = 'none';
-      displayEl.style.transformOrigin = 'left center';
-    }
-  }, [boundsRef]);
-
-  // ---------- text updates ----------
   const handleInput = (e) => {
-    const newText = e.target.value;
-    onChangeText?.(id, newText);
+    onChangeText?.(id, e.target.value);
   };
 
-  // This useEffect ensures the display div always shows the latest text
   useEffect(() => {
     if (displayRef.current) {
       displayRef.current.innerText = text;
     }
   }, [text]);
 
-  // Handle focus and blur to show/hide the cursor
   const handleFocus = () => {
-    if (displayRef.current) {
-      displayRef.current.classList.add('blinking-cursor');
-    }
+    displayRef.current?.classList.add("blinking-cursor");
   };
-
   const handleBlur = () => {
-    if (displayRef.current) {
-      displayRef.current.classList.remove('blinking-cursor');
-    }
+    displayRef.current?.classList.remove("blinking-cursor");
   };
 
   const handleRemoveClick = (e) => {
@@ -232,33 +218,36 @@ export default function StickyNote({
   return (
     <div
       ref={rootRef}
+      onMouseDown={(e) => e.stopPropagation()}
       className="sticky-note"
       style={{
-        position: 'absolute',
-        pointerEvents: 'auto',
+        position: "absolute",
+        top: 0,
+        left: 0,
+        width: "100%",
+        height: "100%",
         background: color,
-        boxShadow: '0 2px 6px rgba(0,0,0,0.2)',
+        boxShadow: "0 2px 6px rgba(0,0,0,0.2)",
         borderRadius: 6,
         minWidth: 120,
         minHeight: 100,
-        resize: 'both',
-        overflow: 'hidden',
-        userSelect: 'text',
+        resize: "both",
+        overflow: "hidden",
+        userSelect: "text",
+        cursor: activeTool === "edit" ? "grab" : "default",
       }}
     >
-      {/* drag handle */}
       <div
         className="sticky-note__header"
         style={{
-          position: 'relative',
+          position: "relative",
           height: 18,
-          cursor: 'move',
+          cursor: activeTool === "edit" ? "move" : "default",
           borderTopLeftRadius: 6,
           borderTopRightRadius: 6,
-          background: 'rgba(0,0,0,0.06)',
+          background: "rgba(0,0,0,0.06)",
         }}
       >
-        {/* REMOVE BUTTON */}
         <button
           className="sticky-note__close-button"
           onClick={handleRemoveClick}
@@ -267,7 +256,7 @@ export default function StickyNote({
           &times;
         </button>
       </div>
-      {/* Hidden textarea for handling all input */}
+
       <textarea
         ref={editorRef}
         value={text}
@@ -275,40 +264,44 @@ export default function StickyNote({
         onFocus={handleFocus}
         onBlur={handleBlur}
         style={{
-          position: 'absolute',
-          top: 18, left: 0,
-          width: '100%', height: 'calc(100% - 18px)',
+          position: "absolute",
+          top: 18,
+          left: 0,
+          width: "100%",
+          height: "calc(100% - 18px)",
           padding: 8,
           opacity: 0.0001,
-          resize: 'none',
-          color: 'transparent',
-          caretColor: 'transparent',
-          background: 'transparent',
-          border: 'none',
-          overflow: 'hidden',
-          font: 'inherit',
-          lineHeight: 'inherit',
+          resize: "none",
+          color: "transparent",
+          caretColor: "transparent",
+          background: "transparent",
+          border: "none",
+          overflow: "hidden",
+          font: "inherit",
+          lineHeight: "inherit",
         }}
       />
-      {/* Visible div for displaying the text */}
+
       <div
         ref={displayRef}
         style={{
-          position: 'absolute',
-          top: 18, left: 0,
-          width: '100%', height: 'calc(100% - 18px)',
-          whiteSpace: 'pre-wrap',
-          wordBreak: 'break-word',
+          position: "absolute",
+          top: 18,
+          left: 0,
+          width: "100%",
+          height: "calc(100% - 18px)",
+          whiteSpace: "pre-wrap",
+          wordBreak: "break-word",
           fontSize: 14,
           lineHeight: 1.35,
-          fontFamily: 'system-ui, sans-serif',
+          fontFamily: "system-ui, sans-serif",
           padding: 8,
-          color: '#000',
-          direction: 'ltr',
-          unicodeBidi: 'embed',
-          writingMode: 'horizontal-tb',
-          textAlign: 'left',
-          pointerEvents: 'none',
+          color: "#000",
+          direction: "ltr",
+          unicodeBidi: "embed",
+          writingMode: "horizontal-tb",
+          textAlign: "left",
+          pointerEvents: "none",
         }}
       >
         {text}

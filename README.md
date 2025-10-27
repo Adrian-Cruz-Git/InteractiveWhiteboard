@@ -10,20 +10,6 @@ The outcome of this project was to show our understanding of team collaboration 
 - Authentication (e.g., Firebase Auth)
 - Real-time collaboration (e.g., Ably)
 
-### Team Structure:<br>
-Scrum master: 
-  - George Coiller
-
-Product Owner: 
-  - Adrian Cruz
-
-Scrum Development Team:
-  - Geroge Collier
-  - Adrian Cruz
-  - Yuna Giang
-  - Erfan Rangsaz
-
-
 
 ## Installation
 ### Prerequisites
