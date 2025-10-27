@@ -268,9 +268,7 @@ function BoardPermissionsManager({ boardId }) {
             >
                 <span>👥</span>
                 <span>Users</span>
-                {allUsers.length > 0 && (
-                    <span className="user-count">({allUsers.length})</span>
-                )}
+                {allUsers.length > 0 && <span className="user-count">({allUsers.length})</span>}
             </button>
 
             {showPermissionsModal && (
@@ -278,8 +276,11 @@ function BoardPermissionsManager({ boardId }) {
                     <div className="permissions-modal" onClick={(e) => e.stopPropagation()}>
                         <div className="permissions-modal-header">
                             <h3>Board Permissions - Board {boardId}</h3>
-                            <button className="close-btn" onClick={handleCloseModal}>×</button>
+                            <button className="close-btn" onClick={handleCloseModal}>
+                                ×
+                            </button>
                         </div>
+
                         <div className="permissions-modal-content">
                             {loading && (
                                 <div className="loading-indicator">
@@ -293,15 +294,13 @@ function BoardPermissionsManager({ boardId }) {
                                 <div className="permission-item">
                                     <span className="permission-icon">{getPermissionInfo(userPermission).icon}</span>
                                     <span className="permission-label">{getPermissionInfo(userPermission).label}</span>
-                                    <span
-                                        className="permission-badge"
-                                        style={{ backgroundColor: getPermissionInfo(userPermission).color }}
-                                    ></span>
+                                    <span className="permission-badge" style={{ backgroundColor: getPermissionInfo(userPermission).color }} />
                                 </div>
                                 <p className="permission-description">
-                                    {userPermission === 'owner' && "You have full control over this board and can manage all users."}
-                                    {userPermission === 'editor' && "You can edit the board and manage viewer permissions."}
-                                    {userPermission === 'viewer' && "You can view the board but cannot make changes."}
+                                    {userPermission === "owner" && "You have full control over this board and can manage all users."}
+                                    {userPermission === "editor" && "You can edit the board and manage viewer permissions."}
+                                    {userPermission === "viewer" && "You can view the board but cannot make changes."}
+                                    {userPermission === "none" && "You have no access to this board."}
                                 </p>
                             </div>
 
@@ -319,7 +318,7 @@ function BoardPermissionsManager({ boardId }) {
                                                 onChange={(e) => setNewUserEmail(e.target.value)}
                                                 placeholder="Enter email address"
                                                 className="add-user-input"
-                                                onKeyPress={(e) => e.key === 'Enter' && !isAddingUser && handleAddUser()}
+                                                onKeyDown={(e) => e.key === "Enter" && !isAddingUser && handleAddUser()}
                                                 disabled={isAddingUser}
                                             />
                                             <button
@@ -351,14 +350,10 @@ function BoardPermissionsManager({ boardId }) {
                                                 <div className="user-info">
                                                     <div className="user-avatar-container">
                                                         {boardUser.photoURL ? (
-                                                            <img
-                                                                src={boardUser.photoURL}
-                                                                alt={boardUser.displayName}
-                                                                className="user-item-avatar"
-                                                            />
+                                                            <img src={boardUser.photoURL} alt={boardUser.displayName} className="user-item-avatar" />
                                                         ) : (
                                                             <span className="user-item-avatar">
-                                                                {boardUser.displayName?.[0]?.toUpperCase() || '?'}
+                                                                {boardUser.displayName?.[0]?.toUpperCase() || "?"}
                                                             </span>
                                                         )}
                                                         {boardUser.isOnline && <div className="online-status"></div>}
@@ -366,7 +361,7 @@ function BoardPermissionsManager({ boardId }) {
                                                     <div className="user-details">
                                                         <span className="user-name">
                                                             {boardUser.displayName}
-                                                            {boardUser.id === user.uid && <span className="you-indicator">(You)</span>}
+                                                            {user && boardUser.id === user.uid && <span className="you-indicator">(You)</span>}
                                                         </span>
                                                         <span className="user-email">{boardUser.email}</span>
                                                         <span className="user-status">
@@ -379,7 +374,7 @@ function BoardPermissionsManager({ boardId }) {
                                                     </div>
                                                 </div>
                                                 <div className="user-permission">
-                                                    {canManagePermissions && boardUser.permission !== 'owner' && boardUser.id !== user.uid ? (
+                                                    {canManagePermissions && boardUser.permission !== "owner" && user && boardUser.id !== user.uid ? (
                                                         <select
                                                             value={boardUser.permission}
                                                             onChange={(e) => handlePermissionChange(boardUser.id, e.target.value)}
@@ -395,7 +390,7 @@ function BoardPermissionsManager({ boardId }) {
                                                             <span className="permission-label">{getPermissionInfo(boardUser.permission).label}</span>
                                                         </div>
                                                     )}
-                                                    {isOwner && boardUser.permission !== 'owner' && boardUser.id !== user.uid && (
+                                                    {isOwner && boardUser.permission !== "owner" && user && boardUser.id !== user.uid && (
                                                         <button
                                                             onClick={() => handleRemoveUser(boardUser.id)}
                                                             className="remove-user-btn"
