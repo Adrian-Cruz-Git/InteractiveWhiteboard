@@ -59,7 +59,7 @@ export default function FileSystem() {
         body.parent_id = currentFolder;
       }
 
-      await api(`/files/folders`, withAuth({ method: "POST", body: currentFolder === null ? { name } : { name, parent_id: currentFolder } }));
+      await api(`/files/folders`, withAuth());
       loadItems(currentFolder);
     } catch (e) {
       console.error("Error creating folder:", e.message);
