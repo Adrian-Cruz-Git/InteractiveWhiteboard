@@ -34,8 +34,9 @@ export default function PanHandler({ boardRef, activeTool }) {  // receives boar
             isDragging = true; // alert handleMousemove to start changing position of the scroll bar
             startX = e.clientX;
             startY = e.clientY;
-            startOffsetX = view.offsetX;
-            startOffsetY = view.offsetY;
+            startOffsetX = lastViewRef.current.offsetX;
+            startOffsetY = lastViewRef.current.offsetY;
+
             board.style.cursor = "grabbing"; // change cursor to grabbing to alert other users
             document.body.style.userSelect = "none"; // prevent text selection while dragging
         };

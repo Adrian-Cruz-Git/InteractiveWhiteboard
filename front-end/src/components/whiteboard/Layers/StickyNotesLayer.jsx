@@ -28,12 +28,9 @@ export default function StickyNotesLayer({ activeTool, setActiveTool, boardRef, 
         if (activeTool !== "sticky") return;
 
         const rect = boardRef.current.getBoundingClientRect();
-        const x = boardRef.current.scrollLeft + (e.clientX - rect.left);
-        const y = boardRef.current.scrollTop + (e.clientY - rect.top);
-
         // Convert to world space
-        const worldX = (clientX - view.offsetX) / view.scale;
-        const worldY = (clientY - view.offsetY) / view.scale;
+        const worldX = (e.clientX - view.offsetX) / view.scale;
+        const worldY = (e.clientY - view.offsetY) / view.scale;
 
         const DEFAULT_W = 180;
         const DEFAULT_H = 160;
