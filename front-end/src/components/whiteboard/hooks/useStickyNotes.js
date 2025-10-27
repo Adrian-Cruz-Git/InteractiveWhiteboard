@@ -66,18 +66,39 @@ export function useStickyNotes(fileId) {
     }
   };
 
-  const moveNote = async (id, { x, y }) => {
-    setNotes((prev) =>
-      prev.map((n) => (n.id === id ? { ...n, x, y } : n))
-    );
+  // const moveNote = async (id, { x, y }) => {
+  //   setNotes((prev) =>
+  //     prev.map((n) => (n.id === id ? { ...n, x, y } : n))
+  //   );
 
+  //   const { error } = await supabase
+  //     .from("sticky_notes")
+  //     .update({ x, y })
+  //     .eq("id", id);
+
+  //   if (error) console.error("Error moving sticky note:", error.message);
+  // };
+
+const moveNote = async (id, pos) => {
+  const { x, y } = pos ?? {};
+  if (typeof x !== "number" || typeof y !== "number" || !Number.isFinite(x) || !Number.isFinite(y)) {
+    console.warn("Skipped moveNote (finalize): invalid coordinates", pos);
+    return;
+  }
+
+  try {
     const { error } = await supabase
       .from("sticky_notes")
       .update({ x, y })
       .eq("id", id);
 
-    if (error) console.error("Error moving sticky note:", error.message);
-  };
+    if (error) throw error;
+  } catch (err) {
+    console.error("Error moving sticky note:", err.message);
+  }
+};
+
+
 
   const resizeNote = async (id, { w, h }) => {
     setNotes((prev) =>

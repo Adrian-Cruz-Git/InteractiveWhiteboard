@@ -86,7 +86,6 @@ function Whiteboard({ client, onChange, activeTool, setActiveTool, fileId, onUnd
           activeTool={activeTool}
           setActiveTool={setActiveTool}
           boardRef={boardRef}
-          fileId={fileId}
           notes={notes}
           setNotes={setNotes}
           focusNoteId={focusNoteId}
