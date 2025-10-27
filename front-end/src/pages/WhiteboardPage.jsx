@@ -21,6 +21,14 @@ function WhiteboardPage() {
 
     const [activeTool, setActiveTool] = useState("pen");
     const [isChatOpen, setIsChatOpen] = useState(false); //chat state
+    
+    // NEW: State for the shape tool settings.
+    const [shapeSettings, setShapeSettings] = useState({
+        type: 'rect',      // Default shape
+        color: '#000000', // Default color (black)
+        isSolid: false,    // Default style (outline)
+    });
+
     //instantiate ably client in whiteboardpage, so I can pass to topnav and onlineusers , as well as whiteboard component
     const { client, strokesChannel, eventsChannel } = useRealtime(
         user,
@@ -79,6 +87,9 @@ function WhiteboardPage() {
                         onUndo={() => undoRef.current && undoRef.current()}
                         onRedo={() => redoRef.current && redoRef.current()}
                         onClear={() => clearRef.current && clearRef.current()}
+                        
+                        shapeSettings={shapeSettings} 
+                        setShapeSettings={setShapeSettings}
                     />
                 </div>
 
@@ -94,6 +105,8 @@ function WhiteboardPage() {
                                 onUndo={undoRef}
                                 onRedo={redoRef}
                                 onClear={clearRef}
+                                
+                                shapeSettings={shapeSettings} 
                             />
                         </div>
                     </div>
