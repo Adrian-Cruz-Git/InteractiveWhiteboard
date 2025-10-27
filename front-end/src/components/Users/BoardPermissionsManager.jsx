@@ -128,30 +128,26 @@ function BoardPermissionsManager({ boardId }) {
 
     // Handle removing user from board
     const handleRemoveUser = async (userId) => {
-        const userToRemove = allUsers.find(u => u.id === userId);
+        const userToRemove = allUsers.find((u) => u.id === targetUserId);
 
-        if (!userToRemove) return;
+        if (!userToRemove) {
+            return;
+        }
 
-        if (userId === user.uid) {
+        if (user && userId === user.uid) {
             alert("You cannot remove yourself from the board.");
             return;
         }
 
-        if (!window.confirm(`Are you sure you want to remove ${userToRemove.displayName} from the board? This action cannot be undone.`)) {
+        if (!window.confirm(`Remove ${userToRemove.displayName} from the board? This action cannot be undone.`)) {
             return;
         }
 
         try {
-            // TODO: Replace with actual API call
-            // await fetch(`/api/boards/${boardId}/users/${userId}`, {
-            //     method: 'DELETE',
-            //     headers: {
-            //         'Authorization': `Bearer ${await user.getIdToken()}`
-            //     }
-            // });
+            await api(`/files/${encodeURIComponent(boardId)}/users/${encodeURIComponent(userId)}`, withAuth({ method: 'DELETE' }));
 
             // Update local state immediately
-            setAllUsers(users => users.filter(boardUser => boardUser.id !== userId));
+            setAllUsers((users) => users.filter((u) => u.id !== targetUserId));
 
             console.log(`Removed user ${userId} from board`);
             alert(`${userToRemove.displayName} has been removed from the board.`);
@@ -189,40 +185,24 @@ function BoardPermissionsManager({ boardId }) {
 
         setIsAddingUser(true);
         try {
-            // TODO: Replace with actual API call
-            // const response = await fetch(`/api/boards/${boardId}/users`, {
-            //     method: 'POST',
-            //     headers: {
-            //         'Content-Type': 'application/json',
-            //         'Authorization': `Bearer ${await user.getIdToken()}`
-            //     },
-            //     body: JSON.stringify({ 
-            //         email: email,
-            //         permission: 'viewer' // default permission
-            //     })
-            // });
-            // const newUser = await response.json();
+            const invite = await api(`/invitations`, withAuth({ method: 'POST', body: JSON.stringify({ boardId: boardId, email, permission: 'viewer' }) }));
 
             // Simulate API delay
-            await new Promise(resolve => setTimeout(resolve, 1000));
+            setAllUsers((users) => [
+                ...users,
+                {
+                    id: `invited:${email}`,
+                    displayName: email.split("@")[0],
+                    email,
+                    photoURL: null,
+                    permission: "viewer",
+                    isOnline: false,
+                    lastSeen: new Date(),
+                },
+            ]);
 
-            // Mock new user creation
-            const mockNewUser = {
-                id: `user_${Date.now()}`,
-                displayName: email.split('@')[0].charAt(0).toUpperCase() + email.split('@')[0].slice(1),
-                email: email,
-                photoURL: null,
-                permission: 'viewer',
-                isOnline: false,
-                lastSeen: new Date()
-            };
-
-            setAllUsers(users => [...users, mockNewUser]);
             setNewUserEmail("");
-
-            console.log(`Added new user: ${email}`);
-            alert(`Successfully added ${email} as a viewer to the board.`);
-
+            alert(`Invitation sent to ${email}.`);
         } catch (error) {
             console.error('Failed to add user:', error);
             alert('Failed to add user. Please check the email and try again.');
