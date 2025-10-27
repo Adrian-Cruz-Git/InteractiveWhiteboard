@@ -15,102 +15,66 @@ function BoardPermissionsManager({ boardId }) {
     const [isAddingUser, setIsAddingUser] = useState(false);
     const [loading, setLoading] = useState(false);
 
-    // Listen for auth state changes
-    useEffect(() => {
-        const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
-            setUser(currentUser);
-
-            if (currentUser && boardId) {
-                fetchUserPermissions(currentUser.uid, boardId);
-                fetchAllBoardUsers(boardId);
-            }
-        });
-        return () => unsubscribe();
-    }, [boardId]);
-
     const withAuth = (init = {}) => ({
         ...init,
-        headers: { ...(init.headers || {}), Authorization: `Bearer ${user?.uid || ""} ` },
+        headers: { ...(init.headers || {}), Authorization: `Bearer ${user?.uid || ""}`, ...(user?.email ? { "X-User-Email": String(user.email).toLowerCase() } : {}), "Content-Type": "application/json", },
     });
 
     // Mock function to fetch user permissions (replace with actual API call)
-    const fetchUserPermissions = async (userId, boardId) => {
+    const fetchUserPermissions = async (boardId) => {
         try {
             setLoading(true);
-            const response = await api("/:id/permissions", withAuth());
+            const response = await api(`/files/${encodneURIComponent(boardId)}/permissions`, withAuth());
             console.log('Fetched user permissions:', response);
 
-            // Mocked data for now - you can customize this for testing
-            const mockPermissions = {
-                '1': 'owner',
-                '2': 'editor',
-                '3': 'viewer'
-            };
-            setUserPermission(mockPermissions[boardId] || 'viewer');
+            // Assuming response has a 'permission' field
+            const permission = res?.permission ?? "none";
+            setUserPermission(permission);
+            return permission;
         } catch (error) {
             console.error('Failed to fetch user permissions:', error);
-            setUserPermission("viewer");
+            setUserPermission("none");
+            return "none";
         } finally {
             setLoading(false);
         }
     };
 
+    // Listen for auth state changes
+    useEffect(() => {
+        const unsubscribe = onAuthStateChanged(auth, async (currentUser) => {
+            setUser(currentUser);
+
+            if (currentUser && boardId) {
+                await fetchUserPermissions(boardId);
+                await fetchAllBoardUsers(boardId);
+            }
+        });
+        return () => unsubscribe();
+    }, [boardId]);
+
+
+
+
+
     // Mock function to fetch all board users (replace with actual API call)
     const fetchAllBoardUsers = async (boardId) => {
         try {
             setLoading(true);
-            const response = await api(`/boards/${boardId}/users`, withAuth());
+            const response = await api(`/files/${encodeURIComponent(boardId)}/users`, withAuth());
 
+            const normalized = (response || []).map(u => ({
+                id: u.user_id,
+                displayName: u.display_name || "Unnamed User",
+                email: u.email || "No Email",
+                photoURL: u.photo_url || null,
+                permission: u.permission || "viewer",
+                isOnline: false,
+                lastSeen: new Date()
+            }));
+            console.log('Fetched board users:', normalized);
 
-
-            const mockUsers = [
-                {
-                    id: "user1",
-                    displayName: "John Doe",
-                    email: "john@example.com",
-                    photoURL: "https://via.placeholder.com/40",
-                    permission: "owner",
-                    isOnline: true,
-                    lastSeen: new Date()
-                },
-                {
-                    id: "user2",
-                    displayName: "Jane Smith",
-                    email: "jane@example.com",
-                    photoURL: null,
-                    permission: "editor",
-                    isOnline: true,
-                    lastSeen: new Date()
-                },
-                {
-                    id: "user3",
-                    displayName: "Bob Wilson",
-                    email: "bob@example.com",
-                    photoURL: "https://via.placeholder.com/40",
-                    permission: "viewer",
-                    isOnline: false,
-                    lastSeen: new Date(Date.now() - 1000 * 60 * 30) // 30 minutes ago
-                },
-                {
-                    id: "user4",
-                    displayName: "Alice Johnson",
-                    email: "alice@example.com",
-                    photoURL: null,
-                    permission: "editor",
-                    isOnline: true,
-                    lastSeen: new Date()
-                },
-                {
-                    id: "user5",
-                    displayName: "Charlie Brown",
-                    email: "charlie@example.com",
-                    photoURL: "https://via.placeholder.com/40",
-                    permission: "viewer",
-                    isOnline: false,
-                    lastSeen: new Date(Date.now() - 1000 * 60 * 60 * 2) // 2 hours ago
-                }
-            ];
-            setAllUsers(mockUsers);
+            setAllUsers(normalized);
         } catch (error) {
             console.error('Failed to fetch board users:', error);
         } finally {
@@ -120,12 +84,13 @@ function BoardPermissionsManager({ boardId }) {
 
     // Get permission display info
     const getPermissionInfo = (permission) => {
-        const permissionMap = {
-            'owner': { label: 'Owner', color: '#4CAF50', icon: '👑' },
-            'editor': { label: 'Editor', color: '#2196F3', icon: '✏️' },
-            'viewer': { label: 'Viewer', color: '#FF9800', icon: '👁️' }
+        const map = {
+            owner: { label: "Owner", color: "#4CAF50", icon: "👑" },
+            editor: { label: "Editor", color: "#2196F3", icon: "✏️" },
+            viewer: { label: "Viewer", color: "#FF9800", icon: "👁️" },
+            none: { label: "No access", color: "#9E9E9E", icon: "⛔" },
         };
-        return permissionMap[permission] || permissionMap['viewer'];
+        return map[permission] || map.viewer;
     };
 
     // Handle permission change (for owners/editors)
@@ -141,17 +106,15 @@ function BoardPermissionsManager({ boardId }) {
 
             // Update local state immediately for better UX
             setAllUsers(users =>
-                users.map(boardUser =>
-                    boardUser.id === userId
-                        ? { ...boardUser, permission: newPermission }
-                        : boardUser
-                )
+                users.map(boardUser => boardUser.id === userId ? { ...boardUser, permission: newPermission } : boardUser)
             );
+
+            await api(`/files/${encodeURIComponent(boardId)}/permissions/${encodeURIComponent(userId)}`, { method: 'PUT', body: JSON.stringify({ permission: newPermission }) });
+
+            const userName = allUsers.find((u) => u.id === userId)?.displayName || "User";
 
             console.log(`Updated user ${userId} permission to ${newPermission}`);
 
-            // Show success feedback
-            const userName = allUsers.find(u => u.id === userId)?.displayName || 'User';
             alert(`${userName}'s permission updated to ${getPermissionInfo(newPermission).label}`);
 
         } catch (error) {
