@@ -1,4 +1,4 @@
-import React, { useRef, useEffect } from "react";
+import React, { useRef, useEffect,useState } from "react";
 import "./Whiteboard.css";
 import { useAuth } from "../../contexts/useAuth";
 import { useStrokes } from "./hooks/useStrokes";
@@ -8,12 +8,19 @@ import Canvas from "./Canvas";
 import { useStickyNotes } from "./hooks/useStickyNotes";
 import StickyNotesLayer from "./Layers/StickyNotesLayer";
 import LiveCursors from "../../components/LiveCursors";
+import TextLayer from "./Layers/TextLayer.jsx";
+
+
 
 function Whiteboard({ client, onChange, activeTool, setActiveTool, fileId, onUndo, onRedo, onClear, }) {
   const whiteboardId = fileId || "local-" + Math.random();
   const canvasRef = useRef(null);
   const boardRef = useRef(null);
 
+  // state for text boxes
+  const [texts, setTexts] = useState([]); 
+
+  //state for sticky notes
   const { notes, setNotes, focusNoteId, setFocusNoteId, addNote, removeNote, moveNote, resizeNote, typeNote, loadNotes } = useStickyNotes(fileId);
 
   const { undoStack, addStroke, undo, redo, setUndoStack, clear } = useStrokes(fileId, () => { }, onChange, loadNotes, setNotes);
@@ -85,7 +92,15 @@ function Whiteboard({ client, onChange, activeTool, setActiveTool, fileId, onUnd
         moveNote={moveNote}
         resizeNote={resizeNote}
         typeNote={typeNote}
-        />
+      />
+
+      <TextLayer
+        activeTool={activeTool}
+        setActiveTool={setActiveTool}
+        boardRef={boardRef}
+        texts={texts}
+        setTexts={setTexts}
+      />
 
       {/* Live Cursors */}
       {client && (
