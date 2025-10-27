@@ -251,7 +251,9 @@ function BoardPermissionsManager({ boardId }) {
         return () => document.removeEventListener('keydown', handleEscapeKey);
     }, [showPermissionsModal]);
 
-    if (!user || !boardId) return null;
+    if (!user || !boardId) {
+        return null;
+    }
 
     const canManagePermissions = userPermission === 'owner' || userPermission === 'editor';
     const isOwner = userPermission === 'owner';
