@@ -47,6 +47,10 @@ export default function Toolbar({ activeTool, setActiveTool, onUndo, onRedo, onC
   }, []);
 
   const selectTool = (tool) => {
+    if(activeTool === tool){
+      //toggle off if clicking the same tool
+      tool = 'edit';
+    }
     setActiveTool(tool);
     window.__WB_TOOL__ = tool;
     window.__WB_ERASE__ = tool === 'eraser';
@@ -66,28 +70,28 @@ export default function Toolbar({ activeTool, setActiveTool, onUndo, onRedo, onC
   return (
     <div className="toolbar">
       {/* Cursor */}
-      <button onClick={() => selectTool('cursor')} title="Cursor" aria-label="Cursor">
+      <button onClick={() => selectTool('cursor')} title="Cursor" aria-label="Cursor" className={activeTool === "cursor" ? "active" : ""}>
         <img src={cursorIcon} alt="Cursor" style={{ width: 25, height: 25 }} />
       </button>
       
       {/* Pen */}
-      <button onClick={() => selectTool("pen")} title="Pen" aria-label="Pen">
+      <button onClick={() => selectTool("pen")} title="Pen" aria-label="Pen" className={activeTool === "pen" ? "active" : ""}>
         <img src={penIcon} alt="Pen" style={{ width: 25, height: 25 }} />
       </button>
 
       {/* Highlighter (placeholder) */}
-      <button onClick={() => selectTool("highlighter")} title="Highlighter" aria-label="Highlighter">
+      <button onClick={() => selectTool("highlighter")} title="Highlighter" aria-label="Highlighter" className={activeTool === "highlighter" ? "active" : ""}>
         <img src={highlightIcon} alt="Highlighter" style={{ width: 25, height: 25 }} />
       </button>
 
       {/* Eraser */}
-      <button onClick={() => selectTool("eraser")} title="Eraser" aria-label="Eraser">
+      <button onClick={() => selectTool("eraser")} title="Eraser" aria-label="Eraser" className={activeTool === "eraser" ? "active" : ""}>
         <img src={eraserIcon} alt="Eraser" style={{ width: 25, height: 25 }} />
       </button>
 
       {/* Sticky Note (with palette) */}
       <div className="palette-anchor">
-        <button onClick={startStickyFlow} title="Sticky Note" aria-label="Sticky Note">
+        <button onClick={startStickyFlow} title="Sticky Note" aria-label="Sticky Note" className={activeTool === "sticky" ? "active" : ""}>
           <img src={stickyNoteIcon} alt="Sticky Note" style={{ width: 25, height: 25 }} />
         </button>
 
@@ -113,17 +117,17 @@ export default function Toolbar({ activeTool, setActiveTool, onUndo, onRedo, onC
       </div>
 
       {/* Shapes */}
-      <button onClick={() => selectTool("shapes")} title="Shapes" aria-label="Shapes">
+      <button onClick={() => selectTool("shapes")} title="Shapes" aria-label="Shapes" className={activeTool === "shapes" ? "active" : ""}>
         <img src={shapesIcon} alt="Shapes" style={{ width: 25, height: 25 }} />
       </button>
 
       {/* Text */}
-      <button onClick={() => selectTool("text")} title="Text" aria-label="Text">
+      <button onClick={() => selectTool("text")} title="Text" aria-label="Text" className={activeTool === "text" ? "active" : ""}>
         <img src={textIcon} alt="Text" style={{ width: 25, height: 25 }} />
       </button>
 
       {/* Image */}
-      <button onClick={() => selectTool("image")} title="Image" aria-label="Image">
+      <button onClick={() => selectTool("image")} title="Image" aria-label="Image" className={activeTool === "image" ? "active" : ""}>
         <img src={imageIcon} alt="Image" style={{ width: 25, height: 25 }} />
       </button>
 

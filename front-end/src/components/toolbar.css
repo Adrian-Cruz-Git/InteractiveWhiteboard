@@ -24,6 +24,14 @@
     outline: none; /*remove focus outline*/
     box-shadow: none; /*remove focus box-shadow*/
 }
+.toolbar button.active {
+  /* background: transparent; */
+  background: rgba(31, 26, 49, 0.5); /*semi-transparent*/
+  outline-offset: 3px;
+  /* box-shadow: inset 0 0 0 2px rgba(111, 66, 193, 0.4); */
+  transform: translateY(-1px);
+}
+
 
 /* Anchor for the palette popover (so it positions next to the Sticky button) */
 .palette-anchor {
