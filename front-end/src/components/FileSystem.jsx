@@ -17,6 +17,8 @@ export default function FileSystem() {
   // ---- minimal helper to add auth header to every call ----
   const withAuth = (init = {}) => ({
     ...init,
+
+    // add auth header 
     headers: { ...(init.headers || {}), Authorization: `Bearer ${user?.uid || ""}` },
   });
 

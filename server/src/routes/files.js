@@ -59,6 +59,45 @@ async function ensureRoot(uid) {
 
 
 
+// GET /api/files/:id/permissions 
+router.get("/:id/permissions", async (req, res) => {
+  const uid = getUid(req);
+
+  if (!uid) {
+    return res.status(401).json({ error: "Unauthorized" });
+  }
+
+  const fileId = req.params.id;
+
+  // find owner permissions
+  const { data: dataOwner, error: ownerError } = await supabase.from("files").select("id, owner").eq("id", fileId).single();
+
+  if (ownerError){
+    return res.status(400).json({ error: errorOwner.message });
+  }
+  
+  if (!dataOwner) {
+    return res.status(404).json({ error: "File not found" });
+  }
+
+  if (dataOwner.owner === uid) {
+    return res.json({ permissions: "owner" });
+  }
+
+  const { data, error } = await supabase.from("board_users").select("*").eq("file_id", fileId).eq("user_id", uid).single();
+
+  if (error && error.code !== "PGRST116") { // PGRST116 = no rows found for .single()
+    return res.status(400).json({ error: error.message });
+  }
+
+  if (data?.permissions) {
+    return res.json({ permissions: data.permissions }); // edit, view perms
+  }
+
+  return res.json({ permissions: none });
+});
+
+
 
 
 // the helper function for deletion
