@@ -111,7 +111,7 @@ export default function FileSystem() {
     if (item.type === "folder") {
       setCurrentFolder(item.id);
     }
-    if (item.type === "whiteboards") { // ← singular to match server
+    if (item.type === "whiteboard") { // ← singular to match server
       navigate(`/whiteboards/${item.id}`);
     }
   };
