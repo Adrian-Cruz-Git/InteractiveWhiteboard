@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect} from "react";
 import "./ShareBtn.css"; // You'll need to create this CSS file or add styles to your existing CSS
 
 function ShareBtn({ activeBoard }) {
@@ -11,6 +11,22 @@ function ShareBtn({ activeBoard }) {
         const boardPath = `/whiteboard/${activeBoard}`;
         return `${baseUrl}${boardPath}`;
     };
+
+    // Handle modal close
+    const handleCloseModal = () => {
+        setShowShareModal(false);
+    };
+        // Handle escape key
+    useEffect(() => {
+        const handleEscapeKey = (event) => {
+            if (event.key === 'Escape' && showShareModal) {
+                handleCloseModal();
+            }
+        };
+
+        document.addEventListener('keydown', handleEscapeKey);
+        return () => document.removeEventListener('keydown', handleEscapeKey);
+    }, [showShareModal]);
 
     // Copy link to clipboard
     const handleCopyLink = async () => {
