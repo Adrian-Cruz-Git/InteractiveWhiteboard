@@ -19,7 +19,7 @@ function WhiteboardPage() {
     const redoRef = useRef();
     const clearRef = useRef();
 
-    const [activeTool, setActiveTool] = useState("pen");
+    const [activeTool, setActiveTool] = useState("edit"); // change default tool to "edit" mode
     const [isChatOpen, setIsChatOpen] = useState(false); //chat state
     //instantiate ably client in whiteboardpage, so I can pass to topnav and onlineusers , as well as whiteboard component
     const { client, strokesChannel, eventsChannel } = useRealtime(

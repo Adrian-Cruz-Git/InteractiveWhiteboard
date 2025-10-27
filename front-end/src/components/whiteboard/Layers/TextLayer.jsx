@@ -11,6 +11,7 @@ export default function TextLayer({
     const justPlacedRef = useRef(false); // track if we just placed a new text box
     const resizingRef = useRef(null); // track which text is being resized
 
+    //Text state management functions
     const addText = (newText) => setTexts((prev) => [...prev, newText]); // add new text box
     const updateText = (id, text) => // update text content
         setTexts((prev) => prev.map((t) => (t.id === id ? { ...t, text } : t)));
@@ -37,10 +38,10 @@ export default function TextLayer({
 
         addText(newText);
         justPlacedRef.current = true;
-        setActiveTool("cursor");
+        setActiveTool("edit"); // after placing, switch to edit mode (default mode)
     };
 
-      // auto focus newly added box
+    // auto focus newly added box
     useEffect(() => {
         if (!justPlacedRef.current) return;
         justPlacedRef.current = false;
@@ -59,13 +60,46 @@ export default function TextLayer({
         }, 50);
     }, [texts]);
 
+    // Resize Logic 
+    const handleMouseDownResize = (e, id) => {  // when mouse click , start resizing
+        e.stopPropagation();
+        e.preventDefault();
+        resizingRef.current = { id, startX: e.clientX, startY: e.clientY };
+
+        const target = texts.find((t) => t.id === id);
+        resizingRef.current.startW = target.w;
+        resizingRef.current.startH = target.h;
+
+        window.addEventListener("mousemove", handleMouseMoveResize);
+        window.addEventListener("mouseup", handleMouseUpResize);
+    };
+
+    const handleMouseMoveResize = (e) => {  // called by mousemove event (mousedown starts it) , resize box
+        if (!resizingRef.current) return;
+
+        const { id, startX, startY, startW, startH } = resizingRef.current;
+        const dx = e.clientX - startX;
+        const dy = e.clientY - startY;
+
+        const newW = Math.max(60, startW + dx);
+        const newH = Math.max(40, startH + dy);
+
+        updateSize(id, newW, newH);
+    };
+
+    const handleMouseUpResize = () => { // stop resizing
+        resizingRef.current = null;
+        window.removeEventListener("mousemove", handleMouseMoveResize);
+        window.removeEventListener("mouseup", handleMouseUpResize);
+    };
+
     return (
         <div
             style={{
                 position: "absolute",
                 inset: 0,
                 pointerEvents:
-                    activeTool === "text" || activeTool === "cursor" ? "auto" : "none",
+                    activeTool === "text" || activeTool === "edit" ? "auto" : "none",
                 zIndex: 50,
             }}
             onMouseDown={handleBoardClick}
@@ -88,7 +122,7 @@ export default function TextLayer({
                     <div
                         className="wb-text-editable"
                         contentEditable={
-                            activeTool === "cursor" || activeTool === "" || activeTool == null
+                            activeTool === "edit" || activeTool === "" || activeTool == null
                         }
                         suppressContentEditableWarning
                         style={{
@@ -97,7 +131,7 @@ export default function TextLayer({
                             outline: "none",
                             padding: "4px",
                             cursor:
-                                activeTool === "cursor" ||
+                                activeTool === "edit" ||
                                     activeTool === "" ||
                                     activeTool == null
                                     ? "text"
@@ -110,15 +144,32 @@ export default function TextLayer({
                             fontFamily: "sans-serif",
                         }}
                         ref={(el) => {
-                            if (el && el.textContent !== t.text) {
+                            {/* Only set text if it is different from original text*/}
+                            if (el && el.textContent !== t.text && !document.activeElement.isSameNode(el)){
                                 // Only set text if not currently being edited
                                 el.textContent = t.text;
                             }
                         }}
                         onBlur={(e) => updateText(t.id, e.target.textContent)}
                     />
-
-                    {activeTool === "cursor" && (
+                    {/* Resize Handle */}
+                    {activeTool === "edit" && (
+                        <div
+                            onMouseDown={(e) => handleMouseDownResize(e, t.id)}
+                            style={{
+                                position: "absolute",
+                                bottom: "-4px",
+                                right: "-4px",
+                                width: "10px",
+                                height: "10px",
+                                background: "rgba(0,0,0,0.5)",
+                                borderRadius: "2px",
+                                cursor: "nwse-resize",
+                            }}
+                        />
+                    )}
+                    {/* Delete Button */}
+                    {activeTool === "edit" && (
                         <button
                             onClick={() => removeText(t.id)}
                             style={{
