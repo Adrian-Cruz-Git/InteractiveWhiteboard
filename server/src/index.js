@@ -1,160 +1,35 @@
 const http = require('http');
 const express = require('express');
-const { WebSocketServer } = require('ws');
-const app = express(); // Create an instance of Express
+
+// Create an instance of Express
+const app = express();
+
 const server = http.createServer(app); // Create an HTTP server using the Express app
-const wsServer = new WebSocketServer({ server });
 //Cant use import syntax unless type: module in package.json
 const cors = require("cors"); // Rules for front end requests to back end
-const { v4: uuidv4 } = require("uuid"); // For generating unique IDs (websoccket connections)
 const url = require("url");
 
-
-const app = express();
-const PORT = 5000;
-
+const path = require('path');
+const fs = require('fs');
 
 // Allow requests from frontend
-
-const connections = {}; // Object to store user connections, using UUID as keys
-const users = {}; // Object to store user information, using username as keys
-
-
 const PORT = process.env.NODE_PORT || 5000;
 
 // Middleware
-app.use(cors());
+app.use(cors({ origin: true, credentials: true }));
+app.use(express.json());
 
-// Serve uploaded files as static
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
-app.use("/uploads", express.static(path.join(__dirname, "uploads")));
+app.get('/api/health', (req, res) => res.json({ ok: true }));
 
-// Configure multer for file uploads
-const storage = multer.diskStorage({
-  destination: (req, file, cb) => cb(null, "uploads/"),
-  filename: (req, file, cb) => cb(null, Date.now() + "-" + file.originalname),
-});
-const upload = multer({ storage });
 
-// Fake authentication middleware (replace with real token check)
-function authMiddleware(req, res, next) {
-  const authHeader = req.headers["authorization"];
-  if (!authHeader || !authHeader.startsWith("Bearer ")) {
-    return res.status(401).json({ error: "Unauthorized" });
-  }
-  next();
-}
-
-// 🔹 Upload endpoint
-app.post("/api/files/upload", authMiddleware, upload.single("file"), (req, res) => {
-  if (!req.file) return res.status(400).json({ error: "No file uploaded" });
-
-  const fileUrl = `http://localhost:${PORT}/uploads/${req.file.filename}`;
-
-  res.json({
-    id: req.file.filename,
-    name: req.file.originalname,
-    url: fileUrl,
-  });
-});
-
-// 🔹 List files endpoint
-app.get("/api/files", authMiddleware, (req, res) => {
-  const fs = require("fs");
-  const uploadDir = path.join(__dirname, "uploads");
-
-  if (!fs.existsSync(uploadDir)) {
-    return res.json([]);
-  }
-
-  const files = fs.readdirSync(uploadDir).map((filename) => ({
-    id: filename,
-    name: filename.split("-").slice(1).join("-"), // original name
-    url: `http://localhost:${PORT}/uploads/${filename}`,
-  }));
-
-// EXAMPLES
-// Simple test route
-app.get("/", (req, res) => {
-  res.json({ message: "Hello from Express server API is running " }); 
-});
+app.use('/api/files', require('./routes/files'));
+app.use('/api/whiteboards', require('./routes/whiteboards'));
+app.use('/api/sticky-notes', require('./routes/stickyNotes'));
 
 //Websocket connection handling - (not ably)
-
-const broadcastUsers = () => {
-  //Send message to all connected users except the sender
-  Object.keys(connections).forEach(uuid => { // Iterate over all connections
-    const connection = connections[uuid]; // Get the connection for the user
-    const message = JSON.stringify(users); // Convert users object to JSON string for sending over WebSocket
-    connection.send(message); // Send the message to the user
-  });
-}
-
-
-const handleMessage = (bytes, uuid) => {
-  //Copy object, and replace the state of the user with the new state
-  const message = JSON.parse(bytes.toString()); // Convert bytes to string // Get bytes from the server
-  const user = users[uuid]; // Get the user object using the UUID
-  user.state = message; // Update the user's state with the new message , can do that here because only have one message type for now
-  console.log(`Received message from ${user.username}:`, message); // Log the received message
-
-  broadcastUsers();
-
-  console.log(`${user.username} updated their state :, ${JSON.stringify(user.state)}`); // Log the updated state of the user
-}
-
-
-
-const handleClose = (uuid) => {
-  console.log(`Client disconnected: ${users[uuid].username} ${uuid}`); // Log the disconnection of the user
-
-  delete connections[uuid]; // Remove the connection from the connections object
-  delete users[uuid]; // Remove the user from the users object
-
-  broadcastUsers(); // Broadcast the updated users list to all remaining connections
-}
-
-// When client connects to sever
-server.on('connection', async (connection, req) => {
-  const query = new URL(req.url, `http://${req.headers.host}`).searchParams; // Query passed by frontend, with firebase auth token
-  const idToken = query.get("token");
-
-  if (!idToken) {
-    connection.close(4001, "No token provided");
-    return;
-  }
-
-  try {
-    const decodedToken = await admin.auth().verifyIdToken(idToken);
-    const username = decodedToken.email || decodedToken.uid; 
-
-    const uuid = uuidv4();
-    console.log(`New client connected: ${username} ${uuid}`);
-
-    connections[uuid] = connection;
-    users[uuid] = { username, state: {} };
-
-    connection.on("message", message => handleMessage(message, uuid));
-    connection.on("close", () => handleClose(uuid));
-
-  } catch (err) {
-    console.error("Invalid token", err);
-    connection.close(4002, "Invalid token");
-  }
-});
-
-//Testing
-const uid = "test-user"; // Can be any string
-const customToken = await admin.auth().createCustomToken(uid);
-console.log("Custom token:", customToken);
-
 
 server.listen(PORT, (connections, req) => {
 
   console.log(`Server is listening on port ${PORT}`);
 
 });
-
-
-

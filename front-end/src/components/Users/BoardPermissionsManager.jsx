@@ -2,6 +2,7 @@ import "./BoardPermissionsManager.css";
 import { useState, useEffect } from "react";
 import { auth } from "../../firebase";
 import { onAuthStateChanged } from "firebase/auth";
+import { api } from "../../config/api";
 
 //Pop-up modal to manage board permissions
 
@@ -18,7 +19,7 @@ function BoardPermissionsManager({ boardId }) {
     useEffect(() => {
         const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
             setUser(currentUser);
-            
+
             if (currentUser && boardId) {
                 fetchUserPermissions(currentUser.uid, boardId);
                 fetchAllBoardUsers(boardId);
@@ -27,22 +28,18 @@ function BoardPermissionsManager({ boardId }) {
         return () => unsubscribe();
     }, [boardId]);
 
+    const withAuth = (init = {}) => ({
+        ...init,
+        headers: { ...(init.headers || {}), Authorization: `Bearer ${user?.uid || ""} ` },
+    });
+
     // Mock function to fetch user permissions (replace with actual API call)
     const fetchUserPermissions = async (userId, boardId) => {
         try {
             setLoading(true);
-            // TODO: Replace with actual API call to your backend
-            // const response = await fetch(`/api/boards/${boardId}/permissions/${userId}`, {
-            //     headers: {
-            //         'Authorization': `Bearer ${await user.getIdToken()}`
-            //     }
-            // });
-            // const data = await response.json();
-            // setUserPermission(data.permission);
-            
-            // Simulate API delay
-            await new Promise(resolve => setTimeout(resolve, 300));
-            
+            const response = await api("/:id/permissions", withAuth());
+            console.log('Fetched user permissions:', response);
+
             // Mocked data for now - you can customize this for testing
             const mockPermissions = {
                 '1': 'owner',
@@ -62,19 +59,10 @@ function BoardPermissionsManager({ boardId }) {
     const fetchAllBoardUsers = async (boardId) => {
         try {
             setLoading(true);
-            // TODO: Replace with actual API call
-            // const response = await fetch(`/api/boards/${boardId}/users`, {
-            //     headers: {
-            //         'Authorization': `Bearer ${await user.getIdToken()}`
-            //     }
-            // });
-            // const data = await response.json();
-            // setAllUsers(data.users);
-            
-            // Simulate API delay
-            await new Promise(resolve => setTimeout(resolve, 500));
-            
-            // Mocked data for now - you can customize this for testing
+            const response = await api(`/boards/${boardId}/users`, withAuth());
+
+
+
             const mockUsers = [
                 {
                     id: "user1",
@@ -148,35 +136,28 @@ function BoardPermissionsManager({ boardId }) {
         }
 
         try {
-            // TODO: Replace with actual API call
-            // await fetch(`/api/boards/${boardId}/permissions/${userId}`, {
-            //     method: 'PUT',
-            //     headers: {
-            //         'Content-Type': 'application/json',
-            //         'Authorization': `Bearer ${await user.getIdToken()}`
-            //     },
-            //     body: JSON.stringify({ permission: newPermission })
-            // });
-            
+            // Call to backend API to update permission
+            // Return new permission on success
+
             // Update local state immediately for better UX
-            setAllUsers(users => 
-                users.map(boardUser => 
-                    boardUser.id === userId 
+            setAllUsers(users =>
+                users.map(boardUser =>
+                    boardUser.id === userId
                         ? { ...boardUser, permission: newPermission }
                         : boardUser
                 )
             );
-            
+
             console.log(`Updated user ${userId} permission to ${newPermission}`);
-            
+
             // Show success feedback
             const userName = allUsers.find(u => u.id === userId)?.displayName || 'User';
             alert(`${userName}'s permission updated to ${getPermissionInfo(newPermission).label}`);
-            
+
         } catch (error) {
             console.error('Failed to update permission:', error);
             alert('Failed to update permission. Please try again.');
-            
+
             // Revert the change in UI
             fetchAllBoardUsers(boardId);
         }
@@ -185,9 +166,9 @@ function BoardPermissionsManager({ boardId }) {
     // Handle removing user from board
     const handleRemoveUser = async (userId) => {
         const userToRemove = allUsers.find(u => u.id === userId);
-        
+
         if (!userToRemove) return;
-        
+
         if (userId === user.uid) {
             alert("You cannot remove yourself from the board.");
             return;
@@ -196,7 +177,7 @@ function BoardPermissionsManager({ boardId }) {
         if (!window.confirm(`Are you sure you want to remove ${userToRemove.displayName} from the board? This action cannot be undone.`)) {
             return;
         }
-        
+
         try {
             // TODO: Replace with actual API call
             // await fetch(`/api/boards/${boardId}/users/${userId}`, {
@@ -205,17 +186,17 @@ function BoardPermissionsManager({ boardId }) {
             //         'Authorization': `Bearer ${await user.getIdToken()}`
             //     }
             // });
-            
+
             // Update local state immediately
             setAllUsers(users => users.filter(boardUser => boardUser.id !== userId));
-            
+
             console.log(`Removed user ${userId} from board`);
             alert(`${userToRemove.displayName} has been removed from the board.`);
-            
+
         } catch (error) {
             console.error('Failed to remove user:', error);
             alert('Failed to remove user. Please try again.');
-            
+
             // Refresh the user list
             fetchAllBoardUsers(boardId);
         }
@@ -224,7 +205,7 @@ function BoardPermissionsManager({ boardId }) {
     // Handle adding new user
     const handleAddUser = async () => {
         const email = newUserEmail.trim().toLowerCase();
-        
+
         if (!email) {
             alert('Please enter a valid email address');
             return;
@@ -258,10 +239,10 @@ function BoardPermissionsManager({ boardId }) {
             //     })
             // });
             // const newUser = await response.json();
-            
+
             // Simulate API delay
             await new Promise(resolve => setTimeout(resolve, 1000));
-            
+
             // Mock new user creation
             const mockNewUser = {
                 id: `user_${Date.now()}`,
@@ -272,13 +253,13 @@ function BoardPermissionsManager({ boardId }) {
                 isOnline: false,
                 lastSeen: new Date()
             };
-            
+
             setAllUsers(users => [...users, mockNewUser]);
             setNewUserEmail("");
-            
+
             console.log(`Added new user: ${email}`);
             alert(`Successfully added ${email} as a viewer to the board.`);
-            
+
         } catch (error) {
             console.error('Failed to add user:', error);
             alert('Failed to add user. Please check the email and try again.');
@@ -292,20 +273,20 @@ function BoardPermissionsManager({ boardId }) {
         const now = new Date();
         const diff = now - lastSeen;
         const minutes = Math.floor(diff / (1000 * 60));
-        
+
         if (minutes < 1) return 'Just now';
         if (minutes < 60) return `${minutes}m ago`;
-        
+
         const hours = Math.floor(minutes / 60);
         if (hours < 24) return `${hours}h ago`;
-        
+
         const days = Math.floor(hours / 24);
         if (days === 1) return 'Yesterday';
         if (days < 7) return `${days}d ago`;
-        
+
         const weeks = Math.floor(days / 7);
         if (weeks < 4) return `${weeks}w ago`;
-        
+
         return lastSeen.toLocaleDateString();
     };
 
@@ -340,7 +321,7 @@ function BoardPermissionsManager({ boardId }) {
                 className="permissions-manager-btn"
                 title="Manage board permissions"
             >
-                <span>👥</span> 
+                <span>👥</span>
                 <span>Users</span>
                 {allUsers.length > 0 && (
                     <span className="user-count">({allUsers.length})</span>
@@ -361,13 +342,13 @@ function BoardPermissionsManager({ boardId }) {
                                     <span>Loading...</span>
                                 </div>
                             )}
-                            
+
                             <div className="current-permission">
                                 <h4>Your Permission</h4>
                                 <div className="permission-item">
                                     <span className="permission-icon">{getPermissionInfo(userPermission).icon}</span>
                                     <span className="permission-label">{getPermissionInfo(userPermission).label}</span>
-                                    <span 
+                                    <span
                                         className="permission-badge"
                                         style={{ backgroundColor: getPermissionInfo(userPermission).color }}
                                     ></span>
@@ -378,7 +359,7 @@ function BoardPermissionsManager({ boardId }) {
                                     {userPermission === 'viewer' && "You can view the board but cannot make changes."}
                                 </p>
                             </div>
-                            
+
                             <div className="all-users">
                                 <div className="users-header">
                                     <div className="users-info">
@@ -396,7 +377,7 @@ function BoardPermissionsManager({ boardId }) {
                                                 onKeyPress={(e) => e.key === 'Enter' && !isAddingUser && handleAddUser()}
                                                 disabled={isAddingUser}
                                             />
-                                            <button 
+                                            <button
                                                 className="add-user-btn"
                                                 onClick={handleAddUser}
                                                 disabled={isAddingUser || !newUserEmail.trim()}
@@ -413,7 +394,7 @@ function BoardPermissionsManager({ boardId }) {
                                         </div>
                                     )}
                                 </div>
-                                
+
                                 <div className="users-list">
                                     {allUsers.length === 0 ? (
                                         <div className="empty-state">
@@ -454,7 +435,7 @@ function BoardPermissionsManager({ boardId }) {
                                                 </div>
                                                 <div className="user-permission">
                                                     {canManagePermissions && boardUser.permission !== 'owner' && boardUser.id !== user.uid ? (
-                                                        <select 
+                                                        <select
                                                             value={boardUser.permission}
                                                             onChange={(e) => handlePermissionChange(boardUser.id, e.target.value)}
                                                             className="permission-select"
@@ -470,7 +451,7 @@ function BoardPermissionsManager({ boardId }) {
                                                         </div>
                                                     )}
                                                     {isOwner && boardUser.permission !== 'owner' && boardUser.id !== user.uid && (
-                                                        <button 
+                                                        <button
                                                             onClick={() => handleRemoveUser(boardUser.id)}
                                                             className="remove-user-btn"
                                                             title="Remove user from board"
