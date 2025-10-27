@@ -1,4 +1,5 @@
 import React, { useRef, useEffect, useState } from "react";
+
 import "./Whiteboard.css";
 import { useAuth } from "../../contexts/useAuth";
 import { useStrokes } from "./hooks/useStrokes";
@@ -10,14 +11,20 @@ import Canvas from "./Canvas";
 import { useStickyNotes } from "./hooks/useStickyNotes";
 import StickyNotesLayer from "./Layers/StickyNotesLayer";
 import LiveCursors from "../../components/LiveCursors";
+import TextLayer from "./Layers/TextLayer.jsx";
+
+
 
 function Whiteboard({ client, onChange, activeTool, setActiveTool, fileId, onUndo, onRedo, onClear, }) {
   const whiteboardId = fileId || "local-" + Math.random();
   const canvasRef = useRef(null);
   const boardRef = useRef(null);
 
-  const { notes, setNotes, focusNoteId, setFocusNoteId, addNote, removeNote, moveNote, resizeNote, typeNote, loadNotes } = useStickyNotes(fileId, client, whiteboardId);
+  // state for text boxes
+  const [texts, setTexts] = useState([]);
 
+  //state for sticky notes
+  const { notes, setNotes, focusNoteId, setFocusNoteId, addNote, removeNote, moveNote, resizeNote, typeNote, loadNotes } = useStickyNotes(fileId, client, whiteboardId);
 
   const { undoStack, addStroke, undo, redo, setUndoStack, clear } = useStrokes(fileId, () => { }, onChange, loadNotes, setNotes);
 
@@ -62,7 +69,7 @@ function Whiteboard({ client, onChange, activeTool, setActiveTool, fileId, onUnd
     if (!client) return;
     const eventsChannel = client.channels.get(`whiteboard-events-${whiteboardId}`);
     //when other user performs undo/redo, do it locally as well
-    const handleRemoteUndo = () => {  
+    const handleRemoteUndo = () => {
       console.log("Received undo");
       undo();
     };
@@ -134,48 +141,47 @@ function Whiteboard({ client, onChange, activeTool, setActiveTool, fileId, onUnd
         height: "100%"
       }}
     >
-      <ViewContext.Provider value={{ view, setView }}>
-        {/* Canvas */}
-        <Canvas
-          canvasRef={canvasRef}
-          activeTool={activeTool}
-          strokes={undoStack}
-          onStrokeComplete={handleStrokeComplete}
-        />
+  <ViewContext.Provider value={{ view, setView }}>
+    {/* Canvas */}
+    <Canvas
+      canvasRef={canvasRef}
+      activeTool={activeTool}
+      strokes={undoStack}
+      onStrokeComplete={handleStrokeComplete}
+    />
 
-        {/* Sticky Notes Layer above canvas but transparent background */}
-        <StickyNotesLayer
-          activeTool={activeTool}
-          setActiveTool={setActiveTool}
-          boardRef={boardRef}
-          notes={notes}
-          setNotes={setNotes}
-          focusNoteId={focusNoteId}
-          setFocusNoteId={setFocusNoteId}
-          addNote={addNote}
-          removeNote={removeNote}
-          moveNote={moveNote}
-          resizeNote={resizeNote}
-          typeNote={typeNote}
-        />
+    {/* Sticky Notes Layer above canvas but transparent background */}
+    <StickyNotesLayer
+      activeTool={activeTool}
+      setActiveTool={setActiveTool}
+      boardRef={boardRef}
+      notes={notes}
+      setNotes={setNotes}
+      focusNoteId={focusNoteId}
+      setFocusNoteId={setFocusNoteId}
+      addNote={addNote}
+      removeNote={removeNote}
+      moveNote={moveNote}
+      resizeNote={resizeNote}
+      typeNote={typeNote}
+    />
 
-        {/* Live Cursors */}
-        {client && (
-          <LiveCursors
-            // canvasRef={canvasRef}
-            boardRef={boardRef}
-            client={client}
-            channel={client.channels.get(`whiteboard-cursors-${whiteboardId}`)}
-            whiteboardId={whiteboardId}
-          />
-        )}
-
-        <PanHandler
-          boardRef={boardRef}
-          activeTool={activeTool}
-        /> {/* PanHandler for moving around functionality (panning) when cursor is activated */}
-      </ViewContext.Provider>
-    </div>
+    {/* Live Cursors */}
+    {client && (
+      <LiveCursors
+        // canvasRef={canvasRef}
+        boardRef={boardRef}
+        client={client}
+        channel={client.channels.get(`whiteboard-cursors-${whiteboardId}`)}
+        whiteboardId={whiteboardId}
+      />
+    )}
+    <PanHandler
+      boardRef={boardRef}
+      activeTool={activeTool}
+    /> {/* PanHandler for moving around functionality (panning) when cursor is activated */}
+  </ViewContext.Provider>
+    </div >
   );
 }
 
