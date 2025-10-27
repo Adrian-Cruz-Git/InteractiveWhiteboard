@@ -106,7 +106,7 @@ export default function LiveCursors({ boardRef, client, channel, whiteboardId })
     if (!channel || !client) return;
 
     const callback = (msg) => {
-      console.log("Received cursor update:", msg.data); // DEBUG PRINT REMOVE IN PRODUCTION
+      // console.log("Received cursor update:", msg.data); // DEBUG PRINT REMOVE IN PRODUCTION
       const { clientId: msgClientId, state } = msg.data; //  use ably payload , set incoming message clientid to msgclientid
 
       if (!msgClientId) return; // ignore malformed events

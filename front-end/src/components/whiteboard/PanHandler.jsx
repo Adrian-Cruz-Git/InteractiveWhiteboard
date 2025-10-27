@@ -86,12 +86,15 @@ export default function PanHandler({ boardRef, activeTool }) {  // receives boar
                 const worldX = (mx - lastViewRef.current.offsetX) / lastViewRef.current.scale;
                 const worldY = (my - lastViewRef.current.offsetY) / lastViewRef.current.scale;
 
-                setView({
+                const newOffsetX = mx - worldX * newScale;
+                const newOffsetY = my - worldY * newScale;
+
+                  setView({
                     scale: newScale,
-                    offsetX: mx - worldX * newScale,
-                    offsetY: my - worldY * newScale,
+                    offsetX: newOffsetX,
+                    offsetY: newOffsetY,
                 });
-                console.log("PanHandler updating view to:", { offsetX, offsetY, scale });
+                // console.log("PanHandler updating view to:", { offsetX: newOffsetX, offsetY: newOffsetY, scale: newScale });
             });
         };
 

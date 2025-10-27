@@ -30,7 +30,7 @@ function Whiteboard({ client, onChange, activeTool, setActiveTool, fileId, onUnd
     if (!strokesChannel) return;
 
     const handleRemoteStroke = (message) => {
-      console.log('Received remote stroke:', message.data.stroke);
+      // console.log('Received remote stroke:', message.data.stroke);
       addStroke(message.data.stroke);
     };
 
@@ -49,7 +49,7 @@ function Whiteboard({ client, onChange, activeTool, setActiveTool, fileId, onUnd
   }, [onUndo, onRedo, onClear, undo, redo, clear]);
 
   const handleStrokeComplete = (stroke) => {
-    console.log('Publishing stroke:', stroke);
+    // console.log('Publishing stroke:', stroke);
     addStroke(stroke);
     strokesChannel?.publish("new-stroke", { stroke });
   };

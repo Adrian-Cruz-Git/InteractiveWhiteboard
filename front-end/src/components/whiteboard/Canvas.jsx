@@ -55,8 +55,6 @@ function Canvas({ canvasRef, activeTool, strokes, onStrokeComplete }) {
 
   const getPos = (e) => {
     const rect = canvasRef.current.getBoundingClientRect();
-    // const scaleX = canvasRef.current.width / rect.width;
-    // const scaleY = canvasRef.current.height / rect.height;
 
     // Mouse position on screen (in pixels)
     const clientX = e.touches?.[0]?.clientX ?? e.clientX;
@@ -66,18 +64,7 @@ function Canvas({ canvasRef, activeTool, strokes, onStrokeComplete }) {
     const x = (clientX - rect.left - view.offsetX) / view.scale;
     const y = (clientY - rect.top - view.offsetY) / view.scale;
 
-    return { x, y };
-
-    // if (e.touches && e.touches.length > 0) {
-    //   return {
-    //     x: (e.touches[0].clientX - rect.left) * scaleX,
-    //     y: (e.touches[0].clientY - rect.top) * scaleY,
-    //   };
-    // }
-    // return {
-    //   x: (e.clientX - rect.left) * scaleX,
-    //   y: (e.clientY - rect.top) * scaleY,
-    // };
+    return { x, y }; // return world coordinates
   };
 
   const startDrawing = (e) => {
@@ -124,7 +111,6 @@ function Canvas({ canvasRef, activeTool, strokes, onStrokeComplete }) {
         erase: activeTool === "eraser",
       });
     }
-    console.log('Stroke completed:', currentStroke.current.x, currentStroke.current.y);
     currentStroke.current = [];
   };
 
