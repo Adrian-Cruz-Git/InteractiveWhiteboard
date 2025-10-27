@@ -10,22 +10,24 @@ export default function FileSystem() {
 
   const [items, setItems] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [currentFolder, setCurrentFolder] = useState(null); // null = root
-  const [breadcrumb, setBreadcrumb] = useState([]);         // [{id, name}...]
-  const [workingId, setWorkingId] = useState(null);         // item currently being deleted
+  const [currentFolder, setCurrentFolder] = useState(null);
+  const [breadcrumb, setBreadcrumb] = useState([]);
+  const [workingId, setWorkingId] = useState(null);
 
   const loadItems = async (folderId = null) => {
     setLoading(true);
     try {
-      const qs = folderId ? `?parent_id=${encodeURIComponent(folderId)}` : `?parent_id=null`;
+      const qs = folderId ? `?parent_id=${encodeURIComponent(folderId)}` : "";
       const data = await api(`/files${qs}`);
       setItems(data || []);
+
       if (folderId) {
         const trail = await api(`/files/breadcrumb/${folderId}`);
         setBreadcrumb([{ id: null, name: "Root" }, ...trail]);
       } else {
         setBreadcrumb([{ id: null, name: "Root" }]);
       }
+
     } catch (e) {
       console.error("Error fetching items:", e.message);
     } finally {
@@ -40,9 +42,11 @@ export default function FileSystem() {
 
   const createFolder = async () => {
     const name = prompt("Folder name:");
-    if (!name?.trim()) return;
+    if (!name?.trim()) {
+      return;
+    }
     try {
-      await api(`/files/folders`, { method: "POST", body: { name, parent_id: currentFolder, owner: currentUser } });
+      await api(`/files/folders`, { method: "POST", body: { name, parent_id: currentFolder ?? null }, });
       loadItems(currentFolder);
     } catch (e) {
       console.error("Error creating folder:", e.message);
@@ -51,11 +55,18 @@ export default function FileSystem() {
 
   const createWhiteboard = async () => {
     const name = prompt("Whiteboard name:");
-    if (!name?.trim()) return;
+    if (!name?.trim()) {
+      return;
+    }
+
     try {
-      const created = await api(`/files/whiteboards`, { method: "POST", body: { name, parent_id: currentFolder, owner: currentUser } });
+      const created = await api(`/files/whiteboards`, { method: "POST", body: { name, parent_id: currentFolder ?? null }, });
       loadItems(currentFolder);
-      navigate(`/whiteboard/${created.id}`);
+
+      if (created?.id) {
+        navigate(`/whiteboards/${created.id}`);
+      }
+      
     } catch (e) {
       console.error("Error creating whiteboard:", e.message);
     }

@@ -36,8 +36,20 @@ async function deleteRecursively(fileId) {
 // get parentid / uuid
 router.get("/", async (req, res) => {
   //parent id for finding files through user
+
+  const uid = req.user?.uid;
   const parent_id = req.query.parent_id ?? null;
   console.log(parent_id);
+
+  if (!uid) {
+    return res.status(401).json({ error: "Unauthorized" });
+  }
+
+  const owned = await supabase.from("files").select("id, name, type, parent_id, owner, created_at").eq("owner", uid).is("parent_id", parentId);
+
+
+  if (owned.error) return res.status(400).json({ error: owned.error.message });
+
   //query to find files
   const query = supabase.from("files").select("*").order("type", { ascending: true }).order("name", { ascending: true });
 
@@ -83,8 +95,8 @@ router.get("/breadcrumb/:id", async (req, res) => {
 router.post("/folders", async (req, res) => {
   const { name, parent_id, owner } = req.body;
 
-  if (!name || !owner){
-    return res.status(400).json({error: "name and owner required"});
+  if (!name || !owner) {
+    return res.status(400).json({ error: "name and owner required" });
   }
 
   const { data, error } = await supabase.from("files").insert({ name, parent_id, type: "folder" }).select().single();
@@ -99,7 +111,7 @@ router.post("/folders", async (req, res) => {
 router.post("/whiteboards", async (req, res) => {
   const { name, parent_id, owner } = req.body;
 
-  const { data: file, error: filError } = await supabase.from("files").insert({ name, parent_id, type: "whiteboards", owner }).select().single();
+  const { data: file, error: filError } = await supabase.from("files").insert({ name, parent_id, type: "whiteboards" }).select().single();
 
   if (filError) {
     console.log(filError.message);
