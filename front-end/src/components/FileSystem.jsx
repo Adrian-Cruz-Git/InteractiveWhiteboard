@@ -111,7 +111,8 @@ export default function FileSystem() {
     if (item.type === "folder") {
       setCurrentFolder(item.id);
     }
-    if (item.type === "whiteboard") { // ← singular to match server
+    if (item.type === "whiteboard") { // dont fuk with the naming shits confusing af
+      console.log("Navigating to whiteboard", item.id);
       navigate(`/whiteboards/${item.id}`);
     }
   };
