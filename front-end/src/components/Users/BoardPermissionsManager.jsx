@@ -13,12 +13,18 @@ function BoardPermissionsManager({ boardId }) {
     const [allUsers, setAllUsers] = useState([]);
     const [newUserEmail, setNewUserEmail] = useState("");
     const [isAddingUser, setIsAddingUser] = useState(false);
+
+
+    
     const [loading, setLoading] = useState(false);
 
     const withAuth = (init = {}) => ({
         ...init,
         headers: { ...(init.headers || {}), Authorization: `Bearer ${user?.uid || ""}`, ...(user?.email ? { "X-User-Email": String(user.email).toLowerCase() } : {}), "Content-Type": "application/json", },
     });
+
+
+
 
     // Mock function to fetch user permissions (replace with actual API call)
     const fetchUserPermissions = async (boardId) => {
@@ -211,6 +217,8 @@ function BoardPermissionsManager({ boardId }) {
         }
     };
 
+
+
     // Format last seen time
     const formatLastSeen = (lastSeen) => {
         const now = new Date();
@@ -233,11 +241,17 @@ function BoardPermissionsManager({ boardId }) {
         return lastSeen.toLocaleDateString();
     };
 
+
+
+
     // Handle modal close
     const handleCloseModal = () => {
         setShowPermissionsModal(false);
         setNewUserEmail("");
     };
+
+
+
 
     // Handle escape key
     useEffect(() => {
@@ -255,9 +269,15 @@ function BoardPermissionsManager({ boardId }) {
         return null;
     }
 
+
+
+
     const canManagePermissions = userPermission === 'owner' || userPermission === 'editor';
     const isOwner = userPermission === 'owner';
     const onlineUsersCount = allUsers.filter(u => u.isOnline).length;
+
+
+
 
     return (
         <>
