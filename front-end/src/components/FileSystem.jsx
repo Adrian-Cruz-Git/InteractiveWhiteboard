@@ -14,20 +14,25 @@ export default function FileSystem() {
   const [breadcrumb, setBreadcrumb] = useState([]);
   const [workingId, setWorkingId] = useState(null);
 
+  // ---- minimal helper to add auth header to every call ----
+  const withAuth = (init = {}) => ({
+    ...init,
+    headers: { ...(init.headers || {}), Authorization: `Bearer ${user?.uid || ""}` },
+  });
+
   const loadItems = async (folderId = null) => {
     setLoading(true);
     try {
       const qs = folderId ? `?parent_id=${encodeURIComponent(folderId)}` : "";
-      const data = await api(`/files${qs}`);
+      const data = await api(`/files${qs}`, withAuth());
       setItems(data || []);
 
       if (folderId) {
-        const trail = await api(`/files/breadcrumb/${folderId}`);
+        const trail = await api(`/files/breadcrumb/${folderId}`, withAuth());
         setBreadcrumb([{ id: null, name: "Root" }, ...trail]);
       } else {
         setBreadcrumb([{ id: null, name: "Root" }]);
       }
-
     } catch (e) {
       console.error("Error fetching items:", e.message);
     } finally {
@@ -46,7 +51,13 @@ export default function FileSystem() {
       return;
     }
     try {
-      await api(`/files/folders`, { method: "POST", body: { name, parent_id: currentFolder ?? null }, });
+      const body = { name };
+
+      if (currentFolder !== null) {
+        body.parent_id = currentFolder;
+      }
+
+      await api(`/files/folders`, withAuth({ method: "POST", body: currentFolder === null ? { name } : { name, parent_id: currentFolder } }));
       loadItems(currentFolder);
     } catch (e) {
       console.error("Error creating folder:", e.message);
@@ -55,18 +66,18 @@ export default function FileSystem() {
 
   const createWhiteboard = async () => {
     const name = prompt("Whiteboard name:");
-    if (!name?.trim()) {
-      return;
-    }
+    if (!name?.trim()) return;
 
     try {
-      const created = await api(`/files/whiteboards`, { method: "POST", body: { name, parent_id: currentFolder ?? null }, });
-      loadItems(currentFolder);
+      const body = { name };
 
-      if (created?.id) {
-        navigate(`/whiteboards/${created.id}`);
+      if (currentFolder !== null) {
+        body.parent_id = currentFolder;
       }
-      
+
+      const created = await api(`/files/whiteboards`, withAuth({ method: "POST", body: currentFolder === null ? { name } : { name, parent_id: currentFolder } }));
+      loadItems(currentFolder);
+      if (created?.id) navigate(`/whiteboards/${created.id}`);
     } catch (e) {
       console.error("Error creating whiteboard:", e.message);
     }
@@ -76,7 +87,7 @@ export default function FileSystem() {
     if (!confirm("Delete this item and all its contents?")) return;
     setWorkingId(id);
     try {
-      await api(`/files/${id}`, { method: "DELETE" });
+      await api(`/files/${id}`, withAuth({ method: "DELETE" }));
       setItems((prev) => prev.filter((it) => it.id !== id));
     } catch (e) {
       alert(e.message);
@@ -89,17 +100,18 @@ export default function FileSystem() {
     const name = prompt("New name:", currentName);
     if (!name || name === currentName) return;
     try {
-      await api(`/files/${id}`, { method: "PATCH", body: { name } });
+      await api(`/files/${id}/rename`, withAuth({ method: "PUT", body: { name } }));
       setItems((prev) => prev.map((it) => (it.id === id ? { ...it, name } : it)));
-    } catch (e) { alert(e.message); }
+    } catch (e) {
+      alert(e.message);
+    }
   };
-
 
   const openItem = (item) => {
     if (item.type === "folder") {
       setCurrentFolder(item.id);
     }
-    if (item.type === "whiteboards") {
+    if (item.type === "whiteboards") { // ← singular to match server
       navigate(`/whiteboards/${item.id}`);
     }
   };
@@ -151,13 +163,13 @@ export default function FileSystem() {
                 </div>
               </div>
 
-              {/* Action buttons (Open / Delete) */}
+              {/* Action buttons */}
               <div className="item-actions">
                 <button
                   type="button"
                   className="btn btn-small"
                   onClick={(e) => {
-                    e.stopPropagation();        // don't trigger row click
+                    e.stopPropagation();
                     openItem(item);
                   }}
                   disabled={isDeleting}
@@ -166,23 +178,20 @@ export default function FileSystem() {
                   Open
                 </button>
 
-                {/* Delete works for both whiteboards and folders */}
                 <button
                   type="button"
                   className="btn btn-small btn-danger"
                   onClick={(e) => {
-                    e.stopPropagation();        // don't trigger row click
-                    handleDeleteWhiteboard(item, e);
+                    e.stopPropagation();
+                    deleteItem(item.id); {/* ← call the defined deleter */ }
                   }}
                   disabled={isDeleting}
                   title={isFolder ? "Delete folder and all contents" : "Delete whiteboard"}
                 >
                   {isDeleting ? "Deleting…" : "Delete"}
                 </button>
+
                 <button onClick={() => renameItem(item.id, item.name)}>Rename</button>
-                <button disabled={workingId === item.id} onClick={() => deleteItem(item.id)}>
-                  {workingId === item.id ? "Deleting..." : "Delete"}
-                </button>
               </div>
             </li>
           );
