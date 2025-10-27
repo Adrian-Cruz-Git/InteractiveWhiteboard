@@ -91,6 +91,7 @@ export default function PanHandler({ boardRef, activeTool }) {  // receives boar
                     offsetX: mx - worldX * newScale,
                     offsetY: my - worldY * newScale,
                 });
+                console.log("PanHandler updating view to:", { offsetX, offsetY, scale });
             });
         };
 

@@ -4,7 +4,7 @@ import { useAuth } from "../contexts/useAuth";
 import { colors } from "../config.js"; // your Ably key
 import { useView } from "./whiteboard/ViewContext";
 
-export default function LiveCursors({ canvasRef, client, channel, whiteboardId }) { // get all the ably stuff from whiteboard 
+export default function LiveCursors({ boardRef, client, channel, whiteboardId }) { // get all the ably stuff from whiteboard 
 
   const [members, setMembers] = useState({}); // Set members of cursor group
   const { currentUser } = useAuth(); // currentUser should have email or username
@@ -31,46 +31,27 @@ export default function LiveCursors({ canvasRef, client, channel, whiteboardId }
     return client?.auth?.clientId || client?.clientId;
   }, [client]);
 
-  // Update container position to match canvas
+ // Style the cursor container to overlay the board
   useEffect(() => {
-    if (!canvasRef.current) return;
+  if (!boardRef.current) return;
 
-    const updateContainerPosition = () => {
-      const canvas = canvasRef.current;
-      const rect = canvas.getBoundingClientRect();
+  setContainerStyle({
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    width: '100%',
+    height: '100%',
+    pointerEvents: 'none',
+    zIndex: 9999,
+    overflow: 'visible',
+  });
+}, [boardRef]);
 
-      setContainerStyle({
-        position: 'fixed',
-        top: `${rect.top}px`,
-        left: `${rect.left}px`,
-        width: `${rect.width}px`,
-        height: `${rect.height}px`,
-        pointerEvents: 'none',
-        zIndex: 9999
-      });
-    };
-
-    // Update initially
-    updateContainerPosition();
-
-    // Update on resize and scroll
-    window.addEventListener('resize', updateContainerPosition);
-    window.addEventListener('scroll', updateContainerPosition);
-
-    // Also update when the canvas might resize (using MutationObserver)
-    const resizeObserver = new ResizeObserver(updateContainerPosition);
-    resizeObserver.observe(canvasRef.current);
-
-    return () => {
-      window.removeEventListener('resize', updateContainerPosition);
-      window.removeEventListener('scroll', updateContainerPosition);
-      resizeObserver.disconnect();
-    };
-  }, [canvasRef]);
 
   // Publish own cursor (with throttling)
   useEffect(() => {
-    if (!canvasRef.current || !client || !channel) return;
+    // if (!canvasRef.current || !client || !channel) return;
+    if (!boardRef.current || !client || !channel) return;
     let lastSent = 0;
     const interval = 50; // ms between updates- ably limited to 50 every second - currently 20 updates a second
 
@@ -78,20 +59,17 @@ export default function LiveCursors({ canvasRef, client, channel, whiteboardId }
       const now = Date.now(); // get date for now
       if (now - lastSent < interval) return; // if havent been 50ms since last update, dont update
       lastSent = now; // if it has, send channel update, and update the last sent time to now
-      //old live cursors
-      // const rect = canvasRef.current.getBoundingClientRect();
-
-      // // Calculate relative position within canvas
-      // const x = ((e.clientX - rect.left) / rect.width) * 100; // Percentage for scaling
-      // const y = ((e.clientY - rect.top) / rect.height) * 100;
 
       // new live cursors with zooming support
-      const rect = canvasRef.current.getBoundingClientRect();
-      const worldX = (e.clientX - rect.left - view.offsetX) / view.scale;
-      const worldY = (e.clientY - rect.top - view.offsetY) / view.scale;
+      const rect = boardRef.current.getBoundingClientRect();
+      // Convert screen position to world position
+      // Mouse position relative to canvas
+      const canvasX = e.clientX - rect.left;
+      const canvasY = e.clientY - rect.top;
 
-      console.log("Cursor coords:", worldX, worldY, "Canvas rect:", rect, "Mouse:", e.clientX, e.clientY);
-
+      // Convert to world coordinates
+      const worldX = (canvasX - view.offsetX) / view.scale;
+      const worldY = (canvasY - view.offsetY) / view.scale;
 
       // console.log("Publishing cursor update:", { x, y, name: userName }); // DEBUG PRINT REMOVE IN PRODUCTION
 
@@ -106,22 +84,22 @@ export default function LiveCursors({ canvasRef, client, channel, whiteboardId }
     };
 
     const handleMouseLeave = () => {
-      console.log("Publishing cursor leave"); // DEBUG PRINT REMOVE IN PRODUCTION
+      // console.log("Publishing cursor leave"); // DEBUG PRINT REMOVE IN PRODUCTION
       channel.publish("cursor-update", {
         clientId: clientId,
         state: "leave",
       });
     };
 
-    const canvas = canvasRef.current; // add reference to current canvas
-    canvas.addEventListener("mousemove", handleMouseMove); // add listener for moving a mouse 
-    canvas.addEventListener("mouseleave", handleMouseLeave); // add listener for mouse leave (when mouse goes off the canvas)
+    const board = boardRef.current; // add reference to current canvas
+    board.addEventListener("mousemove", handleMouseMove); // add listener for moving a mouse 
+    board.addEventListener("mouseleave", handleMouseLeave); // add listener for mouse leave (when mouse goes off the canvas)
 
     return () => {
-      canvas.removeEventListener("mousemove", handleMouseMove);
-      canvas.removeEventListener("mouseleave", handleMouseLeave);
+      board.removeEventListener("mousemove", handleMouseMove);
+      board.removeEventListener("mouseleave", handleMouseLeave);
     };
-  }, [canvasRef, client, channel, userName, userColor, clientId]);
+  }, [boardRef, client, channel, userName, userColor, clientId, view]); // publish cursor position on mouse move with zoom and pan support (view)
 
   // Subscribe to other cursors
   useEffect(() => {
@@ -157,10 +135,9 @@ export default function LiveCursors({ canvasRef, client, channel, whiteboardId }
       ref={cursorContainerRef}
       style={containerStyle}
     >
-      {Object.values(members).map((m) => {
+      {Object.values(members).map((m) => { // render each cursor
         const screenX = m.x * view.scale + view.offsetX;
         const screenY = m.y * view.scale + view.offsetY;
-
         return (
           <div
             key={m.clientId}
@@ -173,10 +150,10 @@ export default function LiveCursors({ canvasRef, client, channel, whiteboardId }
               gap: "4px",
               pointerEvents: "none",
               zIndex: 9999,
-              transform: "translate(-2px, -2px)", // optional offset for pointer tip
+              transform: "translate(-2px, -2px)", // offset to position cursor tip correctly
             }}
           >
-            {/* Actual cursor */}
+            {/* Actual cursor styling*/}
             <CursorSvg cursorColor={m.color} />
             <div
               style={{

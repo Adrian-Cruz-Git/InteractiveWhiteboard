@@ -124,7 +124,7 @@ function Canvas({ canvasRef, activeTool, strokes, onStrokeComplete }) {
         erase: activeTool === "eraser",
       });
     }
-
+    console.log('Stroke completed:', currentStroke.current.x, currentStroke.current.y);
     currentStroke.current = [];
   };
 

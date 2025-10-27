@@ -100,7 +100,8 @@ function Whiteboard({ client, onChange, activeTool, setActiveTool, fileId, onUnd
         {/* Live Cursors */}
         {client && (
           <LiveCursors
-            canvasRef={canvasRef}
+            // canvasRef={canvasRef}
+            boardRef={boardRef}
             client={client}
             channel={client.channels.get(`whiteboard-cursors-${whiteboardId}`)}
             whiteboardId={whiteboardId}
