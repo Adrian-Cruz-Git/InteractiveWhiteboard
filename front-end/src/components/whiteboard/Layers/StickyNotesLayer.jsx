@@ -36,7 +36,7 @@ export default function StickyNotesLayer({
 //   };
 
   const handleDragMove = (id, pos) => {
-  console.log("handleDragMove called:", id, pos);
+//   console.log("handleDragMove called:", id, pos); // debug
   setDraggingNote(true);
   const { x, y } = pos;
   if (typeof x !== "number" || typeof y !== "number") {
@@ -45,7 +45,7 @@ export default function StickyNotesLayer({
   }
   setNotes(prev => {
     const updated = prev.map(n => (n.id === id ? { ...n, x, y } : n));
-    console.log("Updated notes:", updated);
+    // console.log("Updated notes:", updated); // debug
     return updated;
   });
 };

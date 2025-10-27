@@ -121,7 +121,7 @@ export default function StickyNote({
       // Only allow dragging with edit tool
       if (activeTool !== "edit") return;
       
-      console.log("Starting drag setup");
+      // console.log("Starting drag setup"); // debug
       e.stopPropagation();
       e.preventDefault();
 
@@ -142,11 +142,11 @@ export default function StickyNote({
         origY: y,
       };
 
-      console.log("Dragging state set:", dragging.current);
-      console.log("Adding event listeners");
+      // console.log("Dragging state set:", dragging.current); // debug
+      // console.log("Adding event listeners"); //debug
 
       const handleMouseMove = (e) => {
-        console.log("MouseMove fired, dragging.current:", dragging.current);
+        // console.log("MouseMove fired, dragging.current :", dragging.current); // debug
         if (!dragging.current) return;
 
         const scale = view?.scale ?? 1;
@@ -156,7 +156,7 @@ export default function StickyNote({
         const currWorldX = (e.clientX - offsetX) / scale;
         const currWorldY = (e.clientY - offsetY) / scale;
 
-        console.log("World coords:", { currWorldX, currWorldY });
+        // console.log("World coords:", { currWorldX, currWorldY }); // debug
 
         if (!Number.isFinite(currWorldX) || !Number.isFinite(currWorldY)) return;
 
@@ -166,12 +166,12 @@ export default function StickyNote({
         const nx = dragging.current.origX + dx;
         const ny = dragging.current.origY + dy;
 
-        console.log("Calling onDragMove with:", { nx, ny });
+        // console.log("Calling onDragMove with:", { nx, ny }); // debug
         onDragMove?.(id, { x: nx, y: ny });
       };
 
       const handleMouseUp = () => {
-        console.log("MouseUp fired");
+        // console.log("MouseUp fired"); //debug
         document.body.style.cursor = "default";
 
         if (dragging.current) {
