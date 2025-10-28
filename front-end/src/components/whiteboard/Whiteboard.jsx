@@ -1,5 +1,4 @@
 import React, { useRef, useEffect, useState } from "react";
-
 import "./Whiteboard.css";
 import { useAuth } from "../../contexts/useAuth";
 import { useStrokes } from "./hooks/useStrokes";
@@ -21,10 +20,11 @@ function Whiteboard({ client, onChange, activeTool, setActiveTool, fileId, onUnd
   const boardRef = useRef(null);
 
   // state for text boxes
-  const [texts, setTexts] = useState([]);
+  const [texts, setTexts] = useState([]); 
 
   //state for sticky notes
   const { notes, setNotes, focusNoteId, setFocusNoteId, addNote, removeNote, moveNote, resizeNote, typeNote, loadNotes } = useStickyNotes(fileId, client, whiteboardId);
+
 
   const { undoStack, addStroke, undo, redo, setUndoStack, clear } = useStrokes(fileId, () => { }, onChange, loadNotes, setNotes);
 
