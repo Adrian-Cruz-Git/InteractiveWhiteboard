@@ -7,21 +7,23 @@ export default function TextLayer({
     texts,
     setTexts,
 }) {
-    const [dragging, setDragging] = useState(false);
-    const justPlacedRef = useRef(false); // track if we just placed a new text box
-    const resizingRef = useRef(null); // track which text is being resized
+    const justPlacedRef = useRef(false);
+    const resizingRef = useRef(null);
+    const draggingRef = useRef(null); // track which text is being dragged
 
     //Text state management functions
-    const addText = (newText) => setTexts((prev) => [...prev, newText]); // add new text box
-    const updateText = (id, text) => // update text content
+    const addText = (newText) => setTexts((prev) => [...prev, newText]);
+    const updateText = (id, text) =>
         setTexts((prev) => prev.map((t) => (t.id === id ? { ...t, text } : t)));
-    const updateSize = (id, w, h) => // rezise text box
+    const updateSize = (id, w, h) =>
         setTexts((prev) => prev.map((t) => (t.id === id ? { ...t, w, h } : t)));
-    const removeText = (id) => setTexts((prev) => prev.filter((t) => t.id !== id)); // remove text box
+    const updatePosition = (id, x, y) =>
+        setTexts((prev) => prev.map((t) => (t.id === id ? { ...t, x, y } : t)));
+    const removeText = (id) => setTexts((prev) => prev.filter((t) => t.id !== id));
 
     // handle new text placement
     const handleBoardClick = (e) => {
-        if (dragging || activeTool !== "text") return;
+        if (draggingRef.current || resizingRef.current || activeTool !== "text") return;
 
         const rect = boardRef.current.getBoundingClientRect();
         const x = e.clientX - rect.left + boardRef.current.scrollLeft;
@@ -38,7 +40,7 @@ export default function TextLayer({
 
         addText(newText);
         justPlacedRef.current = true;
-        setActiveTool("edit"); // after placing, switch to edit mode (default mode)
+        setActiveTool("edit");
     };
 
     // auto focus newly added box
@@ -60,8 +62,47 @@ export default function TextLayer({
         }, 50);
     }, [texts]);
 
-    // Resize Logic 
-    const handleMouseDownResize = (e, id) => {  // when mouse click , start resizing
+    // Drag Logic
+    const handleMouseDownDrag = (e, id) => {
+        // Don't drag if clicking inside the text
+        if (e.target.classList.contains('wb-text-editable')) {
+            return;
+        }
+
+        e.stopPropagation();
+        e.preventDefault();
+
+        const target = texts.find((t) => t.id === id);
+        draggingRef.current = {
+            id,
+            startX: e.clientX,
+            startY: e.clientY,
+            startPosX: target.x,
+            startPosY: target.y,
+        };
+
+        window.addEventListener("mousemove", handleMouseMoveDrag);
+        window.addEventListener("mouseup", handleMouseUpDrag);
+    };
+
+    const handleMouseMoveDrag = (e) => {
+        if (!draggingRef.current) return;
+
+        const { id, startX, startY, startPosX, startPosY } = draggingRef.current;
+        const dx = e.clientX - startX;
+        const dy = e.clientY - startY;
+
+        updatePosition(id, startPosX + dx, startPosY + dy);
+    };
+
+    const handleMouseUpDrag = () => {
+        draggingRef.current = null;
+        window.removeEventListener("mousemove", handleMouseMoveDrag);
+        window.removeEventListener("mouseup", handleMouseUpDrag);
+    };
+
+    // Resize Logic
+    const handleMouseDownResize = (e, id) => {
         e.stopPropagation();
         e.preventDefault();
         resizingRef.current = { id, startX: e.clientX, startY: e.clientY };
@@ -74,7 +115,7 @@ export default function TextLayer({
         window.addEventListener("mouseup", handleMouseUpResize);
     };
 
-    const handleMouseMoveResize = (e) => {  // called by mousemove event (mousedown starts it) , resize box
+    const handleMouseMoveResize = (e) => {
         if (!resizingRef.current) return;
 
         const { id, startX, startY, startW, startH } = resizingRef.current;
@@ -87,7 +128,7 @@ export default function TextLayer({
         updateSize(id, newW, newH);
     };
 
-    const handleMouseUpResize = () => { // stop resizing
+    const handleMouseUpResize = () => {
         resizingRef.current = null;
         window.removeEventListener("mousemove", handleMouseMoveResize);
         window.removeEventListener("mouseup", handleMouseUpResize);
@@ -107,16 +148,18 @@ export default function TextLayer({
             {texts.map((t) => (
                 <div
                     key={t.id}
+                    onMouseDown={(e) => activeTool === "edit" && handleMouseDownDrag(e, t.id)}
                     style={{
                         position: "absolute",
                         left: `${t.x}px`,
                         top: `${t.y}px`,
                         width: `${t.w}px`,
                         height: `${t.h}px`,
-                        border: "1px dashed #ccc",
-                        background: "white",
-                        fontSize: "14px",
+                        border: activeTool === "edit" ? "2px solid #2196F3" : "none",
+                        background: "transparent",
+                        fontSize: "16px",
                         zIndex: 50,
+                        cursor: activeTool === "edit" ? "move" : "default",
                     }}
                 >
                     <div
@@ -130,60 +173,65 @@ export default function TextLayer({
                             height: "100%",
                             outline: "none",
                             padding: "4px",
-                            cursor:
-                                activeTool === "edit" ||
-                                    activeTool === "" ||
-                                    activeTool == null
-                                    ? "text"
-                                    : "default",
+                            cursor: "text",
                             whiteSpace: "pre-wrap",
                             wordWrap: "break-word",
-                            overflow: "auto",
+                            overflow: "visible",
                             background: "transparent",
-                            color: "black",
-                            fontFamily: "sans-serif",
+                            color: "#000",
+                            fontFamily: "-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif",
+                            lineHeight: "1.4",
                         }}
                         ref={(el) => {
-                            {/* Only set text if it is different from original text*/}
                             if (el && el.textContent !== t.text && !document.activeElement.isSameNode(el)){
-                                // Only set text if not currently being edited
                                 el.textContent = t.text;
                             }
                         }}
                         onBlur={(e) => updateText(t.id, e.target.textContent)}
+                        onMouseDown={(e) => e.stopPropagation()}
                     />
                     {/* Resize Handle */}
                     {activeTool === "edit" && (
                         <div
+                            className="resize-handle"
                             onMouseDown={(e) => handleMouseDownResize(e, t.id)}
                             style={{
                                 position: "absolute",
-                                bottom: "-4px",
-                                right: "-4px",
-                                width: "10px",
-                                height: "10px",
-                                background: "rgba(0,0,0,0.5)",
-                                borderRadius: "2px",
+                                bottom: "-5px",
+                                right: "-5px",
+                                width: "12px",
+                                height: "12px",
+                                background: "#2196F3",
+                                border: "2px solid white",
+                                borderRadius: "50%",
                                 cursor: "nwse-resize",
+                                boxShadow: "0 1px 3px rgba(0,0,0,0.2)",
                             }}
                         />
                     )}
                     {/* Delete Button */}
                     {activeTool === "edit" && (
                         <button
+                            className="delete-button"
                             onClick={() => removeText(t.id)}
                             style={{
                                 position: "absolute",
-                                top: "-8px",
-                                right: "-8px",
-                                fontSize: "10px",
-                                border: "none",
-                                background: "red",
+                                top: "-10px",
+                                right: "-10px",
+                                fontSize: "14px",
+                                border: "2px solid white",
+                                background: "#f44336",
                                 color: "white",
                                 borderRadius: "50%",
-                                width: "16px",
-                                height: "16px",
+                                width: "20px",
+                                height: "20px",
                                 cursor: "pointer",
+                                display: "flex",
+                                alignItems: "center",
+                                justifyContent: "center",
+                                boxShadow: "0 1px 3px rgba(0,0,0,0.2)",
+                                fontWeight: "bold",
+                                lineHeight: "1",
                             }}
                         >
                             ×
