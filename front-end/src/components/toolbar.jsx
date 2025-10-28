@@ -73,7 +73,7 @@ export default function Toolbar({ activeTool, setActiveTool, onUndo, onRedo, onC
       <button onClick={() => selectTool('cursor')} title="Cursor" aria-label="Cursor" className={activeTool === "cursor" ? "active" : ""}>
         <img src={cursorIcon} alt="Cursor" style={{ width: 25, height: 25 }} />
       </button>
-
+      
       {/* Pen */}
       <button onClick={() => selectTool("pen")} title="Pen" aria-label="Pen" className={activeTool === "pen" ? "active" : ""}>
         <img src={penIcon} alt="Pen" style={{ width: 25, height: 25 }} />

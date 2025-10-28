@@ -10,12 +10,19 @@ import Canvas from "./Canvas";
 import { useStickyNotes } from "./hooks/useStickyNotes";
 import StickyNotesLayer from "./Layers/StickyNotesLayer";
 import LiveCursors from "../../components/LiveCursors";
+import TextLayer from "./Layers/TextLayer.jsx";
+
+
 
 function Whiteboard({ client, onChange, activeTool, setActiveTool, fileId, onUndo, onRedo, onClear, }) {
   const whiteboardId = fileId || "local-" + Math.random();
   const canvasRef = useRef(null);
   const boardRef = useRef(null);
 
+  // state for text boxes
+  const [texts, setTexts] = useState([]);
+
+  //state for sticky notes
   const { notes, setNotes, focusNoteId, setFocusNoteId, addNote, removeNote, moveNote, resizeNote, typeNote, loadNotes } = useStickyNotes(fileId, client, whiteboardId);
 
 
@@ -62,7 +69,7 @@ function Whiteboard({ client, onChange, activeTool, setActiveTool, fileId, onUnd
     if (!client) return;
     const eventsChannel = client.channels.get(`whiteboard-events-${whiteboardId}`);
     //when other user performs undo/redo, do it locally as well
-    const handleRemoteUndo = () => {  
+    const handleRemoteUndo = () => {
       console.log("Received undo");
       undo();
     };
@@ -158,6 +165,13 @@ function Whiteboard({ client, onChange, activeTool, setActiveTool, fileId, onUnd
           resizeNote={resizeNote}
           typeNote={typeNote}
         />
+        <TextLayer
+          activeTool={activeTool}
+          setActiveTool={setActiveTool}
+          boardRef={boardRef}
+          texts={texts}
+          setTexts={setTexts}
+        />
 
         {/* Live Cursors */}
         {client && (
@@ -169,13 +183,12 @@ function Whiteboard({ client, onChange, activeTool, setActiveTool, fileId, onUnd
             whiteboardId={whiteboardId}
           />
         )}
-
         <PanHandler
           boardRef={boardRef}
           activeTool={activeTool}
         /> {/* PanHandler for moving around functionality (panning) when cursor is activated */}
       </ViewContext.Provider>
-    </div>
+    </div >
   );
 }
 
