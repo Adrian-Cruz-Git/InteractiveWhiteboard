@@ -1,95 +1,109 @@
+// components/EditableBoardName.jsx
 import { useState, useRef, useEffect } from "react";
+import { api } from "../config/api";
+import { useAuth } from "../contexts/useAuth";
 
-export default function EditableBoardName({ initialName, onNameChange }) {
-  const [name, setName] = useState(initialName);
+export default function EditableBoardName({ fileId, value, onChange }) {
+  const { user } = useAuth();
+  const [draft, setDraft] = useState(value || "");
   const [isEditing, setIsEditing] = useState(false);
-  const [isHovered, setIsHovered] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
   const inputRef = useRef(null);
 
-  // Automatically select all text when entering edit mode
+  // keep local draft in sync when parent value changes
   useEffect(() => {
-    if (isEditing && inputRef.current) {
-      inputRef.current.select();
-    }
+    setDraft(value || "");
+  }, [value]);
+
+  useEffect(() => {
+    if (isEditing && inputRef.current) inputRef.current.select();
   }, [isEditing]);
 
-  const handleBlur = () => {
-    setIsEditing(false);
-    onNameChange?.(name);
+  const withAuth = async (init = {}) => {
+    const idToken = user ? await user.getIdToken() : "";
+    return {
+      ...init,
+      headers: {
+        ...(init.headers || {}),
+        Authorization: `Bearer ${idToken}`,
+        "Content-Type": "application/json",
+      },
+    };
   };
 
-  const handleKeyDown = (e) => { // Handle Enter and Escape keys , finish editing
-    if (e.key === "Enter" || e.key === "Escape") {
-      e.preventDefault();
-      handleBlur();
+  const renameItem = async (id, newName) => {
+    if (!id) throw new Error("Missing fileId for rename.");
+    const trimmed = (newName || "").trim();
+    if (!trimmed) throw new Error("Name cannot be empty.");
+    if (trimmed === (value || "").trim()) return { skipped: true };
+
+    setIsSaving(true);
+    try {
+      const req = await withAuth({
+        method: "PUT",
+        body: JSON.stringify({ name: trimmed }),
+      });
+      await api(`/files/${id}/rename`, req);
+      return { ok: true, next: trimmed };
+    } finally {
+      setIsSaving(false);
     }
   };
-  
+
+  const commit = async () => {
+    setIsEditing(false);
+    try {
+      const res = await renameItem(fileId, draft);
+      if (res?.ok) {
+        onChange?.(res.next); // parent updates its state
+      } else if (res?.skipped) {
+        setDraft(value || "");
+      }
+    } catch (e) {
+      alert(e?.message || "Failed to rename.");
+      setDraft(value || "");
+    }
+  };
+
+  const cancel = () => {
+    setIsEditing(false);
+    setDraft(value || "");
+  };
+
+  const handleKeyDown = (e) => {
+    if (e.key === "Enter") { e.preventDefault(); commit(); }
+    else if (e.key === "Escape") { e.preventDefault(); cancel(); }
+  };
+
+  const readOnly = !fileId;
 
   return (
     <div
-      style={{
-        display: "flex",
-        alignItems: "center",
-        gap: "8px",
-        padding: "4px 8px",
-        position: "relative",
-      }}
-      onMouseEnter={() => setIsHovered(true)}
-      onMouseLeave={() => setIsHovered(false)}
+      style={{ display: "flex", alignItems: "center", gap: 8, padding: "4px 8px", position: "relative" }}
     >
-      {isEditing ? (
+      {isEditing && !readOnly ? (
         <input
           ref={inputRef}
-          value={name}
-          onChange={(e) => setName(e.target.value)}
-          onBlur={handleBlur}
+          value={draft}
+          onChange={(e) => setDraft(e.target.value)}
+          onBlur={commit}
           onKeyDown={handleKeyDown}
           autoFocus
-          style={{
-            fontSize: "16px",
-            border: "1px solid #ccc",
-            borderRadius: "4px",
-            padding: "4px 8px",
-            width: "250px",
-          }}
+          disabled={isSaving}
+          style={{ fontSize: 16, border: "1px solid #ccc", borderRadius: 4, padding: "4px 8px", width: 250 }}
         />
       ) : (
-        <div style={{ position: "relative" }}>
-          <h2
-            style={{
-              fontSize: "16px",
-              margin: 0,
-              cursor: "text",
-              userSelect: "none",
-              transition: "color 0.2s",
-              color: isHovered ? "#b8b8b8ff" : "white",
-            }}
-            onClick={() => setIsEditing(true)}
-          >
-            {name || "Untitled Board"}
-          </h2>
-
-          {/* Hover tooltip */}
-          {isHovered && (
-            <div
-              style={{
-                position: "absolute",
-                top: "100%",
-                left: "0",
-                background: "rgba(0,0,0,0.75)",
-                color: "white",
-                fontSize: "12px",
-                padding: "4px 6px",
-                borderRadius: "4px",
-                marginTop: "4px",
-                whiteSpace: "nowrap",
-              }}
-            >
-              Click to rename
-            </div>
-          )}
-        </div>
+        <h2
+          style={{
+            fontSize: 16, margin: 0, cursor: readOnly ? "default" : "text",
+            userSelect: "none", opacity: isSaving ? 0.7 : 1,
+          }}
+          title={readOnly ? "Loading..." : isSaving ? "Saving..." : "Click to rename"}
+          onClick={() => { if (!readOnly) setIsEditing(true); }}
+        >
+          {(value && value.trim()) ? value : "Untitled Board"}
+          {isSaving ? " (saving…)" : ""}
+        </h2>
       )}
     </div>
   );

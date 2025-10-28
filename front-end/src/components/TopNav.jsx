@@ -7,12 +7,12 @@ import OnlineUsers from "./Users/OnlineUsers";
 import EditableBoardName from "./EditableBoardName";
 import "./TopNav.css";
 
-const TopNav = ({ boardId, client }) => {
+const TopNav = ({ fileName, boardId, client, onNameChange }) => {
   const { user } = useAuth();
 
-  const handleNameChange  = (newName) => {
+  const handleNameChange = (newName) => {
     setBoardName(newName);
-     // future: call API endpoint here
+    // future: call API endpoint here
     // await fetch(`/api/boards/${boardId}/rename`, { method: 'PUT', body: JSON.stringify({ name: newName }) });
   };
 
@@ -29,11 +29,11 @@ const TopNav = ({ boardId, client }) => {
           {/* <Link to="/settings">Settings</Link> */}
           <Link to="/files">Files</Link>
           {/* Render online users only on whiteboard */}
-          {boardId && <EditableBoardName initialName={boardId} onNameChange={handleNameChange} />}
+          {boardId && <EditableBoardName fileId={boardId} value={fileName || ""} onChange={onNameChange} />}
           {boardId && client && <OnlineUsers boardId={boardId} client={client} />}
           {boardId && <ShareBtn activeBoard={boardId} />}
 
- 
+
           <button onClick={handleLogout} className="logout-btn">
             Logout
           </button>

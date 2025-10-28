@@ -1,4 +1,4 @@
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 // import { nanoid } from "nanoid"; // old import
 import { useParams } from "react-router-dom";
 import Whiteboard from "../components/whiteboard/Whiteboard";
@@ -14,6 +14,8 @@ import "./WhiteboardPage.css";
 function WhiteboardPage() {
     const user = auth.currentUser;
     const { id } = useParams();
+    const { fileId } = useParams();
+    const [file, setFile] = useState(null);
 
     const undoRef = useRef();
     const redoRef = useRef();
@@ -30,12 +32,27 @@ function WhiteboardPage() {
         () => { }
     );
 
+    useEffect(() => {
+        let mounted = true;
+        (async () => {
+            // Make sure this returns { id, name, ... }
+            const data = await api(`/files/${fileId}`);
+            if (mounted) setFile(data);
+        })();
+        return () => { mounted = false; };
+    }, [fileId]);
+
+    const handleNameChange = (next) => {
+        setFile((f) => (f ? { ...f, name: next } : f));
+    };
+
 
     // ---- Render ----
     return (
         <div className="whiteboard-app">
             {/* Give client and boardId to topnav to display active users */}
-            <TopNav client={client} boardId={id} />
+            <TopNav client={client} boardId={id} fileName={file?.name || ""} fileId={fileId}   // this controls the child
+        onNameChange={handleNameChange}/>
             {/*Chat Icon/Button*/}
             <button
                 className="chat-btn"
