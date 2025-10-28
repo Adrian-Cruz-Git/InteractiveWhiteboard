@@ -1,5 +1,3 @@
-shapelayer.jsx
-
 import React, { useRef, useEffect } from 'react';
 import { Stage, Layer, Rect, Ellipse, Line, Arrow, Transformer } from 'react-konva';
 
