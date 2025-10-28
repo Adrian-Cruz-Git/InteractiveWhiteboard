@@ -71,7 +71,7 @@ function Chat({ open, onClose, user, fileId }) {
     })();
 
     // Subscribe to new messages, read receipts, and typing events
-    const subscriber = (msg) => {
+    const subscriber = (msg = {}) => {
       const name = msg.name; // "message", "read", or "typing"
       const data = msg.data || {};
 
@@ -81,7 +81,7 @@ function Chat({ open, onClose, user, fileId }) {
             data.id ||
             `${data.time || new Date().toISOString()}-${data.sender || "unknown"}-${Math.random()
               .toString(36)
-              .substr(2, 7)}`,
+              .slice(2, 7)}`,
           text: data.text || "",
           sender: data.sender || "Anonymous",
           time: data.time,
