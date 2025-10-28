@@ -1,196 +1,180 @@
-import React, { useRef, useEffect, useContext } from "react"; // Added useContext
+import React, { useRef, useEffect, useState } from "react";
 import "./Whiteboard.css";
-import { useAuth } from "../../contexts/useAuth"; // Keep if needed elsewhere, though not directly used here
+import { useAuth } from "../../contexts/useAuth";
 import { useStrokes } from "./hooks/useStrokes";
-import { useStickyNotes } from "./hooks/useStickyNotes";
-import { useShapes } from "./hooks/useShapes";          // Import Shapes hook
-import { ShapeLayer } from "./ShapeLayer";            // Import ShapeLayer component
-import PanHandler from "./PanHandler";                 // Your PanHandler import
-import { ViewContext, useView } from "./ViewContext";  // Import ViewContext and useView hook
+import PanHandler from "./PanHandler"; // for panning functionality using cursor
+import { ViewContext } from "./ViewContext";// context for view state (zooming and panning)
+// Remove this import since client is already created in WhiteboardPage
+// import { useRealtime } from "./hooks/useRealtime";
 import Canvas from "./Canvas";
+import { useStickyNotes } from "./hooks/useStickyNotes";
 import StickyNotesLayer from "./Layers/StickyNotesLayer";
 import LiveCursors from "../../components/LiveCursors";
 
-// Added shapeSettings and toolSettings props
-function Whiteboard({ client, onChange, activeTool, setActiveTool, fileId, onUndo, onRedo, onClear, shapeSettings, toolSettings }) {
+function Whiteboard({ client, onChange, activeTool, setActiveTool, fileId, onUndo, onRedo, onClear, }) {
   const whiteboardId = fileId || "local-" + Math.random();
   const canvasRef = useRef(null);
   const boardRef = useRef(null);
-  const { view, setView } = useView(); // Get view state and setter from context
 
-  // --- Hooks ---
-  const { notes, setNotes, ...noteHandlers } = useStickyNotes(fileId, client, whiteboardId);
-  // Pass client to useStrokes if needed for publishing
-  const { undoStack, addStroke, undo, redo, setUndoStack, clear: clearStrokes } = useStrokes(fileId, client, onChange, noteHandlers.loadNotes, noteHandlers.setNotes);
-  // Initialize shapes hook
-  const { shapes, addShape, updateShape, removeShape, clearShapes, selectedShapeId, setSelectedShapeId } = useShapes(fileId, client);
+  const { notes, setNotes, focusNoteId, setFocusNoteId, addNote, removeNote, moveNote, resizeNote, typeNote, loadNotes } = useStickyNotes(fileId, client, whiteboardId);
 
 
-  // --- Real-time Event Handlers (Your existing logic) ---
+  const { undoStack, addStroke, undo, redo, setUndoStack, clear } = useStrokes(fileId, () => { }, onChange, loadNotes, setNotes);
 
-  // Strokes subscription
+
+
+  // Use the client passed from WhiteboardPage
   const strokesChannel = client?.channels.get(`whiteboard-strokes-${whiteboardId}`);
+
+  // Set up real-time stroke subscription - subscirbe to other users strokes
   useEffect(() => {
     if (!strokesChannel) return;
-    const handleRemoteStroke = (message) => {
-      addStroke(message.data.stroke, 'remote'); // Pass 'remote' flag
-    };
-    strokesChannel.subscribe("new-stroke", handleRemoteStroke);
-    // Load stroke history
-    strokesChannel.history((err, resultPage) => {
-        if (err) return console.error("Error loading stroke history:", err);
-        const loadedStrokes = resultPage.items.map(msg => msg.data.stroke);
-        setUndoStack(loadedStrokes);
-    });
-    return () => strokesChannel.unsubscribe("new-stroke", handleRemoteStroke);
-  }, [strokesChannel, addStroke, setUndoStack]);
 
-  // Clear subscription
+    const handleRemoteStroke = (message) => {
+      // console.log('Received remote stroke:', message.data.stroke);
+      addStroke(message.data.stroke);
+    };
+
+    strokesChannel.subscribe("new-stroke", handleRemoteStroke);
+
+    return () => {
+      strokesChannel.unsubscribe("new-stroke", handleRemoteStroke);
+    };
+  }, [strokesChannel, addStroke]);
+
+  // Set up real-time clear subscription - subscribe to others users clear events
   useEffect(() => {
     if (!client) return;
     const eventsChannel = client.channels.get(`whiteboard-events-${whiteboardId}`);
-    const handleRemoteClear = (msg) => {
+
+    const handleRemoteClear = (msg) => { // receive clear event from other user
       console.log("Received clear from:", msg.data.by);
-      clearStrokes(); // Use clearStrokes from hook
-      clearShapes();  // Clear shapes
-      noteHandlers.setNotes({}); // Clear notes (assuming setNotes({}) clears)
+      clear(); // wipe local canvas when others clear
+      setNotes([]); // clear sticky notes as well
     };
+
     eventsChannel.subscribe("clear", handleRemoteClear);
     return () => eventsChannel.unsubscribe("clear", handleRemoteClear);
-  }, [client, whiteboardId, clearStrokes, clearShapes, noteHandlers]); // Added dependencies
+  }, [client, whiteboardId, clear]);
 
-  // Undo/Redo subscription
+  // Set up real-time undo/redo subscription - subscribe to other users undo/redo events
   useEffect(() => {
     if (!client) return;
     const eventsChannel = client.channels.get(`whiteboard-events-${whiteboardId}`);
-    const handleRemoteUndo = () => undo();
-    const handleRemoteRedo = () => redo();
+    //when other user performs undo/redo, do it locally as well
+    const handleRemoteUndo = () => {  
+      console.log("Received undo");
+      undo();
+    };
+
+    const handleRemoteRedo = () => {
+      console.log("Received redo");
+      redo();
+    };
+
     eventsChannel.subscribe("undo", handleRemoteUndo);
     eventsChannel.subscribe("redo", handleRemoteRedo);
+
     return () => {
       eventsChannel.unsubscribe("undo", handleRemoteUndo);
       eventsChannel.unsubscribe("redo", handleRemoteRedo);
     };
-  }, [client, whiteboardId, undo, redo]); // Make sure hooks don't cause infinite loops
+  }, [client, whiteboardId, undo, redo]);
 
 
-  // --- Broadcasting Actions (Undo/Redo/Clear) ---
+  // Set up undo, redo, and clear broadcasting - publish to other users when local user performs these actions
   useEffect(() => {
     if (!client) return;
+
     const eventsChannel = client.channels.get(`whiteboard-events-${whiteboardId}`);
 
     const handleClear = () => {
-      clearStrokes(); // Clear locally
-      clearShapes();  // Clear locally
-      noteHandlers.setNotes({}); // Clear notes locally
-      eventsChannel?.publish("clear", { by: client.auth.clientId }); // Broadcast
+      clear(); // clear locally
+      setNotes([]); // clear sticky notes locally
+      eventsChannel?.publish("clear", { by: client.auth.clientId }); // broadcast to other users
     };
 
     const handleUndo = () => {
-      undo(); // Perform local undo (from useStrokes)
+      undo();
       eventsChannel.publish("undo", { by: client.auth.clientId });
     };
 
     const handleRedo = () => {
-      redo(); // Perform local redo (from useStrokes)
+      redo();
       eventsChannel.publish("redo", { by: client.auth.clientId });
     };
 
-    // Connect refs to these handlers
     if (onUndo) onUndo.current = handleUndo;
     if (onRedo) onRedo.current = handleRedo;
     if (onClear) onClear.current = handleClear;
+  }, [client, whiteboardId, undo, redo, clear]);
 
-  // Added clearStrokes, clearShapes, noteHandlers.setNotes to dependencies
-  }, [client, whiteboardId, undo, redo, clearStrokes, clearShapes, noteHandlers, onUndo, onRedo, onClear]);
-
-
-  // --- Local Action Handlers ---
   const handleStrokeComplete = (stroke) => {
-    addStroke(stroke); // Hook should handle adding locally and publishing
-    // strokesChannel?.publish("new-stroke", { stroke }); // Only if hook doesn't publish
+    // console.log('Publishing stroke:', stroke);
+    addStroke(stroke);
+    strokesChannel?.publish("new-stroke", { stroke });
   };
 
-  // Determine pointer event status for shape layer
-  const isShapeLayerActive = activeTool === 'shapes' || activeTool === 'cursor';
+  // View state for zooming and panning, needed for zooming implementation
+  // Keeps coords for the global view state of the whiteboard (camera like model)
+  const [view, setView] = useState({
+    scale: 1,
+    offsetX: 0,
+    offsetY: 0,
+  });
 
   return (
-    // No need for ViewContext.Provider here if it's provided higher up
     <div
       className="whiteboard-container"
       ref={boardRef}
       style={{
         position: "relative",
-        overflow: "hidden", // Changed from scroll
+        overflow: "hidden", // previously "scroll"
         width: "100%",
-        height: "100%",
-        cursor: activeTool === 'pen' || activeTool === 'highlighter' || activeTool === 'eraser' ? 'crosshair' :
-                activeTool === 'shapes' ? 'copy' :
-                activeTool === 'cursor' ? 'default' : 'default' // Handle cursor tool explicitly
+        height: "100%"
       }}
     >
-        {/* LAYER 1: Pixel Canvas */}
+      <ViewContext.Provider value={{ view, setView }}>
+        {/* Canvas */}
         <Canvas
           canvasRef={canvasRef}
           activeTool={activeTool}
           strokes={undoStack}
           onStrokeComplete={handleStrokeComplete}
-          toolSettings={toolSettings} // Pass settings down
-          view={view} // Pass view for coordinate calculations if needed in Canvas
         />
 
-        {/* LAYER 2: Sticky Notes */}
-        <div style={{ pointerEvents: activeTool === 'sticky' || activeTool === 'cursor' ? 'auto' : 'none' }}>
-          <StickyNotesLayer
-            activeTool={activeTool}
-            setActiveTool={setActiveTool}
-            boardRef={boardRef} // Pass boardRef
-            fileId={fileId}
-            notes={notes}
-            setNotes={setNotes} // Pass setNotes
-            focusNoteId={focusNoteId} // Pass focusNoteId
-            setFocusNoteId={setFocusNoteId} // Pass setFocusNoteId
-            addNote={noteHandlers.addNote} // Pass specific handlers
-            removeNote={noteHandlers.removeNote}
-            moveNote={noteHandlers.moveNote}
-            resizeNote={noteHandlers.resizeNote}
-            typeNote={noteHandlers.typeNote}
-            view={view} // Pass view context
-          />
-        </div>
-
-        {/* LAYER 3: Shapes */}
-        <div style={{ pointerEvents: isShapeLayerActive ? 'auto' : 'none', position: 'absolute', top: 0, left: 0, width: '100%', height: '100%' }}>
-          <ShapeLayer
-            activeTool={activeTool}
-            shapeSettings={shapeSettings}
-            onAddShape={addShape}
-            shapes={shapes}
-            onUpdateShape={updateShape}
-            onRemoveShape={removeShape}
-            selectedShapeId={selectedShapeId}
-            onSelectShape={setSelectedShapeId}
-            view={view} // Pass view context down
-          />
-        </div>
+        {/* Sticky Notes Layer above canvas but transparent background */}
+        <StickyNotesLayer
+          activeTool={activeTool}
+          setActiveTool={setActiveTool}
+          boardRef={boardRef}
+          notes={notes}
+          setNotes={setNotes}
+          focusNoteId={focusNoteId}
+          setFocusNoteId={setFocusNoteId}
+          addNote={addNote}
+          removeNote={removeNote}
+          moveNote={moveNote}
+          resizeNote={resizeNote}
+          typeNote={typeNote}
+        />
 
         {/* Live Cursors */}
         {client && (
           <LiveCursors
-            boardRef={boardRef} // Pass boardRef
+            // canvasRef={canvasRef}
+            boardRef={boardRef}
             client={client}
             channel={client.channels.get(`whiteboard-cursors-${whiteboardId}`)}
             whiteboardId={whiteboardId}
-            view={view} // Pass view context
           />
         )}
 
-        {/* Pan Handler */}
         <PanHandler
           boardRef={boardRef}
           activeTool={activeTool}
-          // No need to pass view/setView if PanHandler uses useView() internally
-        />
+        /> {/* PanHandler for moving around functionality (panning) when cursor is activated */}
+      </ViewContext.Provider>
     </div>
   );
 }
