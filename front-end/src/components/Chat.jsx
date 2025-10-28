@@ -28,7 +28,7 @@ function Chat({ open, onClose, user, fileId }) {
 
     const channel = ably.channels.get(`chat:whiteboard-chat-${fileId}`);
     channelRef.current = channel;
-    
+
     // subscribe to typing events
     channel.subscribe("typing", (msg) => {
       const { sender, typing } = msg.data || {};
@@ -157,8 +157,8 @@ function Chat({ open, onClose, user, fileId }) {
     otherTypers.length === 0
       ? ""
       : otherTypers.length === 1
-      ? `${otherTypers[0]} is typing...`
-      : `${otherTypers.join(", ")} are typing...`;
+        ? `${otherTypers[0]} is typing...`
+        : `${otherTypers.join(", ")} are typing...`;
 
   return (
     <div className="chat-modal">
@@ -168,13 +168,18 @@ function Chat({ open, onClose, user, fileId }) {
           ×
         </button>
       </div>
-      <div className="chat-messages">
-        {messages.map((m, i) => (
-          <div key={i} className="chat-message">
-            <b>{m.sender}:</b> {m.text}
-          </div>
-        ))}
+      <div className="chat-messages"> {/*update messages to dispaly as "Me" if sender is current user*/}
+        {messages.map((m, i) => {
+          const isMe = m.sender === (user?.email || "Anonymous");
+          const displayName = isMe ? "Me" : m.sender;
+          return (
+            <div key={i} className={`chat-message ${isMe ? "chat-message--me" : ""}`}>
+              <b>{displayName}:</b> {m.text}
+            </div>
+          );
+        })}
       </div>
+
       {/* typing indicator for other users */}
       {typingUsers.length > 0 && (
         <div className="typing-indicator" style={{ fontSize: "0.9rem", color: "#666", margin: "6px 12px" }}>
