@@ -13,7 +13,7 @@ const path = require('path');
 const fs = require('fs');
 
 // Allow requests from frontend
-const PORT = process.env.NODE_PORT || 5000;
+const PORT = process.env.NODE_PORT || 5001;
 
 // Middleware
 app.use(cors({ origin: true, credentials: true }));
