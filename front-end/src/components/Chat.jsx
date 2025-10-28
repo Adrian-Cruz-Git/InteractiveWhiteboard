@@ -8,21 +8,12 @@ const ABLY_KEY = config.ABLY_KEY;
 
 function Chat({ open, onClose, user, fileId }) {
   const [messages, setMessages] = useState([]);
+  const [typingUsers, setTypingUsers] = useState([]);
   const [input, setInput] = useState("");
-  const [typingUsers, setTypingUsers] = useState([]); // list of other users currently typing
   const clientRef = useRef(null);
   const channelRef = useRef(null);
-  const readSentRef = useRef(new Set()); // track which message ids have been read
-  const typingTimeoutRef = useRef(null);
-
-  useEffect(() => {
-  const handleEscape = (e) => {
-    if (e.key === "Escape") onClose();
-  };
-  document.addEventListener("keydown", handleEscape);
-  return () => document.removeEventListener("keydown", handleEscape);
-}, [onClose]);
-
+  const typingTimeoutRef = useRef({}); // per-user removal timers
+  const stopTypingPublishTimerRef = useRef(null); // debounce for our "stop typing" publish
 
   useEffect(() => {
     if (!open) return;
@@ -37,6 +28,28 @@ function Chat({ open, onClose, user, fileId }) {
 
     const channel = ably.channels.get(`chat:whiteboard-chat-${fileId}`);
     channelRef.current = channel;
+    
+    // subscribe to typing events
+    channel.subscribe("typing", (msg) => {
+      const { sender, typing } = msg.data || {};
+      if (!sender || sender === user?.email) return; // ignore our own events
+
+      if (typing) {
+        setTypingUsers(prev => (prev.includes(sender) ? prev : [...prev, sender]));
+        // reset removal timer for this sender
+        if (typingTimeoutRef.current[sender]) clearTimeout(typingTimeoutRef.current[sender]);
+        typingTimeoutRef.current[sender] = setTimeout(() => {
+          setTypingUsers(prev => prev.filter(s => s !== sender));
+          delete typingTimeoutRef.current[sender];
+        }, 3000); // remove after 3s of no typing updates
+      } else {
+        setTypingUsers(prev => prev.filter(s => s !== sender));
+        if (typingTimeoutRef.current[sender]) {
+          clearTimeout(typingTimeoutRef.current[sender]);
+          delete typingTimeoutRef.current[sender];
+        }
+      }
+    });
 
     // Load last 100 messages from history
     (async () => {
@@ -70,75 +83,31 @@ function Chat({ open, onClose, user, fileId }) {
       }
     })();
 
-    // Subscribe to new messages, read receipts, and typing events
-    const subscriber = (msg = {}) => {
-      const name = msg.name; // "message", "read", or "typing"
-      const data = msg.data || {};
-
-      if (name === "message") {
-        const newMessage = {
-          id:
-            data.id ||
-            `${data.time || new Date().toISOString()}-${data.sender || "unknown"}-${Math.random()
-              .toString(36)
-              .slice(2, 7)}`,
-          text: data.text || "",
-          sender: data.sender || "Anonymous",
-          time: data.time,
-          seenBy: data.seenBy || [],
-        };
-        setMessages((prev) => {
-          if (prev.some((m) => m.id === newMessage.id)) return prev; // avoid duplicates
-          return [...prev, newMessage];
-        });
-
-        // if the message is from others, publish a read receipt once
-        if (newMessage.sender !== userId && !readSentRef.current.has(newMessage.id)) {
-          try {
-            channel.publish("read", { messageId: newMessage.id, reader: userId });
-            readSentRef.current.add(newMessage.id);
-          } catch (err) {
-            console.error("Error publishing read receipt:", err);
-          }
+    // Subscribe to new messages
+    channel.subscribe("message", (msg) => {
+      setMessages((prev) => {
+        if (
+          prev.some(
+            (m) => m.time === msg.data.time && m.sender === msg.data.sender
+          )
+        ) {
+          return prev; // skip duplicate
         }
-      } else if (name === "read") {
-        const { messageId, reader } = data;
-        if (!messageId || !reader) return;
-        setMessages((prev) =>
-          prev.map((m) => {
-            if (m.id !== messageId) return m;
-            const seen = new Set([...(m.seenBy || []), reader]);
-            return { ...m, seenBy: Array.from(seen) };
-          })
-        );
-      } else if (name === "typing") {
-        const { user: typingUser, typing } = data;
-        if (!typingUser) return;
-        // ignore our own typing events
-        if (typingUser === userId) return;
+        return [...prev, msg.data];
+      });
+    });
 
-        setTypingUsers((prev) => {
-          const s = new Set(prev || []);
-          if (typing) s.add(typingUser);
-          else s.delete(typingUser);
-          return Array.from(s);
-        });
-      }
-    };
-
-    channel.subscribe(subscriber);
-
-    // ensure we clear typing indicator on unmount / close
     return () => {
       try {
         if (channel && userId) channel.publish("typing", { user: userId, typing: false });
       } catch (e) {
         /* ignore */
       }
-      channel.unsubscribe(subscriber);
+      channel.unsubscribe();
       ably.close();
-      readSentRef.current.clear();
-      if (typingTimeoutRef.current) clearTimeout(typingTimeoutRef.current);
+      // clear timers
+      Object.values(typingTimeoutRef.current || {}).forEach(t => clearTimeout(t));
+      if (stopTypingPublishTimerRef.current) clearTimeout(stopTypingPublishTimerRef.current);
     };
   }, [open, user, fileId]);
 
@@ -168,24 +137,15 @@ function Chat({ open, onClose, user, fileId }) {
   };
 
   const sendMessage = () => {
-    const userId = user?.email || "Anonymous";
     if (input.trim() && channelRef.current) {
-      const msg = {
-        id: `${new Date().toISOString()}-${Math.random().toString(36).slice(2, 7)}`,
+      channelRef.current.publish("message", {
         text: input,
-        sender: userId,
+        sender: user?.email || "Anonymous",
         time: new Date().toISOString(),
-        seenBy: [], // recipients will add themselves when they receive and read
-      };
-      channelRef.current.publish("message", msg);
-      setMessages((prev) => [...prev, msg]);
+      });
+      // tell others we stopped typing when we send
+      channelRef.current.publish("typing", { sender: user?.email || "Anonymous", typing: false });
       setInput("");
-      // stop typing indicator for ourselves immediately after send
-      publishTyping(false);
-      if (typingTimeoutRef.current) {
-        clearTimeout(typingTimeoutRef.current);
-        typingTimeoutRef.current = null;
-      }
     }
   };
 
@@ -210,35 +170,31 @@ function Chat({ open, onClose, user, fileId }) {
       </div>
       <div className="chat-messages">
         {messages.map((m, i) => (
-          <div key={m.id || i} className="chat-message">
-            <div>
-              {m.sender ? <b>{m.sender}:</b> : null} {m.text}
-            </div>
-            {/* show seen indicator only for messages I sent and that have others in seenBy */}
-            {m.sender === (user?.email || "Anonymous") && m.seenBy && m.seenBy.length > 0 && (
-              <div style={{ fontSize: "0.8rem", color: "#666", marginTop: 4 }}>
-                Seen by {m.seenBy.join(", ")}
-              </div>
-            )}
+          <div key={i} className="chat-message">
+            <b>{m.sender}:</b> {m.text}
           </div>
         ))}
       </div>
-
-      {/* typing indicator */}
-      {typingText && (
-        <div style={{ padding: "0 1rem 0.5rem 1rem", color: "#666", fontSize: "0.9rem" }}>
-          {typingText}
+      {/* typing indicator for other users */}
+      {typingUsers.length > 0 && (
+        <div className="typing-indicator" style={{ fontSize: "0.9rem", color: "#666", margin: "6px 12px" }}>
+          {typingUsers.join(", ")} typing...
         </div>
       )}
-
       <div className="chat-input">
         <input
           value={input}
-          onChange={(e) => onInputChange(e.target.value)}
-          onKeyDown={(e) => {
-            if (e.key === "Enter") sendMessage();
-            // optionally announce typing on keydown as well
+          onChange={(e) => {
+            setInput(e.target.value);
+            if (!channelRef.current) return;
+            // publish that we're typing and debounce a stop-typing publish
+            channelRef.current.publish("typing", { sender: user?.email || "Anonymous", typing: true });
+            if (stopTypingPublishTimerRef.current) clearTimeout(stopTypingPublishTimerRef.current);
+            stopTypingPublishTimerRef.current = setTimeout(() => {
+              if (channelRef.current) channelRef.current.publish("typing", { sender: user?.email || "Anonymous", typing: false });
+            }, 2000); // 2s inactivity -> stop typing
           }}
+          onKeyDown={(e) => e.key === "Enter" && sendMessage()}
           placeholder="Type a message..."
         />
         <button onClick={sendMessage}>Send</button>
