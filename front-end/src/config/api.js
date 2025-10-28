@@ -1,5 +1,16 @@
 export const API_BASE = import.meta.env.VITE_API_BASE || 'http://localhost:5000/api';
 
+// Add this helper:
+export function authHeadersFromUser(user) {
+  // Try stable places Firebase puts the token without needing async getIdToken()
+  const token =
+    user?.accessToken ||
+    user?.stsTokenManager?.accessToken ||
+    null;
+
+  return token ? { Authorization: `Bearer ${token}` } : {};
+}
+
 export async function api(path, { method = 'GET', headers = {}, body } = {}) {
   const opts = { method, headers: { 'Content-Type': 'application/json', ...headers } };
 

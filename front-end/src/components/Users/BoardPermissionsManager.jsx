@@ -2,7 +2,7 @@ import "./BoardPermissionsManager.css";
 import { useState, useEffect } from "react";
 import { auth } from "../../firebase";
 import { onAuthStateChanged } from "firebase/auth";
-import { api } from "../../config/api";
+import { api, authHeadersFromUser } from "../../config/api";
 
 //Pop-up modal to manage board permissions
 
@@ -13,19 +13,9 @@ function BoardPermissionsManager({ boardId }) {
     const [allUsers, setAllUsers] = useState([]);
     const [newUserEmail, setNewUserEmail] = useState("");
     const [isAddingUser, setIsAddingUser] = useState(false);
-
-
-    
     const [loading, setLoading] = useState(false);
 
-    const withAuth = (init = {}) => ({
-        ...init,
-        headers: { ...(init.headers || {}), Authorization: `Bearer ${user?.uid || ""}`, ...(user?.email ? { "X-User-Email": String(user.email).toLowerCase() } : {}), "Content-Type": "application/json", },
-    });
-
-
-
-
+    const withAuth = (init = {}) => ({ ...init, headers: { ...(init.headers || {}), ...authHeadersFromUser(user), "Content-Type": "application/json" }, });
     // Mock function to fetch user permissions (replace with actual API call)
     const fetchUserPermissions = async (boardId) => {
         try {

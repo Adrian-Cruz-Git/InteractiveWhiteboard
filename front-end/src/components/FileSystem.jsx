@@ -1,12 +1,22 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { api } from "../config/api";
+import { api, authHeadersFromUser } from "../config/api";
 import { useAuth } from "../contexts/useAuth";
 import "./FileSystem.css";
+
 
 export default function FileSystem() {
   const { user } = useAuth();
   const navigate = useNavigate();
+
+  const withAuth = (init = {}) => ({
+  ...init,
+  headers: {
+    ...(init.headers || {}),
+    ...authHeadersFromUser(user),
+    "Content-Type": "application/json",
+  },
+});
 
   const [items, setItems] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -14,11 +24,13 @@ export default function FileSystem() {
   const [breadcrumb, setBreadcrumb] = useState([]);
   const [workingId, setWorkingId] = useState(null);
 
-  // ---- minimal helper to add auth header to every call ----
 
-  
 
   const loadItems = async (folderId = null) => {
+    if (!user) {
+      return; // wait for auth
+    }
+
     setLoading(true);
     try {
       const qs = folderId ? `?parent_id=${encodeURIComponent(folderId)}` : "";

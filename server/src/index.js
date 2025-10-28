@@ -1,19 +1,12 @@
 const http = require('http');
 const express = require('express');
+const cors = require("cors"); // Rules for front end requests to back end
 
 // Create an instance of Express
 const app = express();
 
 const server = http.createServer(app); // Create an HTTP server using the Express app
-//Cant use import syntax unless type: module in package.json
-const cors = require("cors"); // Rules for front end requests to back end
-const url = require("url");
 
-const path = require('path');
-const fs = require('fs');
-
-// Allow requests from frontend
-const PORT = process.env.NODE_PORT || 5000;
 
 // Middleware
 app.use(cors({ origin: true, credentials: true }));
@@ -29,6 +22,9 @@ app.use('/api/invitations', require('./routes/invitations'));
 app.use('/api/permissions', require('./routes/permissions'));
 
 //Websocket connection handling - (not ably)
+
+// Allow requests from frontend
+const PORT = process.env.NODE_PORT || 5000;
 
 server.listen(PORT, (connections, req) => {
 
