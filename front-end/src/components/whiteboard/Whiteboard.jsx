@@ -20,7 +20,7 @@ function Whiteboard({ client, onChange, activeTool, setActiveTool, fileId, onUnd
   const boardRef = useRef(null);
 
   // state for text boxes
-  const [texts, setTexts] = useState([]); 
+  const [texts, setTexts] = useState([]);
 
   //state for sticky notes
   const { notes, setNotes, focusNoteId, setFocusNoteId, addNote, removeNote, moveNote, resizeNote, typeNote, loadNotes } = useStickyNotes(fileId, client, whiteboardId);
@@ -141,46 +141,53 @@ function Whiteboard({ client, onChange, activeTool, setActiveTool, fileId, onUnd
         height: "100%"
       }}
     >
-  <ViewContext.Provider value={{ view, setView }}>
-    {/* Canvas */}
-    <Canvas
-      canvasRef={canvasRef}
-      activeTool={activeTool}
-      strokes={undoStack}
-      onStrokeComplete={handleStrokeComplete}
-    />
+      <ViewContext.Provider value={{ view, setView }}>
+        {/* Canvas */}
+        <Canvas
+          canvasRef={canvasRef}
+          activeTool={activeTool}
+          strokes={undoStack}
+          onStrokeComplete={handleStrokeComplete}
+        />
 
-    {/* Sticky Notes Layer above canvas but transparent background */}
-    <StickyNotesLayer
-      activeTool={activeTool}
-      setActiveTool={setActiveTool}
-      boardRef={boardRef}
-      notes={notes}
-      setNotes={setNotes}
-      focusNoteId={focusNoteId}
-      setFocusNoteId={setFocusNoteId}
-      addNote={addNote}
-      removeNote={removeNote}
-      moveNote={moveNote}
-      resizeNote={resizeNote}
-      typeNote={typeNote}
-    />
+        {/* Sticky Notes Layer above canvas but transparent background */}
+        <StickyNotesLayer
+          activeTool={activeTool}
+          setActiveTool={setActiveTool}
+          boardRef={boardRef}
+          notes={notes}
+          setNotes={setNotes}
+          focusNoteId={focusNoteId}
+          setFocusNoteId={setFocusNoteId}
+          addNote={addNote}
+          removeNote={removeNote}
+          moveNote={moveNote}
+          resizeNote={resizeNote}
+          typeNote={typeNote}
+        />
+        <TextLayer
+          activeTool={activeTool}
+          setActiveTool={setActiveTool}
+          boardRef={boardRef}
+          texts={texts}
+          setTexts={setTexts}
+        />
 
-    {/* Live Cursors */}
-    {client && (
-      <LiveCursors
-        // canvasRef={canvasRef}
-        boardRef={boardRef}
-        client={client}
-        channel={client.channels.get(`whiteboard-cursors-${whiteboardId}`)}
-        whiteboardId={whiteboardId}
-      />
-    )}
-    <PanHandler
-      boardRef={boardRef}
-      activeTool={activeTool}
-    /> {/* PanHandler for moving around functionality (panning) when cursor is activated */}
-  </ViewContext.Provider>
+        {/* Live Cursors */}
+        {client && (
+          <LiveCursors
+            // canvasRef={canvasRef}
+            boardRef={boardRef}
+            client={client}
+            channel={client.channels.get(`whiteboard-cursors-${whiteboardId}`)}
+            whiteboardId={whiteboardId}
+          />
+        )}
+        <PanHandler
+          boardRef={boardRef}
+          activeTool={activeTool}
+        /> {/* PanHandler for moving around functionality (panning) when cursor is activated */}
+      </ViewContext.Provider>
     </div >
   );
 }
