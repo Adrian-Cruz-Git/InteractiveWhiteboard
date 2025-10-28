@@ -14,7 +14,7 @@ function getUid(req) {
             if (token && token.sub) {
                 return token.sub;
             }
-            if (token && token.user_id){
+            if (token && token.user_id) {
                 return token.user_id;
             }
         } catch {
@@ -28,6 +28,37 @@ function getUid(req) {
 
 
 // Create an invitation (owner/editor only)
+router.post("/", async (req, res) => {
+    const uid = getUid(req);
+    const { boardId, email, permission } = req.body || {};
+    if (!uid) {
+        return res.status(401).json({ error: 'Unauthorized' });
+    }
+    if (!boardId || !email || !permission) {
+        return res.status(400).json({ error: 'Missing required fields' });
+    }
+
+    const { data: member, error: memberError } = await supabase.from("board_users").select("permission").eq("board_id", boardId).eq("user_id", uid).maybeSingle();
+
+    if (memberError) {
+        return res.status(500).json({ error: memberError.message });
+    }
+
+    if (!member || (member.permission !== "owner" && member.permission !== "editor")) {
+        return res.status(403).json({ error: 'Forbidden' });
+    }
+
+    // Create invitation
+    const { data: invitation, error: invitationError } = await supabase.from("invitations").insert([{ board_id, email, permission }]).select().single();
+
+    if (invitationError) {
+        return res.status(500).json({ error: invitationError.message });
+    }
+
+    res.status(201).json(invitation);
+});
+
+
 
 
 

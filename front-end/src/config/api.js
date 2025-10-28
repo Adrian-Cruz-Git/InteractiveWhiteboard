@@ -20,16 +20,27 @@ export async function api(path, { method = 'GET', headers = {}, body } = {}) {
     let message = text || `${res.status} ${res.statusText}`;
     try {
       const j = text ? JSON.parse(text) : null;
-      if (j && (j.error || j.message)){
+      if (j && (j.error || j.message)) {
         message = j.error || j.message;
-      } 
+      }
     } catch { }
     throw new Error(message);
   }
 
-  if (res.status === 204) return null;
+  if (res.status === 204) {
+    return null;
+  }
+
   // success: parse body once
   const text = await res.text();
-  if (!text) return null;
-  try { return JSON.parse(text); } catch { return text; }
+
+  if (!text) {
+    return null;
+  }
+
+  try {
+    return JSON.parse(text);
+  } catch {
+    return text;
+  }
 }

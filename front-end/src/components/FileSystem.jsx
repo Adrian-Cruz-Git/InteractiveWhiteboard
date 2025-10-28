@@ -15,12 +15,8 @@ export default function FileSystem() {
   const [workingId, setWorkingId] = useState(null);
 
   // ---- minimal helper to add auth header to every call ----
-  const withAuth = (init = {}) => ({
-    ...init,
 
-    // add auth header 
-    headers: { ...(init.headers || {}), Authorization: `Bearer ${user?.uid || ""}` },
-  });
+  
 
   const loadItems = async (folderId = null) => {
     setLoading(true);
