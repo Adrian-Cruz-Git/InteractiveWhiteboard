@@ -25,6 +25,8 @@ app.get('/api/health', (req, res) => res.json({ ok: true }));
 app.use('/api/files', require('./routes/files'));
 app.use('/api/whiteboards', require('./routes/whiteboards'));
 app.use('/api/sticky-notes', require('./routes/stickyNotes'));
+app.use('/api/invitations', require('./routes/invitations'));
+app.use('/api/permissions', require('./routes/permissions'));
 
 //Websocket connection handling - (not ably)
 
