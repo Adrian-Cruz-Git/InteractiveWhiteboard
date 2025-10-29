@@ -4,12 +4,14 @@ import { signOut } from "firebase/auth";
 import { auth } from "../firebase";
 import ShareBtn from "./ShareBtn";
 import OnlineUsers from "./Users/OnlineUsers";
+import EditableBoardName from "./EditableBoardName";
 import "./TopNav.css";
 import BoardPermissionsManager from "./Users/BoardPermissionsManager";
 
-const TopNav = ({ boardId, client }) => {
+const TopNav = ({ fileId, fileName, boardId, client, onNameChange }) => {
   const { user } = useAuth();
 
+  const handleNameChange = (newName) => onNameChange?.(newName);
 
   const handleLogout = async () => {
     await signOut(auth);
@@ -24,6 +26,7 @@ const TopNav = ({ boardId, client }) => {
           {/* <Link to="/settings">Settings</Link> */}
           <Link to="/files">Files</Link>
           {/* Render online users only on whiteboard */}
+          {boardId && <EditableBoardName fileId={fileId} value={fileName || ""} onChange={handleNameChange} />}
           {boardId && client && <OnlineUsers boardId={boardId} client={client} />}
           {boardId && <ShareBtn activeBoard={boardId} /> }
           {boardId && <BoardPermissionsManager boardId={boardId} />}

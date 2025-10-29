@@ -7,7 +7,6 @@ const app = express();
 
 const server = http.createServer(app); // Create an HTTP server using the Express app
 
-
 // Middleware
 app.use(cors({ origin: true, credentials: true }));
 app.use(express.json());
