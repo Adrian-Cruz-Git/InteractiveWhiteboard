@@ -9,7 +9,7 @@ const server = http.createServer(app); // Create an HTTP server using the Expres
 const cors = require("cors"); // Rules for front end requests to back end
 
 // Allow requests from frontend
-const PORT = process.env.NODE_PORT || 5001;
+const PORT = process.env.NODE_PORT || 5000;
 
 // Middleware
 app.use(cors({ origin: true, credentials: true }));
