@@ -8,13 +8,13 @@ import Chat from "../components/Chat"; //importing chat
 import { FaComments } from "react-icons/fa"; //chat icon
 import { auth } from "../firebase";
 import { useRealtime } from "../components/whiteboard/hooks/useRealtime";
+import { api } from "../config/api";
 
 import "./WhiteboardPage.css";
 
 function WhiteboardPage() {
     const user = auth.currentUser;
     const { id } = useParams();
-    const { fileId } = useParams();
     const [file, setFile] = useState(null);
 
     const undoRef = useRef();
@@ -33,14 +33,21 @@ function WhiteboardPage() {
     );
 
     useEffect(() => {
-        let mounted = true;
-        (async () => {
-            // Make sure this returns { id, name, ... }
-            const data = await api(`/files/${fileId}`);
-            if (mounted) setFile(data);
-        })();
-        return () => { mounted = false; };
-    }, [fileId]);
+    if (!id) {
+      console.error("No fileId provided in URL.");
+      return;
+    }
+    let alive = true;
+    (async () => {
+      const data = await api(`/files/${id}`, {
+        headers: { Authorization: `Bearer ${user?.uid || ""}` }, // <- important
+      });
+      if (alive) setFile(data);
+    })();
+    return () => {
+      alive = false;
+    };
+  }, [id, user?.uid]);
 
     const handleNameChange = (next) => {
         setFile((f) => (f ? { ...f, name: next } : f));
@@ -51,8 +58,7 @@ function WhiteboardPage() {
     return (
         <div className="whiteboard-app">
             {/* Give client and boardId to topnav to display active users */}
-            <TopNav client={client} boardId={id} fileName={file?.name || ""} fileId={fileId}   // this controls the child
-        onNameChange={handleNameChange}/>
+            <TopNav client={client} boardId={id} fileId={id} fileName={file?.name || ""} onNameChange={handleNameChange} />
             {/*Chat Icon/Button*/}
             <button
                 className="chat-btn"

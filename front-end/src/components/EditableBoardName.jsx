@@ -19,30 +19,38 @@ export default function EditableBoardName({ fileId, value, onChange }) {
     if (isEditing && inputRef.current) inputRef.current.select();
   }, [isEditing]);
 
-  const withAuth = async (init = {}) => {
-    const idToken = user ? await user.getIdToken() : "";
-    return {
-      ...init,
-      headers: {
-        ...(init.headers || {}),
-        Authorization: `Bearer ${idToken}`,
-        "Content-Type": "application/json",
-      },
-    };
-  };
+  const withAuth = (init = {}) => ({
+    ...init,
+    headers: {
+      ...(init.headers || {}),
+      Authorization: `Bearer ${user?.uid || ""}`,
+      "Content-Type": "application/json",
+    },
+  });
 
   const renameItem = async (id, newName) => {
-    if (!id) throw new Error("Missing fileId for rename.");
+    if (!id) {
+      throw new Error("Missing fileId for rename.");
+    }
     const trimmed = (newName || "").trim();
-    if (!trimmed) throw new Error("Name cannot be empty.");
-    if (trimmed === (value || "").trim()) return { skipped: true };
+
+    if (!fileId) {
+      alert("File ID is missing. Cannot rename.");
+      setIsEditing(false);
+      setDraft(value || "");
+      return;
+    }
+
+    if (!trimmed) {
+      throw new Error("Name cannot be empty.");
+    }
+    if (trimmed === (value || "").trim()) {
+      return { skipped: true };
+    }
 
     setIsSaving(true);
     try {
-      const req = await withAuth({
-        method: "PUT",
-        body: JSON.stringify({ name: trimmed }),
-      });
+      const req = await withAuth({ method: "PUT", body: JSON.stringify({ name: trimmed }), });
       await api(`/files/${id}/rename`, req);
       return { ok: true, next: trimmed };
     } finally {

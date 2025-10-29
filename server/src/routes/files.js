@@ -296,6 +296,23 @@ router.put("/:id/rename", async (req, res) => {
 
 
 
+// GET /api/files/:id
+router.get("/:id", async (req, res) => {
+  const { id } = req.params;
+  const { data, error } = await supabase
+    .from("files")
+    .select("id, name, type, parent_id, owner")
+    .eq("id", id)
+    .single();
+
+  if (error || !data) return res.status(404).json({ error: "Not found" });
+  res.json(data);
+});
+
+
+
+
+
 // delete files
 router.delete("/:id", async (req, res) => {
   const uid = getUid(req)
