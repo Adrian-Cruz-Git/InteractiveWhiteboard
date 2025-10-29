@@ -17,7 +17,7 @@ app.use(cookieParser());
 app.get('/api/health', (req, res) => res.json({ ok: true }));
 
 
-+app.use('/api/session', require('./routes/session'));
+app.use('/api/firebaseSession', require('./routes/firebaseSession'));
 
 app.use('/api/files', requireAuth, require('./routes/files'));
 app.use('/api/whiteboards', requireAuth, require('./routes/whiteboards'));
