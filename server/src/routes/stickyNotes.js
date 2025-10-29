@@ -75,7 +75,7 @@ async function assertEditor(fileId, uid) {
 async function getNoteWithFile(noteId) {
   const { data: note, error } = await supabase
     .from("sticky_notes")
-    .select("id, file_id, x, y, w, h, text, color, created_at, updated_at")
+    .select("id, file_id, x, y, w, h, text, color")
     .eq("id", noteId)
     .single();
   return { note, error };
@@ -97,7 +97,7 @@ router.get("/:fileId", async (req, res) => {
     await assertAnyAccess(fileId, uid);
 
 
-    const { data, error } = await supabase.from("sticky_notes").select("id, file_id, x, y, w, h, text, color, created_at, updated_at").eq("file_id", fileId).order("created_at", { ascending: true });
+    const { data, error } = await supabase.from("sticky_notes").select("id, file_id, x, y, w, h, text, color").eq("file_id", fileId).order("id", { ascending: true });
     if (error) {
       return res.status(400).json({ error: error.message });
     }

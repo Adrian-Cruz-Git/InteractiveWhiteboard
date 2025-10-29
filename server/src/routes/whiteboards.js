@@ -99,7 +99,7 @@ router.get('/:fileId', async (req, res) => {
 });
 
 // PUT /api/whiteboards/:fileId  body: { content }
-router.put('/:fileId', async (req, res) => {
+router.put('/:fileId/content', async (req, res) => {
   try {
     const uid = getUid(req);
     if (!uid) {
