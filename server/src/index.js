@@ -7,10 +7,6 @@ const app = express();
 const server = http.createServer(app); // Create an HTTP server using the Express app
 //Cant use import syntax unless type: module in package.json
 const cors = require("cors"); // Rules for front end requests to back end
-const url = require("url");
-
-const path = require('path');
-const fs = require('fs');
 
 // Allow requests from frontend
 const PORT = process.env.NODE_PORT || 5001;
