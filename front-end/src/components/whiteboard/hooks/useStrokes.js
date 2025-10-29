@@ -55,6 +55,27 @@ export function useStrokes(fileId, onUndoRedo, onChange) {
       return prev.slice(0, -1);
     });
   }, [onUndoRedo]);
+  
+  useEffect(() => {
+    if (!loaded || !fileId) return;
+    // Persist every time undoStack changes (after undo, redo, or stroke)
+    api(`/whiteboards/${fileId}`, { method: "PUT", body: { content: undoStack } })
+      .catch((e) => console.error("Save strokes failed:", e.message));
+  }, [undoStack, loaded, fileId]);
 
-  return { undoStack, setUndoStack, redoStack, addStroke, undo, redo, loaded };
+
+  const clear = useCallback(() => {
+    setUndoStack([]);
+    setRedoStack([]);
+    onUndoRedo && onUndoRedo("clear");
+
+    // Optional immediate visual clear:
+    const canvas = document.querySelector("canvas");
+    if (canvas) {
+      const ctx = canvas.getContext("2d");
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+    }
+  }, [onUndoRedo]);
+
+  return { undoStack, setUndoStack, redoStack, addStroke, undo, redo, clear, loaded };
 }

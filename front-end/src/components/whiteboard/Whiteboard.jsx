@@ -10,13 +10,21 @@ import Canvas from "./Canvas";
 import { useStickyNotes } from "./hooks/useStickyNotes";
 import StickyNotesLayer from "./Layers/StickyNotesLayer";
 import LiveCursors from "../../components/LiveCursors";
+import TextLayer from "./Layers/TextLayer.jsx";
+
+
 
 function Whiteboard({ client, onChange, activeTool, setActiveTool, fileId, onUndo, onRedo, onClear, }) {
   const whiteboardId = fileId || "local-" + Math.random();
   const canvasRef = useRef(null);
   const boardRef = useRef(null);
 
-  const { notes, setNotes, focusNoteId, setFocusNoteId, addNote, removeNote, moveNote, resizeNote, typeNote, loadNotes } = useStickyNotes(fileId);
+  // state for text boxes
+  const [texts, setTexts] = useState([]);
+
+  //state for sticky notes
+  const { notes, setNotes, focusNoteId, setFocusNoteId, addNote, removeNote, moveNote, resizeNote, typeNote, loadNotes } = useStickyNotes(fileId, client, whiteboardId);
+
 
   const { undoStack, addStroke, undo, redo, setUndoStack, clear } = useStrokes(fileId, () => { }, onChange, loadNotes, setNotes);
 
@@ -25,7 +33,7 @@ function Whiteboard({ client, onChange, activeTool, setActiveTool, fileId, onUnd
   // Use the client passed from WhiteboardPage
   const strokesChannel = client?.channels.get(`whiteboard-strokes-${whiteboardId}`);
 
-  // Set up real-time stroke subscription
+  // Set up real-time stroke subscription - subscirbe to other users strokes
   useEffect(() => {
     if (!strokesChannel) return;
 
@@ -41,18 +49,79 @@ function Whiteboard({ client, onChange, activeTool, setActiveTool, fileId, onUnd
     };
   }, [strokesChannel, addStroke]);
 
-
+  // Set up real-time clear subscription - subscribe to others users clear events
   useEffect(() => {
-    if (onUndo) onUndo.current = undo;
-    if (onRedo) onRedo.current = redo;
-    if (onClear) onClear.current = clear;
-  }, [onUndo, onRedo, onClear, undo, redo, clear]);
+    if (!client) return;
+    const eventsChannel = client.channels.get(`whiteboard-events-${whiteboardId}`);
+
+    const handleRemoteClear = (msg) => { // receive clear event from other user
+      console.log("Received clear from:", msg.data.by);
+      clear(); // wipe local canvas when others clear
+      setNotes([]); // clear sticky notes as well
+    };
+
+    eventsChannel.subscribe("clear", handleRemoteClear);
+    return () => eventsChannel.unsubscribe("clear", handleRemoteClear);
+  }, [client, whiteboardId, clear]);
+
+  // Set up real-time undo/redo subscription - subscribe to other users undo/redo events
+  useEffect(() => {
+    if (!client) return;
+    const eventsChannel = client.channels.get(`whiteboard-events-${whiteboardId}`);
+    //when other user performs undo/redo, do it locally as well
+    const handleRemoteUndo = () => {
+      console.log("Received undo");
+      undo();
+    };
+
+    const handleRemoteRedo = () => {
+      console.log("Received redo");
+      redo();
+    };
+
+    eventsChannel.subscribe("undo", handleRemoteUndo);
+    eventsChannel.subscribe("redo", handleRemoteRedo);
+
+    return () => {
+      eventsChannel.unsubscribe("undo", handleRemoteUndo);
+      eventsChannel.unsubscribe("redo", handleRemoteRedo);
+    };
+  }, [client, whiteboardId, undo, redo]);
+
+
+  // Set up undo, redo, and clear broadcasting - publish to other users when local user performs these actions
+  useEffect(() => {
+    if (!client) return;
+
+    const eventsChannel = client.channels.get(`whiteboard-events-${whiteboardId}`);
+
+    const handleClear = () => {
+      clear(); // clear locally
+      setNotes([]); // clear sticky notes locally
+      eventsChannel?.publish("clear", { by: client.auth.clientId }); // broadcast to other users
+    };
+
+    const handleUndo = () => {
+      undo();
+      eventsChannel.publish("undo", { by: client.auth.clientId });
+    };
+
+    const handleRedo = () => {
+      redo();
+      eventsChannel.publish("redo", { by: client.auth.clientId });
+    };
+
+    if (onUndo) onUndo.current = handleUndo;
+    if (onRedo) onRedo.current = handleRedo;
+    if (onClear) onClear.current = handleClear;
+  }, [client, whiteboardId, undo, redo, clear]);
 
   const handleStrokeComplete = (stroke) => {
     // console.log('Publishing stroke:', stroke);
     addStroke(stroke);
     strokesChannel?.publish("new-stroke", { stroke });
   };
+
   // View state for zooming and panning, needed for zooming implementation
   // Keeps coords for the global view state of the whiteboard (camera like model)
   const [view, setView] = useState({
@@ -96,6 +165,13 @@ function Whiteboard({ client, onChange, activeTool, setActiveTool, fileId, onUnd
           resizeNote={resizeNote}
           typeNote={typeNote}
         />
+        <TextLayer
+          activeTool={activeTool}
+          setActiveTool={setActiveTool}
+          boardRef={boardRef}
+          texts={texts}
+          setTexts={setTexts}
+        />
 
         {/* Live Cursors */}
         {client && (
@@ -107,13 +183,12 @@ function Whiteboard({ client, onChange, activeTool, setActiveTool, fileId, onUnd
             whiteboardId={whiteboardId}
           />
         )}
-
         <PanHandler
           boardRef={boardRef}
           activeTool={activeTool}
         /> {/* PanHandler for moving around functionality (panning) when cursor is activated */}
       </ViewContext.Provider>
-    </div>
+    </div >
   );
 }
 

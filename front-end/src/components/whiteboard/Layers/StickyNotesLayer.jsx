@@ -92,10 +92,10 @@ export default function StickyNotesLayer({
       const saved = await addNote(newNote);
       if (saved?.id) setFocusNoteId(saved.id);
     } finally {
-      setActiveTool?.("pen");
-      window.__WB_TOOL__ = "pen";
+      setActiveTool?.("edit");
+      window.__WB_TOOL__ = "edit";
       window.dispatchEvent(
-        new CustomEvent("wb:select-tool", { detail: { tool: "pen" } })
+        new CustomEvent("wb:select-tool", { detail: { tool: "edit" } })
       );
     }
   };
