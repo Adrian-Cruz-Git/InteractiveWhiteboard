@@ -39,10 +39,10 @@ function WhiteboardPage() {
     }
     let alive = true;
     (async () => {
-      const data = await api(`/files/${id}`, {
-        headers: { Authorization: `Bearer ${user?.uid || ""}` }, // <- important
-      });
-      if (alive) setFile(data);
+      const { data } = await api(`/files/${id}`, { method: "GET" });
+      if (alive) {
+        setFile(data);
+      }
     })();
     return () => {
       alive = false;

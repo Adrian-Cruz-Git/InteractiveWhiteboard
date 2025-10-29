@@ -28,9 +28,6 @@ function LoginPage() {
       const result = await signInWithPopup(auth, googleProvider);
       console.log("Logged in:", result.user);
 
-      const token = await result.user.getIdToken();
-      localStorage.setItem("token", token);
-
       navigate("/");
     } catch (err) {
       setPopupMessage(getFriendlyError(err.code));
@@ -42,15 +39,8 @@ function LoginPage() {
   // Email login
   const handleEmailLogin = async () => {
     try {
-      const userCredential = await signInWithEmailAndPassword(
-        auth,
-        email,
-        password
-      );
+      const userCredential = await signInWithEmailAndPassword(auth, email, password);
       console.log("Logged in:", userCredential.user);
-
-      const token = await userCredential.user.getIdToken();
-      localStorage.setItem("token", token);
 
       navigate("/");
     } catch (err) {

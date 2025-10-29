@@ -6,6 +6,7 @@ import ShareBtn from "./ShareBtn";
 import OnlineUsers from "./Users/OnlineUsers";
 import EditableBoardName from "./EditableBoardName";
 import "./TopNav.css";
+import { api } from "../config/api";
 
 const TopNav = ({ fileId, fileName, boardId, client, onNameChange }) => {
   const { user } = useAuth();
@@ -13,6 +14,10 @@ const TopNav = ({ fileId, fileName, boardId, client, onNameChange }) => {
   const handleNameChange = (newName) => onNameChange?.(newName);
 
   const handleLogout = async () => {
+    // clear backend cookie first
+    try {
+      await api("/session/logout", { method: "POST" });
+    } catch {}
     await signOut(auth);
   };
 

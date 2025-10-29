@@ -1,11 +1,11 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import { api } from "../config/api";
 import { useAuth } from "../contexts/useAuth";
 import "./FileSystem.css";
 
 export default function FileSystem() {
-  const { user } = useAuth();
+  const { user, loading: authLoading, sessionReady } = useAuth();
   const navigate = useNavigate();
 
   const [items, setItems] = useState([]);
@@ -13,132 +13,180 @@ export default function FileSystem() {
   const [currentFolder, setCurrentFolder] = useState(null);
   const [breadcrumb, setBreadcrumb] = useState([]);
   const [workingId, setWorkingId] = useState(null);
+  const [creating, setCreating] = useState(false);
 
-  // ---- minimal helper to add auth header to every call ----
-  const withAuth = (init = {}) => ({
-    ...init,
+  const loadBreadcrumb = useCallback(async (folderId) => {
+    try {
+      const trail = await api(`/files/breadcrumb/${folderId}`);
+      setBreadcrumb(trail || []);
+    } catch (e) {
+      console.error("breadcrumb error:", e);
+      setBreadcrumb([]);
+    }
+  }, []);
 
-    // add auth header 
-    headers: { ...(init.headers || {}), Authorization: `Bearer ${user?.uid || ""}` },
-  });
-
-  const loadItems = async (folderId = null) => {
+  const loadItems = useCallback(async (parentId = null) => {
     setLoading(true);
     try {
-      const qs = folderId ? `?parent_id=${encodeURIComponent(folderId)}` : "";
-      const data = await api(`/files${qs}`, withAuth());
-      setItems(data || []);
+      // parentId: null → server will ensure root and return its children
+      const qs = parentId === null || parentId === undefined || parentId === "null" ? "" : `?parent_id=${encodeURIComponent(parentId)}`;
+      const list = await api(`/files${qs}`);
+      setItems(list || []);
 
-      if (folderId) {
-        const trail = await api(`/files/breadcrumb/${folderId}`, withAuth());
-        setBreadcrumb([{ id: null, name: "Root" }, ...trail]);
+      // If we asked for explicit parent, show its breadcrumb
+      // If null (root), server returned children of ensured root; grab first item’s parent if any,
+      // else fallback to keeping current breadcrumb.
+      if (parentId) {
+        await loadBreadcrumb(parentId);
+      } else if (Array.isArray(list) && list.length > 0) {
+        // Try to infer parent from any child entry’s parent_id
+        const inferredParent = list[0]?.parent_id ?? null;
+        if (inferredParent) {
+          await loadBreadcrumb(inferredParent);
+        } else {
+          setBreadcrumb([]); // brand new/empty root
+        }
+
       } else {
-        setBreadcrumb([{ id: null, name: "Root" }]);
+        setBreadcrumb([]);
       }
     } catch (e) {
-      console.error("Error fetching items:", e.message);
+      console.error("list error:", e);
+      setItems([]);
+      setBreadcrumb([]);
     } finally {
       setLoading(false);
     }
-  };
+  }, [loadBreadcrumb]);
 
   useEffect(() => {
-    loadItems(currentFolder);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [user, currentFolder]);
-
-  const createFolder = async () => {
-    const name = prompt("Folder name:");
-    if (!name?.trim()) {
+    if (authLoading) {
       return;
     }
+
+    if (!user) {
+      return; // show nothing until logged in
+    }
+
+    if (!sessionReady) {
+      return; // wait for session to be ready
+    }
+
+    loadItems(currentFolder);
+  }, [authLoading, user, sessionReady, currentFolder, loadItems]);
+
+  const enterFolder = async (folderId) => {
+    setCurrentFolder(folderId);
+    await loadItems(folderId);
+  };
+
+
+  const createFolder = async () => {
+    const name = prompt("Folder name?");
+    if (!name) {
+      return;
+    }
+    setCreating(true);
     try {
-      const body = { name };
-
-      if (currentFolder !== null) {
-        body.parent_id = currentFolder;
-      }
-
-      await api(`/files/folders`, withAuth({ method: "POST", body: currentFolder === null ? { name } : { name, parent_id: currentFolder } }));
-      loadItems(currentFolder);
+      await api(`/files/folders`, { method: "POST", body: { name: name.trim(), parent_id: currentFolder ?? null }, });
+      await loadItems(currentFolder);
     } catch (e) {
-      console.error("Error creating folder:", e.message);
+      alert(e.message || "Failed to create folder");
+    } finally {
+      setCreating(false);
     }
   };
 
   const createWhiteboard = async () => {
-    const name = prompt("Whiteboard name:");
-    if (!name?.trim()) return;
+    const name = prompt("Whiteboard name?");
+    if (!name) {
+      return;
+    }
 
+    setCreating(true);
     try {
-      const body = { name };
-
-      if (currentFolder !== null) {
-        body.parent_id = currentFolder;
+      const wbFile = await api(`/files/whiteboards`, { method: "POST", body: { name: name.trim(), parent_id: currentFolder ?? null }, });
+      // Navigate straight into the whiteboard page
+      if (wbFile?.id) {
+        navigate(`/whiteboards/${wbFile.id}`);
+      } else {
+        await loadItems(currentFolder);
       }
 
-      const created = await api(`/files/whiteboards`, withAuth({ method: "POST", body: currentFolder === null ? { name } : { name, parent_id: currentFolder } }));
-      loadItems(currentFolder);
-      if (created?.id) navigate(`/whiteboards/${created.id}`);
     } catch (e) {
-      console.error("Error creating whiteboard:", e.message);
+      alert(e.message || "Failed to create whiteboard");
+    } finally {
+      setCreating(false);
     }
   };
 
   const deleteItem = async (id) => {
-    if (!confirm("Delete this item and all its contents?")) return;
+    if (!confirm(`Delete "${name}" and all its contents?`)) {
+      return;
+    }
+
     setWorkingId(id);
     try {
-      await api(`/files/${id}`, withAuth({ method: "DELETE" }));
-      setItems((prev) => prev.filter((it) => it.id !== id));
+      await api(`/files/${id}`, { method: "DELETE" });
+      await loadItems(currentFolder);
     } catch (e) {
-      alert(e.message);
+      alert(e.message || "Delete failed");
     } finally {
       setWorkingId(null);
     }
   };
 
   const renameItem = async (id, currentName) => {
-    const name = prompt("New name:", currentName);
-    if (!name || name === currentName) return;
+    const name = prompt("New name:", oldName || "");
+    const trimmed = (name || "").trim();
+    if (!trimmed || trimmed === oldName) {
+      return;
+    }
+
+    setWorkingId(id);
     try {
-      await api(`/files/${id}/rename`, withAuth({ method: "PUT", body: { name } }));
-      setItems((prev) => prev.map((it) => (it.id === id ? { ...it, name } : it)));
+      await api(`/files/${id}/rename`, { method: "PUT", body: { name: trimmed }, });
+      await loadItems(currentFolder);
     } catch (e) {
-      alert(e.message);
+      alert(e.message || "Rename failed");
+    } finally {
+      setWorkingId(null);
     }
   };
 
   const openItem = (item) => {
     if (item.type === "folder") {
-      setCurrentFolder(item.id);
-    }
-    if (item.type === "whiteboard") { // dont fuk with the naming shits confusing af
-      console.log("Navigating to whiteboard", item.id);
+      enterFolder(item.id);
+    } else if (item.type === "whiteboard") {
       navigate(`/whiteboards/${item.id}`);
     }
   };
 
-  const goRoot = () => {
-    setCurrentFolder(null);
-    setBreadcrumb([{ id: null, name: "Root" }]);
-  };
-
-  const goToCrumb = (i) => {
-    const target = breadcrumb[i];
-    setCurrentFolder(target?.id ?? null);
-    setBreadcrumb(breadcrumb.slice(0, i + 1));
+  const goToCrumb = async (folderId) => {
+    setCurrentFolder(folderId);
+    await loadItems(folderId);
   };
 
   return (
     <div className="filesystem">
       {/* Breadcrumbs */}
       <div className="breadcrumbs">
-        <button type="button" onClick={goRoot}>Root</button>
+        {/* Root crumb */}
+        <span
+          className={`crumb ${!breadcrumb.length ? "active" : ""}`}
+          onClick={() => goToCrumb(null)}
+        >
+          Root
+        </span>
         {breadcrumb.map((c, i) => (
           <span key={c.id}>
-            {" › "}
-            <button type="button" onClick={() => goToCrumb(i)}>{c.name}</button>
+            <span className="sep"> / </span>
+            <span
+              className={`crumb ${i === breadcrumb.length - 1 ? "active" : ""}`}
+              onClick={() => goToCrumb(c.id)}
+            >
+              {c.name}
+            </span>
           </span>
         ))}
       </div>
@@ -168,9 +216,7 @@ export default function FileSystem() {
 
               {/* Action buttons */}
               <div className="item-actions">
-                <button
-                  type="button"
-                  className="btn btn-small"
+                <button type="button" className="btn btn-small"
                   onClick={(e) => {
                     e.stopPropagation();
                     openItem(item);

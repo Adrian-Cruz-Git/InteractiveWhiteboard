@@ -86,7 +86,7 @@ async function getNoteWithFile(noteId) {
 
 
 // GET /api/sticky-notes?fileId=...
-router.get('/', async (req, res) => {
+router.get("/:fileId", async (req, res) => {
   try {
     const uid = getUid(req);
     if (!uid) {
@@ -97,7 +97,7 @@ router.get('/', async (req, res) => {
     await assertAnyAccess(fileId, uid);
 
 
-    const { data, error } = await supabase.from("sticky_notes").select("*").eq("file_id", fileId).order("created_at", { ascending: true });
+    const { data, error } = await supabase.from("sticky_notes").select("id, file_id, x, y, w, h, text, color, created_at, updated_at").eq("file_id", fileId).order("created_at", { ascending: true });
     if (error) {
       return res.status(400).json({ error: error.message });
     }
@@ -109,7 +109,7 @@ router.get('/', async (req, res) => {
 });
 
 // POST /api/sticky-notes
-router.post('/', async (req, res) => {
+router.post("/", async (req, res) => {
   try {
     const uid = getUid(req);
 
@@ -130,6 +130,7 @@ router.post('/', async (req, res) => {
     if (error) {
       return res.status(400).json({ error: error.message });
     }
+
     return res.status(201).json(data);
   } catch (e) {
     return res.status(e.status || 500).json({ error: e.message });
@@ -137,7 +138,7 @@ router.post('/', async (req, res) => {
 });
 
 // PATCH /api/sticky-notes/:id
-router.put('/:id', async (req, res) => {
+router.put("/:id", async (req, res) => {
   try {
     const uid = getUid(req);
 
@@ -181,7 +182,7 @@ router.put('/:id', async (req, res) => {
 });
 
 // DELETE /api/sticky-notes/:id
-router.delete('/:id', async (req, res) => {
+router.delete("/:id", async (req, res) => {
   try {
     const uid = getUid(req);
 

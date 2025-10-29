@@ -19,15 +19,6 @@ export default function EditableBoardName({ fileId, value, onChange }) {
     if (isEditing && inputRef.current) inputRef.current.select();
   }, [isEditing]);
 
-  const withAuth = (init = {}) => ({
-    ...init,
-    headers: {
-      ...(init.headers || {}),
-      Authorization: `Bearer ${user?.uid || ""}`,
-      "Content-Type": "application/json",
-    },
-  });
-
   const renameItem = async (id, newName) => {
     if (!id) {
       throw new Error("Missing fileId for rename.");
@@ -50,8 +41,7 @@ export default function EditableBoardName({ fileId, value, onChange }) {
 
     setIsSaving(true);
     try {
-      const req = await withAuth({ method: "PUT", body: JSON.stringify({ name: trimmed }), });
-      await api(`/files/${id}/rename`, req);
+      await api(`/files/${id}/rename`, { method: "PUT", body: { name: trimmed } })
       return { ok: true, next: trimmed };
     } finally {
       setIsSaving(false);

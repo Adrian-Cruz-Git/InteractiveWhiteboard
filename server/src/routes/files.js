@@ -17,7 +17,7 @@ async function ensureRoot(uid) {
 
 
   if (!userRootsError && userRoots) {
-    return ur.root_id;
+    return userRoots.root_id;
   }
 
   if (userRoots?.root_id) {
@@ -210,12 +210,12 @@ router.get("/", async (req, res) => {
     }
 
     /// Base query: restrict to items owned by the user
-    const { data, error } = await supabase.from("files").select("id, name, type, parent_id, owner").eq("parent_id", parent_id).order("type", { ascending: true }).order("name", { ascending: true });
+    const { data: filesUnderParent, error: listError } = await supabase.from("files").select("id, name, type, parent_id, owner").eq("parent_id", parent_id).order("type", { ascending: true }).order("name", { ascending: true });
 
     // respond with data or error
-    if (error) {
-      console.log(error.message);
-      return res.status(400).json({ error: error.message });
+    if (listError) {
+      console.log(listError.message);
+      return res.status(400).json({ error: listError.message });
     }
 
     const { data: userInvitedBoards, error: userInvitedBoardsError } = await supabase.from("board_users").select("board_id").eq("user_id", uid);
@@ -227,7 +227,7 @@ router.get("/", async (req, res) => {
     const sharedIds = new Set((userInvitedBoards || []).map((r) => r.board_id));
 
     // Filter to items the user owns OR are explicitly shared
-    const allowed = (children || []).filter((f) => f.owner === uid || sharedIds.has(f.id));
+    const allowed = (filesUnderParent || []).filter((f) => f.owner === uid || sharedIds.has(f.id));
 
     return res.json(allowed);
   } catch (e) {
