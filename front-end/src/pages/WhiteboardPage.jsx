@@ -15,7 +15,8 @@ import "./WhiteboardPage.css";
 function WhiteboardPage() {
     const user = auth.currentUser;
     const { id } = useParams();
-    const [file, setFile] = useState(null);
+    const [boardName, setBoardName] = useState("");
+    const fileId = id; 
 
     const undoRef = useRef();
     const redoRef = useRef();
@@ -33,32 +34,18 @@ function WhiteboardPage() {
     );
 
     useEffect(() => {
-    if (!id) {
-      console.error("No fileId provided in URL.");
-      return;
-    }
-    let alive = true;
-    (async () => {
-      const data = await api(`/files/${id}`, {
-        headers: { Authorization: `Bearer ${user?.uid || ""}` }, // <- important
-      });
-      if (alive) setFile(data);
-    })();
-    return () => {
-      alive = false;
-    };
-  }, [id, user?.uid]);
-
-    const handleNameChange = (next) => {
-        setFile((f) => (f ? { ...f, name: next } : f));
-    };
+        (async () => {
+            const f = await api(`/files/${fileId}`);
+            setBoardName(f?.name || "Untitled Board");
+        })();
+    }, [fileId]);
 
 
     // ---- Render ----
     return (
         <div className="whiteboard-app">
             {/* Give client and boardId to topnav to display active users */}
-            <TopNav client={client} boardId={id} fileId={id} fileName={file?.name || ""} onNameChange={handleNameChange} />
+            <TopNav client={client} boardId={fileId} boardName={boardName} onRename={setBoardName} />
             {/*Chat Icon/Button*/}
             <button
                 className="chat-btn"

@@ -8,28 +8,55 @@ export function useStrokes(fileId, onUndoRedo, onChange) {
 
   // Load strokes for this whiteboard
   useEffect(() => {
-    const fetchStrokes = async () => {
-      if (!fileId) return;
+    let alive = true;
+    async function fetchStrokes() {
+      if (!fileId) {
+        setLoaded(true);
+        return;
+      }
+      
       try {
         const data = await api(`/whiteboards/${fileId}`);
-        const content = data?.content || [];
-        setUndoStack(content);
-        setRedoStack([]);
+        const content = Array.isArray(data?.content) ? data.content : [];
+        if (alive) {
+          setUndoStack(content);
+          setRedoStack([]);
+        }
+
+      } catch (e) {
+        // If 404 (row not created yet), start empty
+        console.error("Load strokes failed:", e?.message || e);
+        if (alive) {
+          setUndoStack([]);
+          setRedoStack([]);
+        }
+
       } finally {
-        setLoaded(true);
+        if (alive) setLoaded(true);
       }
-    };
+    }
     fetchStrokes();
+    return () => { alive = false; };
   }, [fileId]);
 
-  // Persist strokes when undoStack changes
+  // Persist strokes whenever undoStack changes
   useEffect(() => {
-    if (!loaded || !fileId) return;
-    api(`/whiteboards/${fileId}`, { method: "PUT", body: { content: undoStack } }).catch((e) =>
-      console.error("Save strokes failed:", e.message)
-    );
-    onChange && onChange(undoStack);
-  }, [undoStack, loaded, fileId]);
+    if (!loaded || !fileId) {
+      return;
+    }
+
+    (async () => {
+      try {
+        await api(`/whiteboards/${fileId}/content`, { method: "PUT", body: { content: undoStack },});
+      } catch (e) {
+        console.error("Save strokes failed:", e?.message || e);
+      }
+    })();
+
+    if (onChange) {
+      onChange(undoStack);
+    }
+  }, [undoStack, loaded, fileId, onChange]);
 
   const addStroke = useCallback((stroke) => {
     setUndoStack((prev) => [...prev, stroke]);
@@ -41,7 +68,7 @@ export function useStrokes(fileId, onUndoRedo, onChange) {
       if (!prev.length) return prev;
       const last = prev[prev.length - 1];
       setRedoStack((r) => [...r, last]);
-      onUndoRedo && onUndoRedo("undo");
+      if (onUndoRedo) onUndoRedo("undo");
       return prev.slice(0, -1);
     });
   }, [onUndoRedo]);
@@ -51,25 +78,17 @@ export function useStrokes(fileId, onUndoRedo, onChange) {
       if (!prev.length) return prev;
       const last = prev[prev.length - 1];
       setUndoStack((u) => [...u, last]);
-      onUndoRedo && onUndoRedo("redo");
+      if (onUndoRedo) onUndoRedo("redo");
       return prev.slice(0, -1);
     });
   }, [onUndoRedo]);
-  
-  useEffect(() => {
-    if (!loaded || !fileId) return;
-    // Persist every time undoStack changes (after undo, redo, or stroke)
-    api(`/whiteboards/${fileId}`, { method: "PUT", body: { content: undoStack } })
-      .catch((e) => console.error("Save strokes failed:", e.message));
-  }, [undoStack, loaded, fileId]);
-
 
   const clear = useCallback(() => {
     setUndoStack([]);
     setRedoStack([]);
-    onUndoRedo && onUndoRedo("clear");
+    if (onUndoRedo) onUndoRedo("clear");
 
-    // Optional immediate visual clear:
+    // Optional visual clear
     const canvas = document.querySelector("canvas");
     if (canvas) {
       const ctx = canvas.getContext("2d");

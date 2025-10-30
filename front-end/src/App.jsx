@@ -8,6 +8,7 @@ import RegisterPage from "./pages/RegisterPage";
 import FilesPage from "./pages/FilesPage";
 import WhiteboardPage from "./pages/WhiteboardPage";
 import SettingsPage from "./pages/SettingsPage";
+import AcceptInvitePage from "./pages/AcceptInvitePage";
 
 //ably
 import { useState, useEffect } from "react";
@@ -28,10 +29,13 @@ function AppRoutes() {
   const { user, loading } = useAuth();
 
   if (loading) return <p>Loading...</p>;
+
+  
  
   
   return (
     <Routes>
+      <Route path="/invite/:token" element={<AcceptInvitePage />} />
       {/* Public pages */}
       {!user && ( // If not logged in
         <>

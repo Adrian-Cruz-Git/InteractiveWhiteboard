@@ -30,9 +30,6 @@ function RegisterPage() {
       const result = await signInWithPopup(auth, googleProvider);
       console.log("Registered:", result.user);
 
-      const token = await result.user.getIdToken();
-      localStorage.setItem("token", token);
-
       navigate("/");
     } catch (err) {
       setPopupMessage(getFriendlyError(err.code));
@@ -44,15 +41,8 @@ function RegisterPage() {
   // Email signup
   const handleEmailRegister = async () => {
     try {
-      const userCredential = await createUserWithEmailAndPassword(
-        auth,
-        email,
-        password
-      );
+      const userCredential = await createUserWithEmailAndPassword( auth, email, password);
       console.log("Registered:", userCredential.user);
-
-      const token = await userCredential.user.getIdToken();
-      localStorage.setItem("token", token);
 
       navigate("/");
     } catch (err) {
