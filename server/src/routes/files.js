@@ -451,26 +451,32 @@ router.put("/:id/rename", async (req, res) => {
 
 // GET /api/files/:id
 router.get("/:id", async (req, res) => {
+  try {
+    const uid = getUid(req);
 
-  const uid = getUid(req);
+    if (!uid) {
+      return res.status(401).json({ error: "Unauthorized" });
+    }
 
-  if (!uid) {
-    return res.status(401).json({ error: "Unauthorized" });
+    const { id } = req.params;
+    await assertOwnerOrMember(id, uid);
+
+    const { data, error } = await supabase
+      .from("files")
+      .select("id, name, type, parent_id, owner")
+      .eq("id", id)
+      .single();
+
+    if (error || !data) {
+      return res.status(404).json({ error: "Not found" });
+    }
+    
+    res.json(data);
+  } catch (e) {
+    const status = e.status || 500;
+    return res.status(status).json({ error: e.message });
   }
-
-  const { id } = req.params;
-  await assertOwnerOrMember(id, uid);
-
-
-
-  const { data, error } = await supabase.from("files").select("id, name, type, parent_id, owner").eq("id", id).single();
-
-  if (error || !data) {
-    return res.status(404).json({ error: "Not found" });
-  }
-  res.json(data);
 });
-
 
 
 

@@ -1,6 +1,10 @@
 const { createClient } = require('@supabase/supabase-js');
 require('dotenv').config();
 
+console.log('Loaded env vars:', {
+  url: process.env.SUPABASE_URL,
+  hasKey: !!process.env.SUPABASE_SERVICE_ROLE_KEY
+});
 const supabaseUrl = process.env.SUPABASE_URL;
 const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
 

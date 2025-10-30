@@ -4,35 +4,38 @@ const cors = require("cors");
 const cookieParser = require("cookie-parser");
 const requireAuth = require("./middleware/firebaseAuth");
 
-
-// Create an instance of Express
 const app = express();
-const server = http.createServer(app); // Create an HTTP server using the Express app
-
+const server = http.createServer(app);
 
 // Middleware
 app.use(cors({ origin: process.env.CLIENT_ORIGIN || true, credentials: true }));
-app.use(express.json({ limit: "10mb" }))
-app.use(cookieParser({ extended: true, limit: "10mb" }));
+app.use(express.json({ limit: "10mb" }));
+app.use(cookieParser());
 
 app.get('/api/health', (req, res) => res.json({ ok: true }));
 
-
 app.use('/api/session', require('./routes/firebaseSession'));
 
-app.use("/api/files", requireAuth, require("./routes/members"));
+// Comment out each route to find which one is broken
+// console.log('Loading members route...');
+// app.use("/api/files", requireAuth, require("./routes/members"));
+
+console.log('Loading files route...');
 app.use('/api/files', requireAuth, require('./routes/files'));
+
+console.log('Loading whiteboards route...');
 app.use('/api/whiteboards', requireAuth, require('./routes/whiteboards'));
+
+console.log('Loading sticky-notes route...');
 app.use('/api/sticky-notes', requireAuth, require('./routes/stickyNotes'));
+
+console.log('Loading invitations route...');
 app.use("/api/invitations", requireAuth, require("./routes/invitations"));
 
+console.log('All routes loaded successfully!');
 
-// Allow requests from frontend
 const PORT = process.env.NODE_PORT || 5000;
 
-
-server.listen(PORT, (connections, req) => {
-
+server.listen(PORT, () => {
   console.log(`Server is listening on port ${PORT}`);
-
 });

@@ -112,7 +112,7 @@ router.put('/:fileId/content', async (req, res) => {
     await assertEditor(fileId, uid);
 
     // Check if the row exists
-    const { data: existing, existingError } = await supabase.from("whiteboards").select("file_id").eq("file_id", fileId).maybeSingle();
+    const { data: existing, error: existingError } = await supabase.from("whiteboards").select("file_id").eq("file_id", fileId).maybeSingle();
 
     if (existingError) {
       return res.status(400).json({ error: existingError.message });
