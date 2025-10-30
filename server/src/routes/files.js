@@ -156,10 +156,10 @@ async function deleteRecursively(fileId) {
 
 
 // GET /api/files/:id/permissions 
+// GET /api/files/:id/permissions
 router.get("/:id/permissions", async (req, res) => {
   try {
     const uid = getUid(req);
-
     if (!uid) {
       return res.status(401).json({ error: "Unauthorized" });
     }
@@ -167,31 +167,43 @@ router.get("/:id/permissions", async (req, res) => {
     const fileId = req.params.id;
 
     // find owner permissions
-    const { data: dataOwner, error: ownerError } = await supabase.from("files").select("id, owner").eq("id", fileId).single();
+    const { data: dataOwner, error: ownerError } = await supabase
+      .from("files")
+      .select("id, owner")
+      .eq("id", fileId)
+      .single();
 
     if (ownerError) {
       return res.status(400).json({ error: ownerError.message });
     }
-
     if (!dataOwner) {
       return res.status(404).json({ error: "File not found" });
     }
 
+    // Owner
     if (dataOwner.owner === uid) {
-      return res.json({ permissions: "owner" });
+      return res.json({ permission: "owner", permissions: "owner" });
     }
 
-    const { data, error } = await supabase.from("board_users").select("permission").eq("board_id", fileId).eq("user_id", uid).maybeSingle();
+    // Shared membership
+    const { data, error } = await supabase
+      .from("board_users")
+      .select("permission")
+      .eq("board_id", fileId)
+      .eq("user_id", uid)
+      .maybeSingle();
 
     if (error) {
       return res.status(400).json({ error: error.message });
     }
 
     if (data?.permission) {
-      return res.json({ permissions: data.permissions }); // edit, view perms
+      // "editor" or "viewer"
+      return res.json({ permission: data.permission, permissions: data.permission });
     }
 
-    return res.json({ permissions: "none" });
+    // No access
+    return res.json({ permission: "none", permissions: "none" });
   } catch (e) {
     return res.status(500).json({ error: e.message });
   }

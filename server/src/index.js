@@ -20,10 +20,12 @@ app.get('/api/health', (req, res) => res.json({ ok: true }));
 
 app.use('/api/session', require('./routes/firebaseSession'));
 
+app.use("/api/files", requireAuth, require("./routes/members"));
 app.use('/api/files', requireAuth, require('./routes/files'));
 app.use('/api/whiteboards', requireAuth, require('./routes/whiteboards'));
 app.use('/api/sticky-notes', requireAuth, require('./routes/stickyNotes'));
 app.use("/api/invitations", requireAuth, require("./routes/invitations"));
+
 
 // Allow requests from frontend
 const PORT = process.env.NODE_PORT || 5000;
