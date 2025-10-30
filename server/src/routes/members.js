@@ -66,7 +66,7 @@ router.get("/:id/members", async (req, res) => {
 
     const boardId = req.params.id;
 
-    // --- check access & get owner id ---
+    // load file (to get owner) and ensure requester has any access
     const { data: file, error: fileErr } = await supabase
       .from("files")
       .select("id, owner")
@@ -75,7 +75,7 @@ router.get("/:id/members", async (req, res) => {
     if (fileErr) return res.status(400).json({ error: fileErr.message });
     if (!file)   return res.status(404).json({ error: "Not found" });
 
-    // must have any access (owner/editor/viewer)
+    // must be owner OR appear in board_users
     const { data: me, error: meErr } = await supabase
       .from("board_users")
       .select("permission")
@@ -86,51 +86,58 @@ router.get("/:id/members", async (req, res) => {
     const myRole = (uid === file.owner) ? "owner" : (me?.permission ?? null);
     if (!myRole) return res.status(403).json({ error: "Forbidden" });
 
-    // --- load shared members from board_users ---
+    // shared members
     const { data: rows, error: listErr } = await supabase
       .from("board_users")
       .select("user_id, permission")
       .eq("board_id", boardId);
     if (listErr) return res.status(400).json({ error: listErr.message });
 
-    // --- add owner as synthetic member ---
+    // include owner
     const members = [
       { user_id: file.owner, permission: "owner", is_owner: true },
       ...(rows || []).map(r => ({
         user_id: r.user_id,
         permission: r.permission,
         is_owner: r.user_id === file.owner
-      }))
+      })),
     ];
 
-    // --- enrich with email/display_name from Supabase Auth ---
-    // requires service-role key for supabase client
-    const uniqueIds = [...new Set(members.map(m => m.user_id))];
-    const byId = {};
-    for (const id of uniqueIds) {
-      const { data, error } = await supabase.auth.admin.getUserById(id);
-      if (!error && data?.user) {
-        const meta = data.user.user_metadata || {};
-        byId[id] = {
-          email: data.user.email ?? null,
+    // try to enrich from Auth Admin, but never crash if not available
+    const tryAdmin = !!(supabase?.auth?.admin?.getUserById);
+    const enrich = async (id) => {
+      if (!tryAdmin) return { email: null, display_name: null };
+      try {
+        const { data } = await supabase.auth.admin.getUserById(id);
+        const u = data?.user;
+        if (!u) return { email: null, display_name: null };
+        const meta = u.user_metadata || {};
+        return {
+          email: u.email ?? null,
           display_name: meta.name || meta.full_name || meta.user_name || null,
         };
-      } else {
-        byId[id] = { email: null, display_name: null };
+      } catch (e) {
+        console.error("[members:getUserById]", e?.message || e);
+        return { email: null, display_name: null };
       }
-    }
+    };
 
-    const enriched = members.map(m => ({
+    // enrich sequentially (sets are small); or batch parallel if you prefer
+    const unique = [...new Set(members.map(m => m.user_id))];
+    const info = {};
+    for (const id of unique) info[id] = await enrich(id);
+
+    const result = members.map(m => ({
       user_id: m.user_id,
       permission: m.permission,
       is_owner: m.is_owner,
-      email: byId[m.user_id]?.email ?? null,
-      display_name: byId[m.user_id]?.display_name ?? null,
+      email: info[m.user_id].email,
+      display_name: info[m.user_id].display_name,
     }));
 
-    return res.json(enriched);
+    return res.json(result);
   } catch (e) {
-    console.error("[GET /:id/members] error:", e);
+    console.error("[GET /:id/members] fatal:", e);
     return res.status(e.status || 500).json({ error: e.message });
   }
 });
