@@ -14,6 +14,7 @@ export function useStrokes(fileId, onUndoRedo, onChange) {
         setLoaded(true);
         return;
       }
+      
       try {
         const data = await api(`/whiteboards/${fileId}`);
         const content = Array.isArray(data?.content) ? data.content : [];
@@ -21,6 +22,7 @@ export function useStrokes(fileId, onUndoRedo, onChange) {
           setUndoStack(content);
           setRedoStack([]);
         }
+
       } catch (e) {
         // If 404 (row not created yet), start empty
         console.error("Load strokes failed:", e?.message || e);
@@ -28,6 +30,7 @@ export function useStrokes(fileId, onUndoRedo, onChange) {
           setUndoStack([]);
           setRedoStack([]);
         }
+
       } finally {
         if (alive) setLoaded(true);
       }
@@ -38,19 +41,21 @@ export function useStrokes(fileId, onUndoRedo, onChange) {
 
   // Persist strokes whenever undoStack changes
   useEffect(() => {
-    if (!loaded || !fileId) return;
+    if (!loaded || !fileId) {
+      return;
+    }
+
     (async () => {
       try {
-        await api(`/whiteboards/${fileId}/content`, {
-          method: "PUT",
-          body: { content: undoStack },
-        });
+        await api(`/whiteboards/${fileId}/content`, { method: "PUT", body: { content: undoStack },});
       } catch (e) {
         console.error("Save strokes failed:", e?.message || e);
       }
     })();
 
-    if (onChange) onChange(undoStack);
+    if (onChange) {
+      onChange(undoStack);
+    }
   }, [undoStack, loaded, fileId, onChange]);
 
   const addStroke = useCallback((stroke) => {

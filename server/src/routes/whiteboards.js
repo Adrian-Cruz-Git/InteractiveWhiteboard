@@ -134,7 +134,7 @@ router.put('/:fileId/content', async (req, res) => {
     }
 
 
-    return res.json(data);
+    return res.json({ ok: true });
   } catch (e) {
     return res.status(e.status || 500).json({ error: e.message });
   }

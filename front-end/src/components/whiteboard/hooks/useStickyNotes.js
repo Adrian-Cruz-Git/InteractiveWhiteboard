@@ -120,8 +120,23 @@ export function useStickyNotes(fileId, client, whiteboardId) {
   const moveNote = async (id, { x, y }) => {
     setNotes((prev) => prev.map((n) => (n.id === id ? { ...n, x, y } : n)));
     try {
-      // Server uses PUT (not PATCH)
-      await api(`/sticky-notes/${id}`, { method: "PUT", body: { x, y } });
+
+      const body = {};
+
+      if (typeof x === "number") {
+        body.x = x;
+      }
+
+      if (typeof y === "number") {
+        body.y = y;
+      }
+
+      if (Object.keys(body).length === 0) {
+        return;
+      }
+
+      await api("/sticky-notes/${id}", { method: "PUT", body });
+
       const channel = client?.channels.get(`whiteboard-objects-${whiteboardId}`);
       channel?.publish("note-move", { id, x, y });
     } catch (e) {
@@ -132,8 +147,21 @@ export function useStickyNotes(fileId, client, whiteboardId) {
   const resizeNote = async (id, { width, height }) => {
     setNotes((prev) => prev.map((n) => (n.id === id ? { ...n, width, height } : n)));
     try {
-      // Map UI width/height -> DB w/h; server uses PUT
-      await api(`/sticky-notes/${id}`, { method: "PUT", body: { w: width, h: height } });
+      const body = {};
+
+      if (typeof width === "number") {
+        body.w = width;
+      } 
+      if (typeof height === "number") {
+        body.h = height;
+      }
+
+      if (Object.keys(body).length === 0) {
+        return;
+      }
+
+      await api("/sticky-notes/${id}", { method: "PUT", body });
+
       const channel = client?.channels.get(`whiteboard-objects-${whiteboardId}`);
       channel?.publish("note-resize", { id, width, height });
     } catch (e) {
@@ -144,7 +172,12 @@ export function useStickyNotes(fileId, client, whiteboardId) {
   const typeNote = async (id, text) => {
     setNotes((prev) => prev.map((n) => (n.id === id ? { ...n, text } : n)));
     try {
-      await api(`/sticky-notes/${id}`, { method: "PUT", body: { text } });
+      if (typeof text !== "string") {
+        return;
+      }
+
+      await api("/sticky-notes/${id}", { method: "PUT", body: { text } });
+
       const channel = client?.channels.get(`whiteboard-objects-${whiteboardId}`);
       channel?.publish("note-type", { id, text });
     } catch (e) {
