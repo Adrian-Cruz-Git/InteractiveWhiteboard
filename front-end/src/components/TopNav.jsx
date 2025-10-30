@@ -7,10 +7,12 @@ import OnlineUsers from "./Users/OnlineUsers";
 import EditableBoardName from "./EditableBoardName";
 import "./TopNav.css";
 import { api } from "../config/api";
+import { useState } from "react";
 
 const TopNav = ({ boardId, client, boardName, onRename }) => {
   const { user } = useAuth();
   const fileId = boardId;
+  const [canInvite, setCanInvite] = useState(false);
 
 
 
@@ -34,7 +36,7 @@ const TopNav = ({ boardId, client, boardName, onRename }) => {
           {boardId && <EditableBoardName fileId={fileId} value={boardName} onChange={onRename} />}
           {boardId && client && <OnlineUsers boardId={boardId} client={client} />}
           {boardId && <ShareBtn activeBoard={boardId} />}
-
+          {canInvite && boardId ? (<ShareBtn boardId={boardId} />) : null}
 
           <button onClick={handleLogout} className="logout-btn">
             Logout

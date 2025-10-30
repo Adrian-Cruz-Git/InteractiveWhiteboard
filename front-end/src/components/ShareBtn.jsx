@@ -1,22 +1,31 @@
-import { useState, useEffect} from "react";
+import { useState, useEffect } from "react";
 import "./ShareBtn.css"; // You'll need to create this CSS file or add styles to your existing CSS
+import { api } from "../config/api"; 
 
-function ShareBtn({ activeBoard }) {
+function ShareBtn({ boardId, activeBoard }) {
+    const resolvedBoardId  = boardId ?? activeBoard;
+
     const [showShareModal, setShowShareModal] = useState(false);
-    const [copySuccess, setCopySuccess] = useState(false);
 
-    // Generate shareable link
-    const generateShareLink = () => {
-        const baseUrl = window.location.origin;
-        const boardPath = `/whiteboard/${activeBoard}`;
-        return `${baseUrl}${boardPath}`;
-    };
+    const [email, setEmail] = useState("");
+    const [permission, setPermission] = useState("viewer"); // "viewer" | "editor"
+    const [busy, setBusy] = useState(false);
+    const [msg, setMsg] = useState("");
+    const [error, setError] = useState("");
 
     // Handle modal close
     const handleCloseModal = () => {
         setShowShareModal(false);
+        setEmail("");
+        setPermission("viewer");
+        setBusy(false);
+        setMsg("");
+        setError("");
+
     };
-        // Handle escape key
+
+
+    // Handle escape key
     useEffect(() => {
         const handleEscapeKey = (event) => {
             if (event.key === 'Escape' && showShareModal) {
@@ -28,71 +37,80 @@ function ShareBtn({ activeBoard }) {
         return () => document.removeEventListener('keydown', handleEscapeKey);
     }, [showShareModal]);
 
-    // Copy link to clipboard
-    const handleCopyLink = async () => {
-        const shareLink = generateShareLink();
+    const handleCreateInvite = async () => {
+        if (!resolvedBoardId ) { setError("Missing board id."); return; }
+        if (!email.trim()) { setError("Please enter an email."); return; }
+
+        setBusy(true); setError(""); setMsg("");
         try {
-            await navigator.clipboard.writeText(shareLink);
-            setCopySuccess(true);
-            setTimeout(() => setCopySuccess(false), 2000);
-        } catch (err) {
-            console.error('Failed to copy link:', err);
-            // Fallback for older browsers
-            const textArea = document.createElement('textarea');
-            textArea.value = shareLink;
-            document.body.appendChild(textArea);
-            textArea.select();
-            document.execCommand('copy');
-            document.body.removeChild(textArea);
-            setCopySuccess(true);
-            setTimeout(() => setCopySuccess(false), 2000);
+            const res = await api("/invitations", {
+                method: "POST",
+                body: { board_id: resolvedBoardId , email, permission },
+            });
+            setMsg("Invite recorded. The user will see the board after they log in.");
+            setEmail("");
+        } catch (e) {
+            setError(e?.message || "Failed to create invite.");
+        } finally {
+            setBusy(false);
         }
     };
 
     return (
-        <>
-            <button onClick={() => setShowShareModal(true)} className="share">
-                Share
-            </button>
+    <>
+      <button className="share" onClick={() => setShowShareModal(true)}>Share</button>
 
-            {/* Share Modal */}
-            {showShareModal && (
-                <div className="share-modal-overlay" onClick={() => setShowShareModal(false)}>
-                    <div className="share-modal" onClick={(e) => e.stopPropagation()}>
-                        <div className="share-modal-header">
-                            <h3>Share Board {activeBoard}</h3>
-                        </div>
-                        <div className="share-modal-content">
-                            <div className="share-link-section">
-                                <label>Shareable Link:</label>
-                                <div className="link-container">
-                                    <input
-                                        type="text"
-                                        value={generateShareLink()}
-                                        readOnly
-                                        className="share-link-input"
-                                    />
-                                </div>
-                            </div>
-                            <div className="share-actions">
-                                <button className="close-btn" onClick={() => setShowShareModal(false)}>
-                                    ×
-                                </button>
-                                <button
-                                    onClick={handleCopyLink}
-                                    className="copy-link-btn"
-                                    disabled={copySuccess}
-                                >
-                                    {copySuccess ? '✓ Copied!' : 'Copy Link'}
-                                </button>
+      {showShareModal && (
+        <div className="share-modal-overlay" onClick={close}>
+          <div className="share-modal" onClick={(e) => e.stopPropagation()}>
+            <div className="share-modal-header">
+              <h3>Share Board {resolvedBoardId}</h3>
+              <button className="close-btn" onClick={close} aria-label="Close">×</button>
+            </div>
 
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            )}
-        </>
-    );
+            <div className="share-modal-content">
+              <label className="share-label">Invite by email</label>
+              <div className="share-row">
+                <input
+                  type="email"
+                  placeholder="user@example.com"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  className="share-input"
+                  autoFocus
+                />
+                <select
+                  value={permission}
+                  onChange={(e) => setPermission(e.target.value)}
+                  className="share-select"
+                >
+                  <option value="viewer">Viewer</option>
+                  <option value="editor">Editor</option>
+                </select>
+                <button
+                  onClick={handleCreateInvite}
+                  className="create-invite-btn"
+                  disabled={busy || !email.trim()}
+                >
+                  {busy ? "Inviting…" : "Invite"}
+                </button>
+              </div>
+
+              {msg && <div className="share-success">{msg}</div>}
+              {error && <div className="share-error">{error}</div>}
+            </div>
+
+            <div className="share-modal-footer">
+              <small>
+                The recipient just needs to sign in with that email. We’ll auto-add them.
+              </small>
+            </div>
+          </div>
+        </div>
+      )}
+    </>
+  );
 }
+
 
 export default ShareBtn;

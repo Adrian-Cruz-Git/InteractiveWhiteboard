@@ -16,11 +16,7 @@ async function ensureRoot(uid) {
   const { data: userRoots, error: userRootsError } = await supabase.from("user_roots").select("root_id").eq("owner", uid).maybeSingle();
 
 
-  if (!userRootsError && userRoots) {
-    return userRoots.root_id;
-  }
-
-  if (userRoots?.root_id) {
+  if (!userRootsError && userRoots?.root_id) {
     return userRoots.root_id;
   }
 
@@ -122,13 +118,28 @@ async function deleteRecursively(fileId) {
   for (const child of children || []) {
     if (child.type === "folder") {
       await deleteRecursively(child.id);
-    } else if (child.type === "whiteboards") {
-      await supabase.from("whiteboard").delete().eq("file_id", child.id);
-      await supabase.from("sticky_notes").delete().eq("file_id", child.id);
-      await supabase.from("files").delete().eq("id", child.id);
+    } else if (child.type === "whiteboard") {
+      const whiteboardError = await supabase.from("whiteboards").delete().eq("file_id", child.id);
+      if (whiteboardError) {
+        throw whiteboardError;
+      }
+
+      const stickyNotedError = await supabase.from("sticky_notes").delete().eq("file_id", child.id);
+      if (stickyNotedError) {
+        throw stickyNotedError;
+      }
+
+      const fileError = await supabase.from("files").delete().eq("id", child.id);
+      if (fileError) {
+        throw fileError;
+      }
+
     } else {
       // any other leaf type
-      await supabase.from("files").delete().eq("id", child.id);
+      const leafError = await supabase.from("files").delete().eq("id", child.id);
+      if (leafError) {
+        throw leafError;
+      }
     }
   }
 
@@ -159,7 +170,7 @@ router.get("/:id/permissions", async (req, res) => {
     const { data: dataOwner, error: ownerError } = await supabase.from("files").select("id, owner").eq("id", fileId).single();
 
     if (ownerError) {
-      return res.status(400).json({ error: errorOwner.message });
+      return res.status(400).json({ error: ownerError.message });
     }
 
     if (!dataOwner) {
@@ -176,11 +187,11 @@ router.get("/:id/permissions", async (req, res) => {
       return res.status(400).json({ error: error.message });
     }
 
-    if (data?.permissions) {
+    if (data?.permission) {
       return res.json({ permissions: data.permissions }); // edit, view perms
     }
 
-    return res.json({ permissions: none });
+    return res.json({ permissions: "none" });
   } catch (e) {
     return res.status(500).json({ error: e.message });
   }
@@ -202,12 +213,21 @@ router.get("/", async (req, res) => {
     }
 
     let parent_id = req.query.parent_id ?? null;
-
+    const rootId = await ensureRoot(uid);
 
     // ensure root folder exists if no parent_id provided
     if (parent_id === undefined || parent_id === null || parent_id === "" || parent_id === "null") {
-      parent_id = await ensureRoot(uid);
+      parent_id = rootId;
     }
+
+    // mem
+    const { data: userMembers, error: userMembersError } = await supabase.from("board_users").select("board_id").eq("user_id", uid);
+
+    if (userMembersError) {
+      return res.status(400).json({ error: userMembersError.message });
+    }
+
+    const sharedIds = new Set((userMembers || []).map((r) => r.board_id));
 
     /// Base query: restrict to items owned by the user
     const { data: filesUnderParent, error: listError } = await supabase.from("files").select("id, name, type, parent_id, owner").eq("parent_id", parent_id).order("type", { ascending: true }).order("name", { ascending: true });
@@ -218,16 +238,24 @@ router.get("/", async (req, res) => {
       return res.status(400).json({ error: listError.message });
     }
 
-    const { data: userInvitedBoards, error: userInvitedBoardsError } = await supabase.from("board_users").select("board_id").eq("user_id", uid);
-
-    if (userInvitedBoardsError) {
-      return res.status(400).json({ error: userInvitedBoardsError.message });
-    }
-
-    const sharedIds = new Set((userInvitedBoards || []).map((r) => r.board_id));
-
     // Filter to items the user owns OR are explicitly shared
     const allowed = (filesUnderParent || []).filter((f) => f.owner === uid || sharedIds.has(f.id));
+
+    if (String(parent_id) === String(rootId) && sharedIds.size > 0) {
+      const sharedIdsArr = Array.from(sharedIds);
+      const { data: sharedFiles, error: sharedErr } = await supabase.from("files").select("id, name, type, parent_id, owner").in("id", sharedIdsArr);
+      if (sharedErr) {
+        console.log(sharedErr.message);
+        return res.status(400).json({ error: sharedErr.message });
+      }
+
+      const existingIds = new Set(allowed.map((x) => x.id));
+      for (const sf of sharedFiles || []) {
+        if (!existingIds.has(sf.id)) {
+          allowed.push({ ...sf, parent_id: rootId, shared: true });
+        }
+      }
+    }
 
     return res.json(allowed);
   } catch (e) {
@@ -391,13 +419,13 @@ router.put("/:id/rename", async (req, res) => {
     }
 
     // proceed to rename
-    const { error } = await supabase.from("files").update({ name }).eq("id", id).eq("id", id);
+    const { error } = await supabase.from("files").update({ name }).eq("id", id);
 
     if (error) {
       return res.status(400).json({ error: error.message });
     }
 
-    return res.json({ ok: true });
+    return res.json({ ok: true, name: name.trim() });
   } catch (e) {
     const status = e.status || 500;
     return res.status(status).json({ error: e.message });
