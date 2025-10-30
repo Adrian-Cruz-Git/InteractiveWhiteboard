@@ -240,7 +240,7 @@ export default function FileSystem() {
                   {isDeleting ? "Deleting…" : "Delete"}
                 </button>
 
-                <button onClick={() => renameItem(item.id, item.name)}>Rename</button>
+                {/* <button onClick={() => renameItem(item.id, item.name)}>Rename</button> */}
               </div>
             </li>
           );
