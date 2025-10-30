@@ -8,16 +8,17 @@ import EditableBoardName from "./EditableBoardName";
 import "./TopNav.css";
 import { api } from "../config/api";
 
-const TopNav = ({ fileId, fileName, boardId, client, onNameChange }) => {
+const TopNav = ({ boardId, client, boardName, onRename }) => {
   const { user } = useAuth();
+  const fileId = boardId;
 
-  const handleNameChange = (newName) => onNameChange?.(newName);
+
 
   const handleLogout = async () => {
     // clear backend cookie first
     try {
       await api("/session/logout", { method: "POST" });
-    } catch {}
+    } catch { }
     await signOut(auth);
   };
 
@@ -30,7 +31,7 @@ const TopNav = ({ fileId, fileName, boardId, client, onNameChange }) => {
           {/* <Link to="/settings">Settings</Link> */}
           <Link to="/files">Files</Link>
           {/* Render online users only on whiteboard */}
-          {boardId && <EditableBoardName fileId={fileId} value={fileName || ""} onChange={handleNameChange} />}
+          {boardId && <EditableBoardName fileId={fileId} value={boardName} onChange={onRename} />}
           {boardId && client && <OnlineUsers boardId={boardId} client={client} />}
           {boardId && <ShareBtn activeBoard={boardId} />}
 

@@ -135,7 +135,7 @@ export function useStickyNotes(fileId, client, whiteboardId) {
         return;
       }
 
-      await api("/sticky-notes/${id}", { method: "PUT", body });
+      await api(`/sticky-notes/${id}`, { method: "PUT", body });
 
       const channel = client?.channels.get(`whiteboard-objects-${whiteboardId}`);
       channel?.publish("note-move", { id, x, y });
@@ -160,7 +160,7 @@ export function useStickyNotes(fileId, client, whiteboardId) {
         return;
       }
 
-      await api("/sticky-notes/${id}", { method: "PUT", body });
+      await api(`/sticky-notes/${id}`, { method: "PUT", body });
 
       const channel = client?.channels.get(`whiteboard-objects-${whiteboardId}`);
       channel?.publish("note-resize", { id, width, height });
@@ -176,7 +176,7 @@ export function useStickyNotes(fileId, client, whiteboardId) {
         return;
       }
 
-      await api("/sticky-notes/${id}", { method: "PUT", body: { text } });
+      await api(`/sticky-notes/${id}`, { method: "PUT", body: { text } });
 
       const channel = client?.channels.get(`whiteboard-objects-${whiteboardId}`);
       channel?.publish("note-type", { id, text });

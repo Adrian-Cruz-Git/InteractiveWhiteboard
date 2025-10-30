@@ -87,7 +87,7 @@ router.get('/:fileId', async (req, res) => {
     const { fileId } = req.params;
     await assertAnyAccess(fileId, uid);
 
-    const { data, error } = await supabase.from('whiteboards').select('content').eq('file_id', fileId).single();
+    const { data, error } = await supabase.from('whiteboards').select('content').eq('file_id', fileId).maybeSingle();
     if (error || !data) {
       return res.status(400).json({ error: error.message });
     }
